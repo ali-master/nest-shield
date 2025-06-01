@@ -1,0 +1,97 @@
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Inject } from "@nestjs/common";
+import { Observable, throwError, firstValueFrom } from "rxjs";
+import { catchError, tap } from "rxjs/operators";
+import { Reflector } from "@nestjs/core";
+import { SHIELD_MODULE_OPTIONS, SHIELD_DECORATORS } from "../core/constants";
+import { IShieldConfig, ICircuitBreakerConfig } from "../interfaces/shield-config.interface";
+import { CircuitBreakerService } from "../services";
+
+@Injectable()
+export class CircuitBreakerInterceptor implements NestInterceptor {
+  constructor(
+    @Inject(SHIELD_MODULE_OPTIONS) private readonly options: IShieldConfig,
+    private readonly reflector: Reflector,
+    private readonly circuitBreakerService: CircuitBreakerService,
+  ) {}
+
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    const config = this.getConfig(context);
+
+    if (!config?.enabled) {
+      return next.handle();
+    }
+
+    const handler = context.getHandler();
+    const classRef = context.getClass();
+    const key = `${classRef.name}.${handler.name}`;
+    const request = context.switchToHttp().getRequest();
+    const protectionContext = request.shieldContext;
+
+    const breaker = this.circuitBreakerService.createBreaker(
+      key,
+      () => firstValueFrom(next.handle()),
+      config,
+    );
+
+    return new Observable((subscriber) => {
+      breaker
+        .fire(protectionContext)
+        .then((result) => {
+          if (result instanceof Observable) {
+            result.subscribe({
+              next: (value) => subscriber.next(value),
+              error: (err) => subscriber.error(err),
+              complete: () => subscriber.complete(),
+            });
+          } else {
+            subscriber.next(result);
+            subscriber.complete();
+          }
+        })
+        .catch((error) => {
+          request.circuitBreakerInfo = {
+            state: this.circuitBreakerService.getState(key),
+            stats: this.circuitBreakerService.getStats(key),
+          };
+          subscriber.error(error);
+        });
+    }).pipe(
+      tap(() => {
+        request.circuitBreakerInfo = {
+          state: this.circuitBreakerService.getState(key),
+          stats: this.circuitBreakerService.getStats(key),
+        };
+      }),
+      catchError((error) => {
+        request.circuitBreakerInfo = {
+          state: this.circuitBreakerService.getState(key),
+          stats: this.circuitBreakerService.getStats(key),
+          error: error.message,
+        };
+        return throwError(() => error);
+      }),
+    );
+  }
+
+  private getConfig(context: ExecutionContext): ICircuitBreakerConfig | undefined {
+    const handler = context.getHandler();
+    const classRef = context.getClass();
+
+    const handlerConfig = this.reflector.get<Partial<ICircuitBreakerConfig>>(
+      SHIELD_DECORATORS.CIRCUIT_BREAKER,
+      handler,
+    );
+    const classConfig = this.reflector.get<Partial<ICircuitBreakerConfig>>(
+      SHIELD_DECORATORS.CIRCUIT_BREAKER,
+      classRef,
+    );
+    const globalConfig = this.options.circuitBreaker;
+
+    const merged: any = { ...globalConfig, ...classConfig, ...handlerConfig };
+    // Ensure enabled is always a boolean
+    if (merged.enabled === undefined) {
+      merged.enabled = false;
+    }
+    return merged as ICircuitBreakerConfig;
+  }
+}
