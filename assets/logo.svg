@@ -1,0 +1,121 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Modern Gradient -->
+    <linearGradient id="modernGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#764ba2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f093fb;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Accent Gradient -->
+    <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4facfe;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00f2fe;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Dark Gradient for contrast -->
+    <linearGradient id="darkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2d3748;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a202c;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Glow Effect -->
+    <filter id="modernGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Subtle Shadow -->
+    <filter id="subtleShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+  
+  <!-- Outer Ring -->
+  <circle cx="100" cy="100" r="85" 
+          fill="none" 
+          stroke="url(#modernGradient)" 
+          stroke-width="3" 
+          opacity="0.3"
+          filter="url(#subtleShadow)"/>
+  
+  <!-- Main Shield Form - Modern Rounded -->
+  <path d="M100 25 
+           C100 25, 145 35, 160 70
+           C165 85, 165 115, 160 130
+           C145 165, 100 175, 100 175
+           C100 175, 55 165, 40 130
+           C35 115, 35 85, 40 70
+           C55 35, 100 25, 100 25 Z" 
+        fill="url(#darkGradient)" 
+        filter="url(#modernGlow)"/>
+  
+  <!-- Inner Shield Layer -->
+  <path d="M100 45 
+           C100 45, 130 52, 140 75
+           C143 85, 143 115, 140 125
+           C130 148, 100 155, 100 155
+           C100 155, 70 148, 60 125
+           C57 115, 57 85, 60 75
+           C70 52, 100 45, 100 45 Z" 
+        fill="none" 
+        stroke="url(#accentGradient)" 
+        stroke-width="2" 
+        opacity="0.8"/>
+  
+  <!-- Central Element - Modern N for Nest -->
+  <g transform="translate(100, 100)">
+    <!-- N Letter Modern Design -->
+    <path d="M-15 -20 L-15 20 M-15 -20 L15 20 M15 -20 L15 20" 
+          stroke="url(#accentGradient)" 
+          stroke-width="4" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"
+          fill="none"/>
+    
+    <!-- Central Dot -->
+    <circle cx="0" cy="0" r="3" fill="url(#modernGradient)" opacity="0.9"/>
+  </g>
+  
+  <!-- Floating Elements - Modern Tech -->
+  <g opacity="0.6">
+    <!-- Top Elements -->
+    <circle cx="100" cy="40" r="2" fill="url(#accentGradient)">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    
+    <!-- Right Elements -->
+    <rect x="148" y="95" width="4" height="4" rx="2" fill="url(#modernGradient)" transform="rotate(45 150 100)">
+      <animate attributeName="opacity" values="0.5;1;0.5" dur="1.5s" repeatCount="indefinite"/>
+    </rect>
+    
+    <!-- Left Elements -->
+    <rect x="48" y="95" width="4" height="4" rx="2" fill="url(#accentGradient)" transform="rotate(45 50 100)">
+      <animate attributeName="opacity" values="1;0.3;1" dur="1.8s" repeatCount="indefinite"/>
+    </rect>
+    
+    <!-- Bottom Elements -->
+    <circle cx="100" cy="160" r="2" fill="url(#modernGradient)">
+      <animate attributeName="opacity" values="0.4;1;0.4" dur="2.2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  
+  <!-- Corner Accents -->
+  <g opacity="0.4">
+    <path d="M70 70 L80 70 L70 80" stroke="url(#accentGradient)" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M130 70 L120 70 L130 80" stroke="url(#accentGradient)" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M70 130 L80 130 L70 120" stroke="url(#accentGradient)" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M130 130 L120 130 L130 120" stroke="url(#accentGradient)" stroke-width="2" fill="none" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Subtle Grid Pattern -->
+  <defs>
+    <pattern id="gridPattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="url(#accentGradient)" stroke-width="0.5" opacity="0.1"/>
+    </pattern>
+  </defs>
+  <circle cx="100" cy="100" r="75" fill="url(#gridPattern)" opacity="0.3"/>
+</svg>

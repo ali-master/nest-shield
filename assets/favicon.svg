@@ -1,0 +1,67 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Modern Favicon Gradients -->
+    <linearGradient id="faviconModernGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#764ba2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f093fb;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="faviconAccentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4facfe;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00f2fe;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="faviconDarkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2d3748;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a202c;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Outer Ring -->
+  <circle cx="16" cy="16" r="14" 
+          fill="none" 
+          stroke="url(#faviconModernGradient)" 
+          stroke-width="1" 
+          opacity="0.4"/>
+  
+  <!-- Main Shield Form - Simplified for Favicon -->
+  <path d="M16 4 
+           C16 4, 24 6, 27 14
+           C28 17, 28 21, 27 24
+           C24 28, 16 30, 16 30
+           C16 30, 8 28, 5 24
+           C4 21, 4 17, 5 14
+           C8 6, 16 4, 16 4 Z" 
+        fill="url(#faviconDarkGradient)"/>
+  
+  <!-- Inner Shield Layer -->
+  <path d="M16 8 
+           C16 8, 21 9, 23 15
+           C23 17, 23 19, 23 21
+           C21 25, 16 26, 16 26
+           C16 26, 11 25, 9 21
+           C9 19, 9 17, 9 15
+           C11 9, 16 8, 16 8 Z" 
+        fill="none" 
+        stroke="url(#faviconAccentGradient)" 
+        stroke-width="1" 
+        opacity="0.9"/>
+  
+  <!-- Central N - Simplified -->
+  <g transform="translate(16, 16)">
+    <path d="M-4 -6 L-4 6 M-4 -6 L4 6 M4 -6 L4 6" 
+          stroke="url(#faviconAccentGradient)" 
+          stroke-width="1.5" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"
+          fill="none"/>
+    <circle cx="0" cy="0" r="1" fill="url(#faviconModernGradient)" opacity="0.9"/>
+  </g>
+  
+  <!-- Minimal Floating Elements -->
+  <circle cx="16" cy="8" r="0.5" fill="url(#faviconAccentGradient)" opacity="0.8"/>
+  <circle cx="24" cy="16" r="0.5" fill="url(#faviconModernGradient)" opacity="0.6"/>
+  <circle cx="8" cy="16" r="0.5" fill="url(#faviconAccentGradient)" opacity="0.6"/>
+  <circle cx="16" cy="24" r="0.5" fill="url(#faviconModernGradient)" opacity="0.8"/>
+</svg>

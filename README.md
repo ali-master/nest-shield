@@ -1,11 +1,21 @@
-# 🛡️ NestShield
+<p align="center">
+  <img src="./assets/logo.svg" alt="NestJS Shield - Enterprise-grade protection for NestJS applications">
+</p>
 
-> **Battle-tested overload protection for NestJS - Because your API deserves a bodyguard**
-
-[![npm version](https://img.shields.io/npm/v/@usex/nest-shield.svg)](https://www.npmjs.com/package/@usex/nest-shield)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
-[![NestJS](https://img.shields.io/badge/NestJS-10.0+-red.svg)](https://nestjs.com/)
+<p align="center">
+  <a href="https://www.npmjs.com/package/@usex/nest-shield">
+    <img src="https://img.shields.io/npm/v/@usex/nest-shield.svg" alt="npm version">
+  </a>
+  <a href="https://opensource.org/licenses/MIT">
+    <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT">
+  </a>
+  <a href="https://www.typescriptlang.org/">
+    <img src="https://img.shields.io/badge/TypeScript-5.0+-blue.svg" alt="TypeScript">
+  </a>
+  <a href="https://nestjs.com/">
+    <img src="https://img.shields.io/badge/NestJS-10.0+-red.svg" alt="NestJS">
+  </a>
+</p>
 
 ## 🎯 What is NestShield?
 
@@ -519,17 +529,25 @@ MIT © [Ali Torki](https://github.com/ali-master)
 
 ## 🙏 Acknowledgments
 
-Built with ❤️ using:
-- [Opossum](https://github.com/nodeshift/opossum) - Circuit breaker
-- [ioredis](https://github.com/luin/ioredis) - Redis client
-- [memjs](https://github.com/alevy/memjs) - Memcached client
-
+<div align="center">
+  <p>
+    <strong>Ready to build distributed systems that just work?</strong>
+  </p>
+  <p>
+    <a href="./docs/installation.md">🚀 Get Started</a> •
+    <a href="./docs/examples.md">📚 View Examples</a> •
+    <a href="https://github.com/ali-master/nest-shield">⭐ Star on GitHub</a>
+  </p>
+  <p>
+    Made with ❤️ by <a href="https://github.com/ali-master">Ali Master</a> and the open source community.
+  </p>
+</div>
 ---
 
 <p align="center">
   <strong>Ready to protect your API?</strong><br>
   <a href="https://github.com/ali-master/nest-shield">Documentation</a> •
-  <a href="https://github.com/ali-master/nest-shield/blob/main/examples">Examples</a> •
+  <a href="https://github.com/ali-master/nest-shield/blob/master/examples">Examples</a> •
   <a href="https://github.com/ali-master/nest-shield/issues">Issues</a> •
   <a href="https://discord.gg/nestshield">Discord</a>
 </p>
