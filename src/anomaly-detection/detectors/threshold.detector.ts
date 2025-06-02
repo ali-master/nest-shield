@@ -80,7 +80,7 @@ export class ThresholdAnomalyDetector extends BaseAnomalyDetector {
     const description =
       `Threshold violation: ${primaryViolation.type} threshold exceeded ` +
       `(value=${dataPoint.value.toFixed(2)}, threshold=${primaryViolation.threshold.toFixed(2)}, ` +
-      `severity=${primaryViolation.severity.toFixed(2)})`;
+      `severity=${primaryViolation.severity})`;
 
     return this.createAnomaly(
       dataPoint,
@@ -213,7 +213,7 @@ export class ThresholdAnomalyDetector extends BaseAnomalyDetector {
         threshold: thresholds.upper,
         actualValue: value,
         deviation: value - thresholds.upper,
-        severity: this.calculateSeverity(value, thresholds.upper, "upper"),
+        severity: this.calculateThresholdSeverity(value, thresholds.upper, "upper"),
       });
     } else if (value > thresholds.upperWarning) {
       violations.push({
@@ -221,7 +221,7 @@ export class ThresholdAnomalyDetector extends BaseAnomalyDetector {
         threshold: thresholds.upperWarning,
         actualValue: value,
         deviation: value - thresholds.upperWarning,
-        severity: this.calculateSeverity(value, thresholds.upperWarning, "warning"),
+        severity: this.calculateThresholdSeverity(value, thresholds.upperWarning, "warning"),
       });
     }
 
@@ -231,7 +231,7 @@ export class ThresholdAnomalyDetector extends BaseAnomalyDetector {
         threshold: thresholds.lower,
         actualValue: value,
         deviation: thresholds.lower - value,
-        severity: this.calculateSeverity(value, thresholds.lower, "lower"),
+        severity: this.calculateThresholdSeverity(value, thresholds.lower, "lower"),
       });
     } else if (value < thresholds.lowerWarning) {
       violations.push({
@@ -239,7 +239,7 @@ export class ThresholdAnomalyDetector extends BaseAnomalyDetector {
         threshold: thresholds.lowerWarning,
         actualValue: value,
         deviation: thresholds.lowerWarning - value,
-        severity: this.calculateSeverity(value, thresholds.lowerWarning, "warning"),
+        severity: this.calculateThresholdSeverity(value, thresholds.lowerWarning, "warning"),
       });
     }
 
@@ -271,8 +271,7 @@ export class ThresholdAnomalyDetector extends BaseAnomalyDetector {
         threshold: thresholds.rateUpperLimit,
         actualValue: rateOfChange,
         deviation: rateOfChange - thresholds.rateUpperLimit,
-        severity: Math.min(
-          1.0,
+        severity: this.mapDeviationToSeverity(
           (rateOfChange - thresholds.rateUpperLimit) / thresholds.rateUpperLimit,
         ),
       });
@@ -284,8 +283,7 @@ export class ThresholdAnomalyDetector extends BaseAnomalyDetector {
         threshold: thresholds.rateLowerLimit,
         actualValue: Math.abs(rateOfChange),
         deviation: Math.abs(rateOfChange) - thresholds.rateLowerLimit,
-        severity: Math.min(
-          1.0,
+        severity: this.mapDeviationToSeverity(
           (Math.abs(rateOfChange) - thresholds.rateLowerLimit) / thresholds.rateLowerLimit,
         ),
       });
@@ -294,6 +292,7 @@ export class ThresholdAnomalyDetector extends BaseAnomalyDetector {
     return violations;
   }
 
+  // Override from base class
   protected calculateSeverity(score: number, confidence: number): AnomalySeverity {
     // Combine score and confidence to determine severity
     const combinedScore = score * confidence;
@@ -304,18 +303,66 @@ export class ThresholdAnomalyDetector extends BaseAnomalyDetector {
     return AnomalySeverity.LOW;
   }
 
+  private calculateThresholdSeverity(
+    value: number,
+    threshold: number,
+    type: string,
+  ): AnomalySeverity {
+    // Calculate severity based on how much the value exceeds the threshold
+    const deviation = Math.abs(value - threshold);
+    const percentageDeviation = deviation / Math.abs(threshold);
+
+    if (type === "upper" || type === "lower") {
+      // Critical thresholds
+      if (percentageDeviation >= 0.5) return AnomalySeverity.CRITICAL;
+      if (percentageDeviation >= 0.3) return AnomalySeverity.HIGH;
+      if (percentageDeviation >= 0.1) return AnomalySeverity.MEDIUM;
+      return AnomalySeverity.LOW;
+    } else {
+      // Warning thresholds
+      if (percentageDeviation >= 0.3) return AnomalySeverity.HIGH;
+      if (percentageDeviation >= 0.1) return AnomalySeverity.MEDIUM;
+      return AnomalySeverity.LOW;
+    }
+  }
+
+  private mapDeviationToSeverity(deviation: number): AnomalySeverity {
+    const normalizedDeviation = Math.min(1.0, Math.abs(deviation));
+
+    if (normalizedDeviation >= 0.8) return AnomalySeverity.CRITICAL;
+    if (normalizedDeviation >= 0.5) return AnomalySeverity.HIGH;
+    if (normalizedDeviation >= 0.2) return AnomalySeverity.MEDIUM;
+    return AnomalySeverity.LOW;
+  }
+
   private calculateViolationScore(
     primaryViolation: IThresholdViolation,
     allViolations: IThresholdViolation[],
   ): number {
+    // Convert severity enum to numeric score
+    const severityToScore = (severity: AnomalySeverity): number => {
+      switch (severity) {
+        case AnomalySeverity.CRITICAL:
+          return 1.0;
+        case AnomalySeverity.HIGH:
+          return 0.7;
+        case AnomalySeverity.MEDIUM:
+          return 0.4;
+        case AnomalySeverity.LOW:
+          return 0.2;
+        default:
+          return 0.1;
+      }
+    };
+
     // Base score from primary violation
-    let score = primaryViolation.severity;
+    let score = severityToScore(primaryViolation.severity);
 
     // Increase score if multiple thresholds are violated
     if (allViolations.length > 1) {
       const additionalSeverity = allViolations
         .filter((v) => v !== primaryViolation)
-        .reduce((sum, v) => sum + v.severity, 0);
+        .reduce((sum, v) => sum + severityToScore(v.severity), 0);
       score += additionalSeverity * 0.3; // Weight additional violations lower
     }
 
@@ -481,7 +528,7 @@ export class ThresholdAnomalyDetector extends BaseAnomalyDetector {
       upperWarning: stats.mean + stdDevMultiplier * 0.7 * stats.stdDev,
       lowerWarning: Math.max(0, stats.mean - stdDevMultiplier * 0.7 * stats.stdDev),
       rate: this.calculateRateThresholds(data),
-      dynamic: this.config.adaptiveThresholds !== false,
+      dynamic: (this.config as any).adaptiveThresholds !== false,
       lastUpdated: Date.now(),
     };
 
@@ -603,7 +650,7 @@ interface IThresholdViolation {
   threshold: number;
   actualValue: number;
   deviation: number;
-  severity: number;
+  severity: AnomalySeverity;
 }
 
 interface IAdaptiveThreshold {

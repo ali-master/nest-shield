@@ -1,4 +1,4 @@
-import { IMetricsCollector } from "@usex/nest-shield";
+import { IMetricsCollector } from "../../src";
 
 export class CustomMetricsCollector implements IMetricsCollector {
   private metrics: Map<string, any> = new Map();

@@ -2,7 +2,7 @@ import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from "@nestjs/commo
 import { IMetricsConfig, IMetricsCollector } from "../interfaces/shield-config.interface";
 import { SHIELD_MODULE_OPTIONS } from "../core/constants";
 import { AnomalyDetectionService } from "./anomaly-detection.service";
-import { IAnomalyData } from "../anomaly-detection/interfaces/anomaly.interface";
+import { IAnomalyData } from "../anomaly-detection";
 import {
   PrometheusCollector,
   StatsDCollector,
@@ -371,7 +371,7 @@ export class EnhancedMetricsService implements IMetricsCollector, OnModuleInit, 
         );
         break;
       case "json":
-        this.exporter = new JsonExporter(this.collector as BaseMetricsCollector, exporterConfig);
+        this.exporter = new JsonExporter(this.collector, exporterConfig);
         break;
       case "openmetrics":
         this.exporter = new OpenMetricsExporter(

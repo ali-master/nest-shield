@@ -112,7 +112,7 @@ export class IsolationForestDetector extends BaseAnomalyDetector {
       case 0: // Value-based features
         return dataPoint.value > this.getFeatureMean(0) ? AnomalyType.SPIKE : AnomalyType.DROP;
       case 1: // Rate-based features
-        return AnomalyType.TREND;
+        return AnomalyType.TREND_CHANGE;
       case 2: // Variance-based features
         return AnomalyType.OUTLIER;
       default:
@@ -139,7 +139,7 @@ export class IsolationForestDetector extends BaseAnomalyDetector {
     this.trees = [];
     for (let i = 0; i < numTrees; i++) {
       const subsample = this.subsample(features, subsampleSize);
-      const tree = new IsolationTree(this.config.maxDepth || 10);
+      const tree = new IsolationTree(10); // Default max depth
       tree.build(subsample);
       this.trees.push(tree);
     }
@@ -253,9 +253,9 @@ class IsolationTree {
     }
 
     if (features[node.featureIndex!] < node.splitValue!) {
-      return this.getPathLengthRecursive(node.left, features, depth + 1);
+      return this.getPathLengthRecursive(node.left ?? null, features, depth + 1);
     } else {
-      return this.getPathLengthRecursive(node.right, features, depth + 1);
+      return this.getPathLengthRecursive(node.right ?? null, features, depth + 1);
     }
   }
 
@@ -270,7 +270,13 @@ class IsolationTree {
 
   private getDepthRecursive(node: IsolationNode | null): number {
     if (!node || node.isLeaf) return 0;
-    return 1 + Math.max(this.getDepthRecursive(node.left), this.getDepthRecursive(node.right));
+    return (
+      1 +
+      Math.max(
+        this.getDepthRecursive(node.left ?? null),
+        this.getDepthRecursive(node.right ?? null),
+      )
+    );
   }
 
   getNodeCount(): number {
@@ -279,7 +285,11 @@ class IsolationTree {
 
   private getNodeCountRecursive(node: IsolationNode | null): number {
     if (!node) return 0;
-    return 1 + this.getNodeCountRecursive(node.left) + this.getNodeCountRecursive(node.right);
+    return (
+      1 +
+      this.getNodeCountRecursive(node.left ?? null) +
+      this.getNodeCountRecursive(node.right ?? null)
+    );
   }
 
   getFeatureSplitCount(featureIndex: number): number {
@@ -292,8 +302,8 @@ class IsolationTree {
     const currentCount = node.featureIndex === featureIndex ? 1 : 0;
     return (
       currentCount +
-      this.getFeatureSplitCountRecursive(node.left, featureIndex) +
-      this.getFeatureSplitCountRecursive(node.right, featureIndex)
+      this.getFeatureSplitCountRecursive(node.left ?? null, featureIndex) +
+      this.getFeatureSplitCountRecursive(node.right ?? null, featureIndex)
     );
   }
 }

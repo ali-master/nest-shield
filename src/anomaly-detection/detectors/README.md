@@ -24,7 +24,7 @@ NestShield's anomaly detection system provides a comprehensive suite of detectio
 ### Key Features
 
 - **Multi-Algorithm Support**: Seven different detection algorithms covering various anomaly types
-- **Enterprise-Ready**: Production-tested with comprehensive error handling and monitoring
+- **Production-Ready**: Production-tested with comprehensive error handling and monitoring
 - **Adaptive Behavior**: Dynamic threshold adjustment and pattern learning
 - **Real-Time Processing**: Optimized for low-latency detection in high-throughput environments
 - **Business Rule Integration**: Customizable rules for anomaly suppression and escalation

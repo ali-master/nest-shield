@@ -3,13 +3,17 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
 import { ScheduleModule } from "@nestjs/schedule";
 
 // Import services
-import { AnomalyDetectionService } from "../services/anomaly-detection.service";
-import { 
-  EnterpriseAnomalyDetectionService,
-  EnterpriseAlertingService,
-  EnterprisePerformanceMonitorService,
-  EnterpriseDataCollectorService
+import {
+  AnomalyDetectionService,
+  AlertingService,
+  PerformanceMonitorService,
+  DataCollectorService,
 } from "./services";
+import { DetectorManagementService } from "./services/detector-management.service";
+
+// Import controllers
+import { AnomalyManagementController } from "./controllers/anomaly-management.controller";
+import { DetectorManagementController } from "./controllers/detector-management.controller";
 
 // Import all detectors
 import {
@@ -23,20 +27,16 @@ import {
 } from "./detectors";
 
 @Module({
-  imports: [
-    EventEmitterModule.forRoot(),
-    ScheduleModule.forRoot(),
-  ],
+  imports: [EventEmitterModule.forRoot(), ScheduleModule.forRoot()],
+  controllers: [AnomalyManagementController, DetectorManagementController],
   providers: [
-    // Core services
+    // Services
     AnomalyDetectionService,
-    
-    // Enterprise services
-    EnterpriseAnomalyDetectionService,
-    EnterpriseAlertingService,
-    EnterprisePerformanceMonitorService,
-    EnterpriseDataCollectorService,
-    
+    AlertingService,
+    PerformanceMonitorService,
+    DataCollectorService,
+    DetectorManagementService,
+
     // Detectors
     ZScoreDetector,
     IsolationForestDetector,
@@ -47,15 +47,13 @@ import {
     CompositeAnomalyDetector,
   ],
   exports: [
-    // Core services
+    // Services
     AnomalyDetectionService,
-    
-    // Enterprise services
-    EnterpriseAnomalyDetectionService,
-    EnterpriseAlertingService,
-    EnterprisePerformanceMonitorService,
-    EnterpriseDataCollectorService,
-    
+    AlertingService,
+    PerformanceMonitorService,
+    DataCollectorService,
+    DetectorManagementService,
+
     // Detectors
     ZScoreDetector,
     IsolationForestDetector,

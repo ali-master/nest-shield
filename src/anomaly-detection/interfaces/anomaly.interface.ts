@@ -98,7 +98,7 @@ export interface IAnomalyPattern {
   conditions: IPatternCondition[];
   severity: AnomalySeverity;
   autoResolve?: boolean;
-  suppressionRules?: ISuppressionRule[];
+  suppressionRules?: string[]; // IDs of suppression rules
 }
 
 export interface IPatternCondition {

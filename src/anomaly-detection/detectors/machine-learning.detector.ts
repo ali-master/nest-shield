@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { BaseAnomalyDetector } from "./base.detector";
 import { IAnomalyData, IAnomaly, AnomalyType } from "../interfaces/anomaly.interface";
-import { IDetectorContext } from "../interfaces/detector.interface";
+import { IDetectorContext, IModelInfo } from "../interfaces/detector.interface";
 
 @Injectable()
 export class MachineLearningDetector extends BaseAnomalyDetector {
@@ -185,7 +185,7 @@ export class MachineLearningDetector extends BaseAnomalyDetector {
 
     // LSTM high prediction error suggests trend anomaly
     if ((contributions.get("lstm") || 0) > 0.3) {
-      return AnomalyType.TREND;
+      return AnomalyType.TREND_CHANGE;
     }
 
     // Isolation Forest suggests point anomaly
@@ -400,7 +400,34 @@ export class MachineLearningDetector extends BaseAnomalyDetector {
 
   // Advanced ML methods
 
-  getModelInfo(source?: string): Map<string, IMLModel> | IMLModel | undefined {
+  getModelInfo(): IModelInfo {
+    // Return info in the expected format for base class compatibility
+    return {
+      algorithm: "Machine Learning Ensemble",
+      version: "1.0.0",
+      trainedAt: Date.now(),
+      lastUpdated: Date.now(),
+      trainingDataSize: Array.from(this.models.values()).reduce(
+        (sum, model) => sum + (model.dataSize || 0),
+        0,
+      ),
+      parameters: {
+        enabled: this.config.enabled,
+        sensitivity: this.config.sensitivity,
+        threshold: this.config.threshold,
+        windowSize: this.config.windowSize,
+        minDataPoints: this.config.minDataPoints,
+        algorithms: (this.config as any).algorithms || [
+          "autoencoder",
+          "lstm",
+          "isolation-forest-ml",
+        ],
+      },
+    };
+  }
+
+  // Separate method for source-specific model info
+  getSourceModelInfo(source?: string): Map<string, IMLModel> | IMLModel | undefined {
     if (source) {
       return this.models.get(source);
     }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Inject, Query, Headers } from "@nestjs/common";
+import { Controller, Get, Post, Body, Query, Headers } from "@nestjs/common";
 import {
   Shield,
   Priority,
@@ -12,7 +12,7 @@ import {
   CircuitBreakerInfo,
   OverloadInfo,
   IProtectionContext,
-} from "@usex/nest-shield";
+} from "../../src";
 
 @Controller("api/v2")
 export class AdvancedController {

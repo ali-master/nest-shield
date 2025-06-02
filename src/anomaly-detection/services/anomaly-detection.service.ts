@@ -1,26 +1,31 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { Cron, CronExpression } from "@nestjs/schedule";
-import { IAnomalyData, IAnomaly } from "../interfaces/anomaly.interface";
+import { IAnomalyData, IAnomaly, AnomalySeverity } from "../interfaces/anomaly.interface";
 import { IDetectorContext } from "../interfaces/detector.interface";
 import { IAnomalyDetectionConfig } from "../../interfaces/shield-config.interface";
+import { NotificationChannel } from "../interfaces/alert.interface";
 
-// Import enterprise services
-import { 
-  EnterpriseAlertingService, 
-  IAlertingConfig,
-  ISuppressionRule as AlertSuppressionRule
-} from "./alerting.service";
-import { 
-  EnterprisePerformanceMonitorService, 
+// Import services
+import { AlertingService } from "./alerting.service";
+import {
+  PerformanceMonitorService,
   IAutoScalingConfig,
-  IPerformanceMetrics 
+  IPerformanceMetrics,
 } from "./performance-monitor.service";
-import { 
-  EnterpriseDataCollectorService, 
-  IDataCollectionConfig,
-  IDataSource 
-} from "./data-collector.service";
+import { DataCollectorService, IDataCollectionConfig, IDataSource } from "./data-collector.service";
+import { DetectorManagementService } from "./detector-management.service";
+
+// Local interfaces for service configuration
+interface IAlertingConfig {
+  enabled: boolean;
+  channels: any[];
+  escalationPolicy: any;
+  rateLimiting?: {
+    maxAlertsPerMinute: number;
+    maxAlertsPerHour: number;
+  };
+}
 
 // Import detectors
 import {
@@ -34,7 +39,7 @@ import {
   CompositeAnomalyDetector,
 } from "../detectors";
 
-export interface IEnterpriseAnomalyConfig extends IAnomalyDetectionConfig {
+export interface IAnomalyDetectionConfigExtended extends Omit<IAnomalyDetectionConfig, "alerting"> {
   alerting: IAlertingConfig;
   performance: IAutoScalingConfig;
   dataCollection: IDataCollectionConfig;
@@ -88,11 +93,11 @@ export interface IAnomalyDetectionReport {
 }
 
 @Injectable()
-export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(EnterpriseAnomalyDetectionService.name);
+export class AnomalyDetectionService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(AnomalyDetectionService.name);
   private detectors: Map<string, BaseAnomalyDetector> = new Map();
   private activeDetector: BaseAnomalyDetector | null = null;
-  private config: IEnterpriseAnomalyConfig;
+  private config: IAnomalyDetectionConfigExtended;
   private isInitialized = false;
   private anomalyHistory: Map<string, IAnomaly[]> = new Map();
   private detectionStats: Map<string, any> = new Map();
@@ -101,9 +106,10 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
 
   constructor(
     private readonly eventEmitter: EventEmitter2,
-    private readonly alertingService: EnterpriseAlertingService,
-    private readonly performanceService: EnterprisePerformanceMonitorService,
-    private readonly dataCollectorService: EnterpriseDataCollectorService,
+    private readonly alertingService: AlertingService,
+    private readonly performanceService: PerformanceMonitorService,
+    private readonly dataCollectorService: DataCollectorService,
+    private readonly detectorManagementService: DetectorManagementService,
     // Inject all detectors
     private readonly zscoreDetector: ZScoreDetector,
     private readonly isolationForestDetector: IsolationForestDetector,
@@ -111,9 +117,9 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
     private readonly thresholdDetector: ThresholdAnomalyDetector,
     private readonly statisticalDetector: StatisticalAnomalyDetector,
     private readonly mlDetector: MachineLearningDetector,
-    private readonly compositeDetector: CompositeAnomalyDetector
+    private readonly compositeDetector: CompositeAnomalyDetector,
   ) {
-    // Initialize with default enterprise configuration
+    // Initialize with default configuration
     this.config = {
       enabled: true,
       detectorType: "Composite Anomaly Detector",
@@ -129,37 +135,39 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
         channels: [],
         escalationPolicy: {
           id: "default",
-          name: "Enterprise Escalation",
-          description: "Enterprise-grade escalation policy",
+          name: "Default Escalation",
+          description: "Default escalation policy",
           enabled: true,
-          escalationLevels: [
+          levels: [
             {
               level: 1,
-              waitTime: 0,
-              recipients: ["ops@company.com"],
-              channels: ["LOG" as any]
+              delay: 0,
+              recipients: [],
+              channels: [NotificationChannel.LOG],
+              stopEscalation: false,
             },
             {
               level: 2,
-              waitTime: 300000, // 5 minutes
-              recipients: ["oncall@company.com"],
-              channels: ["WEBHOOK" as any, "EMAIL" as any]
+              delay: 5, // 5 minutes
+              recipients: [],
+              channels: [NotificationChannel.WEBHOOK, NotificationChannel.EMAIL],
+              stopEscalation: false,
             },
             {
               level: 3,
-              waitTime: 900000, // 15 minutes
-              recipients: ["management@company.com"],
-              channels: ["EMAIL" as any, "SMS" as any]
-            }
+              delay: 10, // 10 minutes from previous
+              recipients: [],
+              channels: [NotificationChannel.EMAIL, NotificationChannel.SMS],
+              stopEscalation: true,
+            },
           ],
-          maxLevel: 3,
-          createdAt: Date.now(),
-          updatedAt: Date.now()
+          repeat: false,
+          repeatInterval: 0,
         },
         rateLimiting: {
           maxAlertsPerMinute: 5,
-          maxAlertsPerHour: 50
-        }
+          maxAlertsPerHour: 50,
+        },
       },
       performance: {
         enabled: true,
@@ -167,19 +175,19 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
           cpuThreshold: 70,
           memoryThreshold: 70,
           latencyThreshold: 500,
-          throughputThreshold: 100
+          throughputThreshold: 100,
         },
         scaling: {
           scaleUpCooldown: 300000,
           scaleDownCooldown: 600000,
           maxInstances: 5,
-          minInstances: 1
+          minInstances: 1,
         },
         notifications: {
           onScaleUp: true,
           onScaleDown: true,
-          channels: ["log", "webhook"]
-        }
+          channels: ["log", "webhook"],
+        },
       },
       dataCollection: {
         bufferSize: 50000,
@@ -188,7 +196,7 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
         retentionPolicy: {
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
           maxSize: 5 * 1024 * 1024 * 1024, // 5GB
-          compressionAfter: 24 * 60 * 60 * 1000 // 1 day
+          compressionAfter: 24 * 60 * 60 * 1000, // 1 day
         },
         qualityChecks: {
           enabled: true,
@@ -197,17 +205,17 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
               field: "value",
               type: "required",
               config: {},
-              severity: "error"
-            }
+              severity: "error",
+            },
           ],
-          anomalyThreshold: 0.05
-        }
+          anomalyThreshold: 0.05,
+        },
       },
       clustering: {
         enabled: false,
         nodeId: `node_${Math.random().toString(36).substr(2, 9)}`,
         nodes: [],
-        syncInterval: 60000 // 1 minute
+        syncInterval: 60000, // 1 minute
       },
       backup: {
         enabled: true,
@@ -215,20 +223,20 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
         retentionDays: 30,
         storageType: "local",
         config: {
-          path: "./backups/anomaly-detection"
-        }
+          path: "./backups/anomaly-detection",
+        },
       },
       security: {
         encryption: {
           enabled: false,
           algorithm: "aes-256-gcm",
-          keyRotationDays: 90
+          keyRotationDays: 90,
         },
         audit: {
           enabled: true,
-          logLevel: "detailed"
-        }
-      }
+          logLevel: "detailed",
+        },
+      },
     };
 
     this.initializeDetectors();
@@ -238,9 +246,9 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
   async onModuleInit(): Promise<void> {
     try {
       await this.initialize();
-      this.logger.log("Enterprise Anomaly Detection Service initialized successfully");
+      this.logger.log("Anomaly Detection Service initialized successfully");
     } catch (error) {
-      this.logger.error("Failed to initialize Enterprise Anomaly Detection Service", error);
+      this.logger.error("Failed to initialize Anomaly Detection Service", error);
       throw error;
     }
   }
@@ -259,6 +267,18 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
     this.detectors.set("Machine Learning Detector", this.mlDetector);
     this.detectors.set("Composite Anomaly Detector", this.compositeDetector);
 
+    // Register detectors with management service
+    this.detectorManagementService.registerDetector("zscore", this.zscoreDetector);
+    this.detectorManagementService.registerDetector(
+      "isolation-forest",
+      this.isolationForestDetector,
+    );
+    this.detectorManagementService.registerDetector("seasonal", this.seasonalDetector);
+    this.detectorManagementService.registerDetector("threshold", this.thresholdDetector);
+    this.detectorManagementService.registerDetector("statistical", this.statisticalDetector);
+    this.detectorManagementService.registerDetector("machine-learning", this.mlDetector);
+    this.detectorManagementService.registerDetector("composite", this.compositeDetector);
+
     // Initialize stats for each detector
     for (const detectorName of this.detectors.keys()) {
       this.detectionStats.set(detectorName, {
@@ -268,49 +288,53 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
         falseNegatives: 0,
         averageConfidence: 0,
         lastDetection: 0,
-        totalProcessingTime: 0
+        totalProcessingTime: 0,
       });
-      
+
       this.anomalyHistory.set(detectorName, []);
     }
   }
 
   private setupEventListeners(): void {
     // Listen to performance events
-    this.eventEmitter.on('detector.performance.recorded', (data) => {
+    this.eventEmitter.on("detector.performance.recorded", (data) => {
       this.handlePerformanceEvent(data);
     });
 
     // Listen to data quality events
-    this.eventEmitter.on('data.quality.anomaly', (data) => {
+    this.eventEmitter.on("data.quality.anomaly", (data) => {
       this.handleDataQualityAnomaly(data);
     });
 
     // Listen to alerting events
-    this.eventEmitter.on('anomaly.alert.created', (alert) => {
+    this.eventEmitter.on("anomaly.alert.created", (alert) => {
       this.handleAlertCreated(alert);
     });
 
     // Listen to scaling events
-    this.eventEmitter.on('detector.scaled.up', (data) => {
-      this.logger.warn(`Detector ${data.detectorName} scaled up: ${data.oldInstances} -> ${data.newInstances}`);
+    this.eventEmitter.on("detector.scaled.up", (data) => {
+      this.logger.warn(
+        `Detector ${data.detectorName} scaled up: ${data.oldInstances} -> ${data.newInstances}`,
+      );
     });
 
-    this.eventEmitter.on('detector.scaled.down', (data) => {
-      this.logger.log(`Detector ${data.detectorName} scaled down: ${data.oldInstances} -> ${data.newInstances}`);
+    this.eventEmitter.on("detector.scaled.down", (data) => {
+      this.logger.log(
+        `Detector ${data.detectorName} scaled down: ${data.oldInstances} -> ${data.newInstances}`,
+      );
     });
   }
 
-  async configure(config: Partial<IEnterpriseAnomalyConfig>): Promise<void> {
-    this.config = { 
-      ...this.config, 
+  async configure(config: Partial<IAnomalyDetectionConfigExtended>): Promise<void> {
+    this.config = {
+      ...this.config,
       ...config,
       alerting: { ...this.config.alerting, ...config.alerting },
       performance: { ...this.config.performance, ...config.performance },
       dataCollection: { ...this.config.dataCollection, ...config.dataCollection },
       clustering: { ...this.config.clustering, ...config.clustering },
       backup: { ...this.config.backup, ...config.backup },
-      security: { ...this.config.security, ...config.security }
+      security: { ...this.config.security, ...config.security },
     };
 
     // Configure sub-services
@@ -326,11 +350,11 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
         threshold: this.config.threshold || 2.0,
         windowSize: this.config.windowSize || 100,
         minDataPoints: this.config.minDataPoints || 10,
-        learningPeriod: this.config.learningPeriod
+        learningPeriod: this.config.learningPeriod,
       });
     }
 
-    this.logger.log("Enterprise anomaly detection system configured");
+    this.logger.log("Anomaly detection system configured");
   }
 
   private async initialize(): Promise<void> {
@@ -339,7 +363,8 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
     }
 
     // Set active detector
-    this.activeDetector = this.detectors.get(this.config.detectorType || "Composite Anomaly Detector") || null;
+    this.activeDetector =
+      this.detectors.get(this.config.detectorType || "Composite Anomaly Detector") || null;
     if (!this.activeDetector) {
       throw new Error(`Detector type '${this.config.detectorType}' not found`);
     }
@@ -352,7 +377,7 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
       windowSize: this.config.windowSize || 100,
       minDataPoints: this.config.minDataPoints || 10,
       learningPeriod: this.config.learningPeriod,
-      businessRules: this.config.businessRules
+      businessRules: this.config.businessRules as any,
     });
 
     // Register default data sources
@@ -364,7 +389,7 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
     }
 
     this.isInitialized = true;
-    this.logger.log(`Enterprise anomaly detection initialized with detector: ${this.config.detectorType}`);
+    this.logger.log(`Anomaly detection initialized with detector: ${this.config.detectorType}`);
   }
 
   private async registerDefaultDataSources(): Promise<void> {
@@ -377,24 +402,24 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
       samplingRate: 1.0,
       config: {
         endpoints: ["http://localhost:9090/metrics"],
-        interval: 30000
+        interval: 30000,
       },
       filters: [
         {
           field: "value",
           operator: "exists",
-          value: true
-        }
+          value: true,
+        },
       ],
       transformations: [
         {
           type: "normalize",
           config: {
             fields: ["value"],
-            method: "minmax"
-          }
-        }
-      ]
+            method: "minmax",
+          },
+        },
+      ],
     });
 
     // Register application logs data source
@@ -406,15 +431,15 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
       samplingRate: 0.1, // Sample 10% of logs
       config: {
         logLevel: "error",
-        sources: ["/var/log/app/*.log"]
+        sources: ["/var/log/app/*.log"],
       },
       filters: [
         {
           field: "level",
           operator: "equals",
-          value: "error"
-        }
-      ]
+          value: "error",
+        },
+      ],
     });
   }
 
@@ -444,7 +469,7 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
         accuracy: 1, // Would need ground truth for actual calculation
         falsePositiveRate: 0, // Would need validation
         falseNegativeRate: 0, // Would need validation
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       // Update detection statistics
@@ -456,7 +481,7 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
       // Store anomaly history
       const history = this.anomalyHistory.get(detectorName)!;
       history.push(...anomalies);
-      
+
       // Keep only recent history
       if (history.length > this.maxAnomalyHistory) {
         history.splice(0, history.length - this.maxAnomalyHistory);
@@ -468,29 +493,28 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
       }
 
       // Emit detection event
-      this.eventEmitter.emit('anomaly.detection.completed', {
+      this.eventEmitter.emit("anomaly.detection.completed", {
         detectorName,
         anomaliesCount: anomalies.length,
         processingTime,
-        dataPoints: data.length
+        dataPoints: data.length,
       });
 
       // Audit logging
       if (this.config.security.audit.enabled) {
-        this.auditLog('anomaly.detection', {
+        this.auditLog("anomaly.detection", {
           detector: detectorName,
           dataPoints: data.length,
           anomaliesDetected: anomalies.length,
           processingTime,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       }
 
       return anomalies;
-
     } catch (error) {
       this.logger.error(`Error in anomaly detection: ${error.message}`, error);
-      
+
       // Record error in stats
       const stats = this.detectionStats.get(detectorName);
       if (stats) {
@@ -501,15 +525,19 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
     }
   }
 
-  private recordPerformanceMetrics(detectorName: string, metrics: Partial<IPerformanceMetrics>): void {
+  private recordPerformanceMetrics(
+    detectorName: string,
+    metrics: Partial<IPerformanceMetrics>,
+  ): void {
     this.performanceService.recordPerformanceMetrics(detectorName, metrics);
   }
 
   private handlePerformanceEvent(data: any): void {
     const { detectorName, metrics } = data;
-    
+
     // Check for performance degradation
-    if (metrics.detectionLatency > 1000) { // 1 second
+    if (metrics.detectionLatency > 1000) {
+      // 1 second
       this.logger.warn(`High latency detected for ${detectorName}: ${metrics.detectionLatency}ms`);
     }
 
@@ -520,27 +548,27 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
 
   private handleDataQualityAnomaly(data: any): void {
     this.logger.warn(`Data quality anomaly detected for source ${data.sourceId}:`, data.metrics);
-    
+
     // Could trigger automatic data source reconfiguration or alerts
-    if (data.severity === 'critical') {
-      this.eventEmitter.emit('system.alert', {
-        type: 'data_quality',
-        severity: 'critical',
+    if (data.severity === "critical") {
+      this.eventEmitter.emit("system.alert", {
+        type: "data_quality",
+        severity: "critical",
         message: `Critical data quality issue in source ${data.sourceId}`,
-        metrics: data.metrics
+        metrics: data.metrics,
       });
     }
   }
 
   private handleAlertCreated(alert: any): void {
     this.logger.log(`Alert created: ${alert.id} for anomaly ${alert.anomaly.id}`);
-    
+
     // Could integrate with external systems (PagerDuty, ServiceNow, etc.)
   }
 
   private async initializeCluster(): Promise<void> {
     this.logger.log(`Initializing cluster mode with node ID: ${this.config.clustering.nodeId}`);
-    
+
     // Set up periodic sync with other nodes
     setInterval(async () => {
       await this.syncWithCluster();
@@ -550,17 +578,17 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
   private async syncWithCluster(): Promise<void> {
     // Implementation would sync state with other cluster nodes
     // For now, just log the sync attempt
-    this.logger.debug(`Syncing with cluster nodes: ${this.config.clustering.nodes.join(', ')}`);
+    this.logger.debug(`Syncing with cluster nodes: ${this.config.clustering.nodes.join(", ")}`);
   }
 
   // Scheduled tasks
   @Cron(CronExpression.EVERY_HOUR)
   private async performHourlyMaintenance(): Promise<void> {
     this.logger.debug("Performing hourly maintenance");
-    
+
     // Clean up old data
     await this.cleanupOldData();
-    
+
     // Generate performance report
     const report = await this.generatePerformanceReport();
     this.logger.debug(`Hourly performance report: ${JSON.stringify(report.summary)}`);
@@ -569,50 +597,50 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   private async performDailyMaintenance(): Promise<void> {
     this.logger.log("Performing daily maintenance");
-    
+
     // Backup data if enabled
     if (this.config.backup.enabled) {
       await this.performBackup();
     }
-    
+
     // Rotate encryption keys if needed
     if (this.config.security.encryption.enabled) {
       await this.rotateEncryptionKeys();
     }
-    
+
     // Generate daily report
     const report = await this.generateDailyReport();
-    this.eventEmitter.emit('daily.report.generated', report);
+    this.eventEmitter.emit("daily.report.generated", report);
   }
 
   private async cleanupOldData(): Promise<void> {
     const maxAge = this.config.dataCollection.retentionPolicy.maxAge;
     const cutoff = Date.now() - maxAge;
-    
+
     // Clean up anomaly history
     for (const [detectorName, history] of this.anomalyHistory) {
-      const filteredHistory = history.filter(anomaly => anomaly.timestamp > cutoff);
+      const filteredHistory = history.filter((anomaly) => anomaly.timestamp > cutoff);
       this.anomalyHistory.set(detectorName, filteredHistory);
     }
-    
+
     this.logger.debug("Completed data cleanup");
   }
 
   private async performBackup(): Promise<void> {
     this.logger.log("Performing backup");
-    
+
     const backupData = {
       timestamp: Date.now(),
       config: this.config,
       detectionStats: Object.fromEntries(this.detectionStats),
       anomalyHistory: Object.fromEntries(
         Array.from(this.anomalyHistory.entries()).map(([key, value]) => [
-          key, 
-          value.slice(-1000) // Keep last 1000 anomalies per detector
-        ])
-      )
+          key,
+          value.slice(-1000), // Keep last 1000 anomalies per detector
+        ]),
+      ),
     };
-    
+
     // Implementation would save to configured storage
     this.logger.debug(`Backup data size: ${JSON.stringify(backupData).length} characters`);
   }
@@ -623,8 +651,8 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
   }
 
   private async generatePerformanceReport(): Promise<any> {
-    const detectorPerformance = [];
-    
+    const detectorPerformance: any[] = [];
+
     for (const [detectorName] of this.detectors) {
       const performance = this.performanceService.getDetectorPerformance(detectorName);
       if (performance) {
@@ -632,47 +660,49 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
           name: detectorName,
           performance: performance.averageMetrics,
           trends: performance.trends,
-          recommendations: performance.recommendations
+          recommendations: performance.recommendations,
         });
       }
     }
-    
+
     return {
       timestamp: Date.now(),
       detectorPerformance,
-      systemMetrics: this.performanceService.getSystemPerformance()
+      systemMetrics: this.performanceService.getSystemPerformance(),
     };
   }
 
   private async generateDailyReport(): Promise<IAnomalyDetectionReport> {
     const endTime = Date.now();
-    const startTime = endTime - (24 * 60 * 60 * 1000); // 24 hours ago
-    
+    const startTime = endTime - 24 * 60 * 60 * 1000; // 24 hours ago
+
     // Calculate summary statistics
     let totalAnomalies = 0;
     let criticalAnomalies = 0;
-    
-    const detectorPerformance = [];
-    
+
+    const detectorPerformance: any[] = [];
+
     for (const [detectorName, history] of this.anomalyHistory) {
-      const recentAnomalies = history.filter(a => 
-        a.timestamp >= startTime && a.timestamp <= endTime
+      const recentAnomalies = history.filter(
+        (a) => a.timestamp >= startTime && a.timestamp <= endTime,
       );
-      
+
       totalAnomalies += recentAnomalies.length;
-      criticalAnomalies += recentAnomalies.filter(a => a.severity === 'CRITICAL').length;
-      
+      criticalAnomalies += recentAnomalies.filter(
+        (a) => a.severity === AnomalySeverity.CRITICAL,
+      ).length;
+
       const performance = this.performanceService.getDetectorPerformance(detectorName);
       if (performance) {
         detectorPerformance.push({
           name: detectorName,
           anomaliesDetected: recentAnomalies.length,
           accuracy: performance.averageMetrics.accuracy,
-          performance: performance.averageMetrics
+          performance: performance.averageMetrics,
         });
       }
     }
-    
+
     const report: IAnomalyDetectionReport = {
       period: { start: startTime, end: endTime },
       summary: {
@@ -680,45 +710,51 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
         criticalAnomalies,
         falsePositives: 0, // Would need ground truth data
         detectionAccuracy: 0.95, // Would calculate from validation data
-        averageResponseTime: 250 // Would calculate from performance metrics
+        averageResponseTime: 250, // Would calculate from performance metrics
       },
       detectorPerformance,
       trends: {
         anomalyTrend: "stable",
         accuracyTrend: "stable",
-        performanceTrend: "stable"
+        performanceTrend: "stable",
       },
-      recommendations: await this.generateSystemRecommendations()
+      recommendations: await this.generateSystemRecommendations(),
     };
-    
+
     return report;
   }
 
   private async generateSystemRecommendations(): Promise<string[]> {
     const recommendations: string[] = [];
-    
+
     // Analyze system performance
     const systemHealth = this.performanceService.getHealthStatus();
-    if (systemHealth.status === 'unhealthy') {
-      recommendations.push("System health is degraded. Review critical detectors and consider scaling.");
+    if (systemHealth.status === "unhealthy") {
+      recommendations.push(
+        "System health is degraded. Review critical detectors and consider scaling.",
+      );
     }
-    
+
     // Analyze data quality
     const systemStats = this.dataCollectorService.getSystemStats();
     if (systemStats.totalErrors > 0) {
-      recommendations.push(`${systemStats.totalErrors} data collection errors detected. Review data sources.`);
+      recommendations.push(
+        `${systemStats.totalErrors} data collection errors detected. Review data sources.`,
+      );
     }
-    
+
     // Analyze alerting
     const alertStats = this.alertingService.getAlertStatistics();
     if (alertStats.byStatus.open > 10) {
-      recommendations.push(`${alertStats.byStatus.open} open alerts. Review and acknowledge resolved issues.`);
+      recommendations.push(
+        `${alertStats.byStatus.open} open alerts. Review and acknowledge resolved issues.`,
+      );
     }
-    
+
     if (recommendations.length === 0) {
       recommendations.push("System is operating optimally. No recommendations at this time.");
     }
-    
+
     return recommendations;
   }
 
@@ -726,15 +762,17 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
     if (!this.config.security.audit.enabled) {
       return;
     }
-    
+
     const auditEntry = {
       timestamp: Date.now(),
       event,
       nodeId: this.config.clustering.nodeId,
-      data: this.config.security.audit.logLevel === 'minimal' ? 
-        { summary: `${event} completed` } : data
+      data:
+        this.config.security.audit.logLevel === "minimal"
+          ? { summary: `${event} completed` }
+          : data,
     };
-    
+
     // In production, this would write to a secure audit log
     this.logger.debug(`AUDIT: ${JSON.stringify(auditEntry)}`);
   }
@@ -747,12 +785,12 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
       config: {
         enabled: this.config.enabled,
         detectorType: this.config.detectorType,
-        clustering: this.config.clustering.enabled
+        clustering: this.config.clustering.enabled,
       },
       performance: this.performanceService.getHealthStatus(),
       alerting: this.alertingService.getAlertStatistics(),
       dataCollection: this.dataCollectorService.getSystemStats(),
-      lastUpdate: Date.now()
+      lastUpdate: Date.now(),
     };
   }
 
@@ -762,10 +800,10 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
         detector: detectorName,
         stats: this.detectionStats.get(detectorName),
         anomalies: this.anomalyHistory.get(detectorName)?.slice(-100) || [],
-        performance: this.performanceService.getDetectorPerformance(detectorName)
+        performance: this.performanceService.getDetectorPerformance(detectorName),
       };
     }
-    
+
     return await this.generateDailyReport();
   }
 
@@ -775,10 +813,10 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
       this.logger.error(`Detector type '${detectorType}' not found`);
       return false;
     }
-    
+
     this.activeDetector = newDetector;
-    this.config.detectorType = detectorType;
-    
+    this.config.detectorType = detectorType as any;
+
     // Configure the new detector
     this.activeDetector.configure({
       enabled: this.config.enabled,
@@ -786,26 +824,26 @@ export class EnterpriseAnomalyDetectionService implements OnModuleInit, OnModule
       threshold: this.config.threshold || 2.0,
       windowSize: this.config.windowSize || 100,
       minDataPoints: this.config.minDataPoints || 10,
-      learningPeriod: this.config.learningPeriod
+      learningPeriod: this.config.learningPeriod,
     });
-    
+
     this.logger.log(`Switched to detector: ${detectorType}`);
-    this.auditLog('detector.switched', { from: this.config.detectorType, to: detectorType });
-    
+    this.auditLog("detector.switched", { from: this.config.detectorType, to: detectorType });
+
     return true;
   }
 
   private async shutdown(): Promise<void> {
-    this.logger.log("Shutting down Enterprise Anomaly Detection Service");
-    
+    this.logger.log("Shutting down Anomaly Detection Service");
+
     // Perform final backup if enabled
     if (this.config.backup.enabled) {
       await this.performBackup();
     }
-    
+
     // Clean up resources
     // ... cleanup logic
-    
+
     this.isInitialized = false;
   }
 }

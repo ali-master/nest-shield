@@ -4,11 +4,11 @@ import { IAnomaly } from "../interfaces/anomaly.interface";
 
 export interface IPerformanceMetrics {
   detectionLatency: number; // Time to detect anomaly (ms)
-  processingTime: number;   // Time to process data (ms)
-  memoryUsage: number;      // Memory usage (MB)
-  cpuUsage: number;         // CPU usage (%)
-  throughput: number;       // Data points processed per second
-  accuracy: number;         // Detection accuracy (0-1)
+  processingTime: number; // Time to process data (ms)
+  memoryUsage: number; // Memory usage (MB)
+  cpuUsage: number; // CPU usage (%)
+  throughput: number; // Data points processed per second
+  accuracy: number; // Detection accuracy (0-1)
   falsePositiveRate: number; // False positive rate (0-1)
   falseNegativeRate: number; // False negative rate (0-1)
   timestamp: number;
@@ -17,16 +17,16 @@ export interface IPerformanceMetrics {
 export interface IAutoScalingConfig {
   enabled: boolean;
   metrics: {
-    cpuThreshold: number;        // CPU usage threshold (%)
-    memoryThreshold: number;     // Memory usage threshold (%)
-    latencyThreshold: number;    // Max latency threshold (ms)
+    cpuThreshold: number; // CPU usage threshold (%)
+    memoryThreshold: number; // Memory usage threshold (%)
+    latencyThreshold: number; // Max latency threshold (ms)
     throughputThreshold: number; // Min throughput threshold (per second)
   };
   scaling: {
-    scaleUpCooldown: number;     // Cooldown before scaling up (ms)
-    scaleDownCooldown: number;   // Cooldown before scaling down (ms)
-    maxInstances: number;        // Maximum detector instances
-    minInstances: number;        // Minimum detector instances
+    scaleUpCooldown: number; // Cooldown before scaling up (ms)
+    scaleDownCooldown: number; // Cooldown before scaling down (ms)
+    maxInstances: number; // Maximum detector instances
+    minInstances: number; // Minimum detector instances
   };
   notifications: {
     onScaleUp: boolean;
@@ -48,8 +48,8 @@ export interface IDetectorPerformance {
 }
 
 @Injectable()
-export class EnterprisePerformanceMonitorService {
-  private readonly logger = new Logger(EnterprisePerformanceMonitorService.name);
+export class PerformanceMonitorService {
+  private readonly logger = new Logger(PerformanceMonitorService.name);
   private performanceHistory: Map<string, IPerformanceMetrics[]> = new Map();
   private detectorInstances: Map<string, number> = new Map();
   private lastScalingAction: Map<string, number> = new Map();
@@ -63,29 +63,29 @@ export class EnterprisePerformanceMonitorService {
         cpuThreshold: 80,
         memoryThreshold: 80,
         latencyThreshold: 1000,
-        throughputThreshold: 10
+        throughputThreshold: 10,
       },
       scaling: {
-        scaleUpCooldown: 300000,   // 5 minutes
+        scaleUpCooldown: 300000, // 5 minutes
         scaleDownCooldown: 600000, // 10 minutes
         maxInstances: 10,
-        minInstances: 1
+        minInstances: 1,
       },
       notifications: {
         onScaleUp: true,
         onScaleDown: true,
-        channels: ["log", "webhook"]
-      }
+        channels: ["log", "webhook"],
+      },
     };
   }
 
   configure(config: Partial<IAutoScalingConfig>): void {
-    this.config = { 
-      ...this.config, 
+    this.config = {
+      ...this.config,
       ...config,
       metrics: { ...this.config.metrics, ...config.metrics },
       scaling: { ...this.config.scaling, ...config.scaling },
-      notifications: { ...this.config.notifications, ...config.notifications }
+      notifications: { ...this.config.notifications, ...config.notifications },
     };
     this.logger.log("Performance monitoring configured");
   }
@@ -101,7 +101,7 @@ export class EnterprisePerformanceMonitorService {
       falsePositiveRate: 0,
       falseNegativeRate: 0,
       timestamp: Date.now(),
-      ...metrics
+      ...metrics,
     };
 
     if (!this.performanceHistory.has(detectorName)) {
@@ -122,9 +122,9 @@ export class EnterprisePerformanceMonitorService {
     }
 
     // Emit performance event
-    this.eventEmitter.emit('detector.performance.recorded', {
+    this.eventEmitter.emit("detector.performance.recorded", {
       detectorName,
-      metrics: fullMetrics
+      metrics: fullMetrics,
     });
   }
 
@@ -172,9 +172,12 @@ export class EnterprisePerformanceMonitorService {
     }
 
     const avgCpu = recentMetrics.reduce((sum, m) => sum + m.cpuUsage, 0) / recentMetrics.length;
-    const avgMemory = recentMetrics.reduce((sum, m) => sum + m.memoryUsage, 0) / recentMetrics.length;
-    const avgLatency = recentMetrics.reduce((sum, m) => sum + m.detectionLatency, 0) / recentMetrics.length;
-    const avgThroughput = recentMetrics.reduce((sum, m) => sum + m.throughput, 0) / recentMetrics.length;
+    const avgMemory =
+      recentMetrics.reduce((sum, m) => sum + m.memoryUsage, 0) / recentMetrics.length;
+    const avgLatency =
+      recentMetrics.reduce((sum, m) => sum + m.detectionLatency, 0) / recentMetrics.length;
+    const avgThroughput =
+      recentMetrics.reduce((sum, m) => sum + m.throughput, 0) / recentMetrics.length;
 
     return (
       avgCpu < this.config.metrics.cpuThreshold * 0.5 &&
@@ -189,14 +192,16 @@ export class EnterprisePerformanceMonitorService {
     this.detectorInstances.set(detectorName, newInstances);
     this.lastScalingAction.set(detectorName, Date.now());
 
-    this.logger.warn(`Scaling UP detector ${detectorName}: ${currentInstances} -> ${newInstances} instances`);
+    this.logger.warn(
+      `Scaling UP detector ${detectorName}: ${currentInstances} -> ${newInstances} instances`,
+    );
 
     if (this.config.notifications.onScaleUp) {
-      this.eventEmitter.emit('detector.scaled.up', {
+      this.eventEmitter.emit("detector.scaled.up", {
         detectorName,
         oldInstances: currentInstances,
         newInstances,
-        reason: "High resource usage or poor performance"
+        reason: "High resource usage or poor performance",
       });
     }
   }
@@ -206,14 +211,16 @@ export class EnterprisePerformanceMonitorService {
     this.detectorInstances.set(detectorName, newInstances);
     this.lastScalingAction.set(detectorName, Date.now());
 
-    this.logger.log(`Scaling DOWN detector ${detectorName}: ${currentInstances} -> ${newInstances} instances`);
+    this.logger.log(
+      `Scaling DOWN detector ${detectorName}: ${currentInstances} -> ${newInstances} instances`,
+    );
 
     if (this.config.notifications.onScaleDown) {
-      this.eventEmitter.emit('detector.scaled.down', {
+      this.eventEmitter.emit("detector.scaled.down", {
         detectorName,
         oldInstances: currentInstances,
         newInstances,
-        reason: "Low resource usage and good performance"
+        reason: "Low resource usage and good performance",
       });
     }
   }
@@ -233,13 +240,13 @@ export class EnterprisePerformanceMonitorService {
       metrics: history.slice(-50), // Return last 50 metrics
       averageMetrics,
       trends,
-      recommendations
+      recommendations,
     };
   }
 
   private calculateAverageMetrics(history: IPerformanceMetrics[]): IPerformanceMetrics {
     const count = history.length;
-    
+
     return {
       detectionLatency: history.reduce((sum, m) => sum + m.detectionLatency, 0) / count,
       processingTime: history.reduce((sum, m) => sum + m.processingTime, 0) / count,
@@ -249,7 +256,7 @@ export class EnterprisePerformanceMonitorService {
       accuracy: history.reduce((sum, m) => sum + m.accuracy, 0) / count,
       falsePositiveRate: history.reduce((sum, m) => sum + m.falsePositiveRate, 0) / count,
       falseNegativeRate: history.reduce((sum, m) => sum + m.falseNegativeRate, 0) / count,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -258,7 +265,7 @@ export class EnterprisePerformanceMonitorService {
       return {
         latencyTrend: "stable",
         accuracyTrend: "stable",
-        throughputTrend: "stable"
+        throughputTrend: "stable",
       };
     }
 
@@ -277,11 +284,15 @@ export class EnterprisePerformanceMonitorService {
     return {
       latencyTrend: this.getTrend(recentAvgLatency, olderAvgLatency, true), // Lower is better
       accuracyTrend: this.getTrend(recentAvgAccuracy, olderAvgAccuracy, false), // Higher is better
-      throughputTrend: this.getTrend(recentAvgThroughput, olderAvgThroughput, false) // Higher is better
+      throughputTrend: this.getTrend(recentAvgThroughput, olderAvgThroughput, false), // Higher is better
     };
   }
 
-  private getTrend(recent: number, older: number, lowerIsBetter: boolean): "improving" | "degrading" | "stable" {
+  private getTrend(
+    recent: number,
+    older: number,
+    lowerIsBetter: boolean,
+  ): "improving" | "degrading" | "stable" {
     const threshold = 0.05; // 5% change threshold
     const percentChange = (recent - older) / older;
 
@@ -299,7 +310,7 @@ export class EnterprisePerformanceMonitorService {
   private generateRecommendations(detectorName: string, history: IPerformanceMetrics[]): string[] {
     const recommendations: string[] = [];
     const recent = history.slice(-10);
-    
+
     if (recent.length === 0) {
       return recommendations;
     }
@@ -308,34 +319,47 @@ export class EnterprisePerformanceMonitorService {
     const avgAccuracy = recent.reduce((sum, m) => sum + m.accuracy, 0) / recent.length;
     const avgCpu = recent.reduce((sum, m) => sum + m.cpuUsage, 0) / recent.length;
     const avgMemory = recent.reduce((sum, m) => sum + m.memoryUsage, 0) / recent.length;
-    const avgFalsePositive = recent.reduce((sum, m) => sum + m.falsePositiveRate, 0) / recent.length;
+    const avgFalsePositive =
+      recent.reduce((sum, m) => sum + m.falsePositiveRate, 0) / recent.length;
 
     // Performance recommendations
     if (avgLatency > this.config.metrics.latencyThreshold) {
-      recommendations.push("High detection latency detected. Consider optimizing algorithms or increasing instances.");
+      recommendations.push(
+        "High detection latency detected. Consider optimizing algorithms or increasing instances.",
+      );
     }
 
     if (avgCpu > this.config.metrics.cpuThreshold) {
-      recommendations.push("High CPU usage detected. Consider scaling up or optimizing processing logic.");
+      recommendations.push(
+        "High CPU usage detected. Consider scaling up or optimizing processing logic.",
+      );
     }
 
     if (avgMemory > this.config.metrics.memoryThreshold) {
-      recommendations.push("High memory usage detected. Consider optimizing data structures or implementing data retention policies.");
+      recommendations.push(
+        "High memory usage detected. Consider optimizing data structures or implementing data retention policies.",
+      );
     }
 
     // Accuracy recommendations
     if (avgAccuracy < 0.85) {
-      recommendations.push("Low detection accuracy. Consider retraining models with more recent data.");
+      recommendations.push(
+        "Low detection accuracy. Consider retraining models with more recent data.",
+      );
     }
 
     if (avgFalsePositive > 0.1) {
-      recommendations.push("High false positive rate. Consider adjusting sensitivity or improving feature selection.");
+      recommendations.push(
+        "High false positive rate. Consider adjusting sensitivity or improving feature selection.",
+      );
     }
 
     // Operational recommendations
     const instances = this.detectorInstances.get(detectorName) || 1;
     if (instances === this.config.scaling.maxInstances) {
-      recommendations.push("Maximum instances reached. Consider optimizing algorithms or increasing resource limits.");
+      recommendations.push(
+        "Maximum instances reached. Consider optimizing algorithms or increasing resource limits.",
+      );
     }
 
     if (recommendations.length === 0) {
@@ -350,14 +374,17 @@ export class EnterprisePerformanceMonitorService {
     const allDetectors = Array.from(this.performanceHistory.keys());
     const systemMetrics = {
       totalDetectors: allDetectors.length,
-      totalInstances: Array.from(this.detectorInstances.values()).reduce((sum, count) => sum + count, 0),
+      totalInstances: Array.from(this.detectorInstances.values()).reduce(
+        (sum, count) => sum + count,
+        0,
+      ),
       averageMetrics: this.calculateSystemAverageMetrics(),
-      detectorStatus: allDetectors.map(name => ({
+      detectorStatus: allDetectors.map((name) => ({
         name,
         instances: this.detectorInstances.get(name) || 1,
-        status: this.getDetectorStatus(name)
+        status: this.getDetectorStatus(name),
       })),
-      recommendations: this.getSystemRecommendations()
+      recommendations: this.getSystemRecommendations(),
     };
 
     return systemMetrics;
@@ -365,7 +392,7 @@ export class EnterprisePerformanceMonitorService {
 
   private calculateSystemAverageMetrics(): IPerformanceMetrics {
     const allMetrics: IPerformanceMetrics[] = [];
-    
+
     for (const history of this.performanceHistory.values()) {
       allMetrics.push(...history.slice(-10)); // Last 10 from each detector
     }
@@ -380,7 +407,7 @@ export class EnterprisePerformanceMonitorService {
         accuracy: 1,
         falsePositiveRate: 0,
         falseNegativeRate: 0,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     }
 
@@ -394,7 +421,7 @@ export class EnterprisePerformanceMonitorService {
     }
 
     const { averageMetrics } = performance;
-    
+
     // Critical conditions
     if (
       averageMetrics.detectionLatency > this.config.metrics.latencyThreshold * 2 ||
@@ -421,22 +448,33 @@ export class EnterprisePerformanceMonitorService {
   private getSystemRecommendations(): string[] {
     const recommendations: string[] = [];
     const systemMetrics = this.calculateSystemAverageMetrics();
-    const totalInstances = Array.from(this.detectorInstances.values()).reduce((sum, count) => sum + count, 0);
+    const totalInstances = Array.from(this.detectorInstances.values()).reduce(
+      (sum, count) => sum + count,
+      0,
+    );
 
     if (systemMetrics.cpuUsage > 80) {
-      recommendations.push("System-wide high CPU usage. Consider horizontal scaling or resource optimization.");
+      recommendations.push(
+        "System-wide high CPU usage. Consider horizontal scaling or resource optimization.",
+      );
     }
 
     if (systemMetrics.memoryUsage > 80) {
-      recommendations.push("System-wide high memory usage. Consider implementing data cleanup policies.");
+      recommendations.push(
+        "System-wide high memory usage. Consider implementing data cleanup policies.",
+      );
     }
 
     if (systemMetrics.accuracy < 0.85) {
-      recommendations.push("System-wide accuracy degradation. Consider retraining models or updating algorithms.");
+      recommendations.push(
+        "System-wide accuracy degradation. Consider retraining models or updating algorithms.",
+      );
     }
 
     if (totalInstances >= this.config.scaling.maxInstances * 0.8) {
-      recommendations.push("Approaching maximum capacity. Consider increasing resource limits or optimizing algorithms.");
+      recommendations.push(
+        "Approaching maximum capacity. Consider increasing resource limits or optimizing algorithms.",
+      );
     }
 
     return recommendations;
@@ -445,8 +483,9 @@ export class EnterprisePerformanceMonitorService {
   // Health check endpoint
   getHealthStatus(): any {
     const systemMetrics = this.calculateSystemAverageMetrics();
-    const criticalDetectors = Array.from(this.performanceHistory.keys())
-      .filter(name => this.getDetectorStatus(name) === "critical");
+    const criticalDetectors = Array.from(this.performanceHistory.keys()).filter(
+      (name) => this.getDetectorStatus(name) === "critical",
+    );
 
     return {
       status: criticalDetectors.length === 0 ? "healthy" : "unhealthy",
@@ -454,7 +493,10 @@ export class EnterprisePerformanceMonitorService {
       systemMetrics,
       criticalDetectors,
       totalDetectors: this.performanceHistory.size,
-      totalInstances: Array.from(this.detectorInstances.values()).reduce((sum, count) => sum + count, 0)
+      totalInstances: Array.from(this.detectorInstances.values()).reduce(
+        (sum, count) => sum + count,
+        0,
+      ),
     };
   }
 }

@@ -47,7 +47,7 @@ export abstract class BaseAnomalyDetector implements IAnomalyDetector {
       version: this.version,
       parameters: { ...this.config },
     };
-    
+
     this.logger.log(`Configured detector ${this.name} with sensitivity ${this.config.sensitivity}`);
   }
 

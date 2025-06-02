@@ -38,6 +38,8 @@
     "build": "tsc -p tsconfig.build.json",
     "format": "prettier --write \"**/*.ts\"",
     "lint": "eslint \"src/**/*.ts\" --fix",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "jest --config ./test/jest-unit.json",
     "prepublish:next": "npm run build",
     "publish:next": "npm publish --access public --tag next",
     "prepublish:npm": "npm run build",
@@ -57,8 +59,8 @@
     "uuid": "^9.0.0"
   },
   "optionalDependencies": {
-    "@nestjs/event-emitter": "^2.0.0",
-    "@nestjs/schedule": "^4.0.0"
+    "@nestjs/event-emitter": "^2.1.1",
+    "@nestjs/schedule": "^4.1.2"
   },
   "devDependencies": {
     "@commitlint/cli": "19.8.1",

@@ -1,5 +1,5 @@
 import { Module } from "@nestjs/common";
-import { ShieldModule, StorageType } from "@usex/nest-shield";
+import { ShieldModule, StorageType } from "../../src";
 import { AdvancedController } from "./advanced.controller";
 import { CustomMetricsCollector } from "./custom-metrics.collector";
 

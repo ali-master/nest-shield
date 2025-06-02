@@ -100,6 +100,7 @@ export interface INotification {
 }
 
 export enum NotificationChannel {
+  LOG = "log",
   EMAIL = "email",
   SMS = "sms",
   SLACK = "slack",

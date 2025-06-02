@@ -880,6 +880,13 @@ console.log('Debug Info:', JSON.stringify(systemStatus, null, 2));
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
+## 📚 Additional Documentation
+
+- **[The Science Behind Anomaly Detection](./science.md)** - Deep dive into the mathematical foundations and algorithms
+- **[Detector Comparison & Selection Guide](./comparison.md)** - Choose the right detector for your use case
+- **[Practical Examples & Use Cases](./examples.md)** - Real-world implementations and code examples
+- **[Detector Management API](./detector-management.md)** - Advanced detector control and monitoring
+
 ### License
 
 This project is licensed under the MIT License - see the [LICENSE](../../LICENSE) file for details.

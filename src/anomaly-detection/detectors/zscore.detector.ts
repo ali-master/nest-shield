@@ -48,22 +48,28 @@ export class ZScoreDetector extends BaseAnomalyDetector {
       return null;
     }
 
-    // Calculate Z-score using baseline
-    const zScore = this.calculateZScore(dataPoint.value, this.baseline.mean, this.baseline.stdDev);
+    // Apply seasonal adjustment if available
+    const adjustedValue = this.getSeasonallyAdjustedValue(dataPoint.value, dataPoint.timestamp);
 
-    // Check if it's anomalous
-    if (zScore < this.config.threshold) {
+    // Calculate Z-score using baseline
+    const zScore = this.calculateZScore(adjustedValue, this.baseline.mean, this.baseline.stdDev);
+
+    // Get adaptive threshold based on recent volatility
+    const adaptiveThreshold = this.getAdaptiveThreshold(dataPoint.source || "default");
+
+    // Check if it's anomalous using adaptive threshold
+    if (zScore < adaptiveThreshold) {
       return null;
     }
 
     // Calculate modified Z-score using rolling window for better accuracy
     const modifiedZScore =
       this.rollingWindow.length >= this.config.minDataPoints
-        ? this.calculateModifiedZScore(dataPoint.value, this.rollingWindow)
+        ? this.calculateModifiedZScore(adjustedValue, this.rollingWindow)
         : zScore;
 
     // Determine anomaly type
-    const anomalyType = this.determineAnomalyType(dataPoint.value, this.baseline);
+    const anomalyType = this.determineAnomalyType(adjustedValue, this.baseline);
 
     // Calculate confidence based on various factors
     const confidence = this.calculateConfidence(zScore, modifiedZScore, context);
@@ -158,9 +164,11 @@ export class ZScoreDetector extends BaseAnomalyDetector {
     // Calculate initial baseline
     this.updateBaseline();
 
-    this.logger.log(
-      `Z-Score detector trained with baseline: mean=${this.baseline.mean.toFixed(2)}, stdDev=${this.baseline.stdDev.toFixed(2)}`,
-    );
+    if (this.baseline) {
+      this.logger.log(
+        `Z-Score detector trained with baseline: mean=${this.baseline.mean.toFixed(2)}, stdDev=${this.baseline.stdDev.toFixed(2)}`,
+      );
+    }
   }
 
   reset(): void {
@@ -181,7 +189,7 @@ export class ZScoreDetector extends BaseAnomalyDetector {
   }
 
   // Adaptive threshold based on recent data volatility
-  private getAdaptiveThreshold(): number {
+  private getAdaptiveThreshold(source: string): number {
     if (this.rollingWindow.length < this.config.minDataPoints) {
       return this.config.threshold;
     }

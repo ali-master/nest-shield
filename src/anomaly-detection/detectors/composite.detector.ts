@@ -499,7 +499,7 @@ export class CompositeAnomalyDetector extends BaseAnomalyDetector {
       .filter((val) => val !== undefined);
     const ensembleExpectedValue =
       expectedValues.length > 0
-        ? expectedValues.reduce((sum, val) => sum + val!, 0) / expectedValues.length
+        ? expectedValues.reduce((sum, val) => sum + val, 0) / expectedValues.length
         : undefined;
 
     // Create ensemble description
@@ -633,14 +633,30 @@ export class CompositeAnomalyDetector extends BaseAnomalyDetector {
   enableDetector(detectorName: string): void {
     const detector = this.detectors.get(detectorName);
     if (detector) {
-      detector.configure({ ...detector.getModelInfo().parameters, enabled: true });
+      const currentParams = detector.getModelInfo().parameters || {};
+      detector.configure({
+        enabled: true,
+        sensitivity: currentParams.sensitivity ?? 0.5,
+        threshold: currentParams.threshold ?? 2.0,
+        windowSize: currentParams.windowSize ?? 100,
+        minDataPoints: currentParams.minDataPoints ?? 20,
+        ...currentParams,
+      });
     }
   }
 
   disableDetector(detectorName: string): void {
     const detector = this.detectors.get(detectorName);
     if (detector) {
-      detector.configure({ ...detector.getModelInfo().parameters, enabled: false });
+      const currentParams = detector.getModelInfo().parameters || {};
+      detector.configure({
+        enabled: false,
+        sensitivity: currentParams.sensitivity ?? 0.5,
+        threshold: currentParams.threshold ?? 2.0,
+        windowSize: currentParams.windowSize ?? 100,
+        minDataPoints: currentParams.minDataPoints ?? 20,
+        ...currentParams,
+      });
     }
   }
 
@@ -748,13 +764,11 @@ class ContextAnalyzer {
   }
 
   private analyzePerformanceRequirements(context?: IDetectorContext): IPerformanceRequirements {
+    // Default performance requirements for now
+    // TODO: Add performanceRequirements to IDetectorContext if needed
     return {
-      lowLatency: context?.performanceRequirements?.maxLatency
-        ? context.performanceRequirements.maxLatency < 10
-        : false,
-      highThroughput: context?.performanceRequirements?.minThroughput
-        ? context.performanceRequirements.minThroughput > 1000
-        : false,
+      lowLatency: false,
+      highThroughput: false,
       highAccuracy: true, // Default to high accuracy requirement
     };
   }

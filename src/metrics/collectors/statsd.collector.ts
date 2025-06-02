@@ -88,8 +88,8 @@ export class StatsDCollector extends BaseMetricsCollector {
         buffer,
         0,
         buffer.length,
-        this.statsdConfig.port!,
-        this.statsdConfig.host!,
+        this.statsdConfig.port,
+        this.statsdConfig.host,
         (error) => {
           if (error) {
             reject(error);

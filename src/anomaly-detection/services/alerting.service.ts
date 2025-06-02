@@ -1,21 +1,28 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { IAnomaly } from "../interfaces/anomaly.interface";
-import { 
-  IAnomalyAlert, 
-  IAlertRule, 
-  AlertStatus, 
+import { IAnomaly, AnomalySeverity } from "../interfaces/anomaly.interface";
+import {
+  IAnomalyAlert,
+  IAlertRule,
+  AlertStatus,
   IEscalationPolicy,
-  INotificationChannel,
-  NotificationChannelType
+  NotificationChannel,
+  NotificationStatus,
+  ContentFormat,
 } from "../interfaces/alert.interface";
 import { v4 as uuidv4 } from "uuid";
 
-export interface IAlertingConfig {
+export interface INotificationChannel {
+  type: NotificationChannel;
+  config: Record<string, any>;
+  enabled?: boolean;
+}
+
+interface IAlertingServiceConfig {
   enabled: boolean;
   channels: INotificationChannel[];
   escalationPolicy: IEscalationPolicy;
-  suppressionRules?: ISuppressionRule[];
+  suppressionRules?: ISimpleSuppressionRule[];
   rateLimiting?: {
     maxAlertsPerMinute: number;
     maxAlertsPerHour: number;
@@ -26,7 +33,7 @@ export interface IAlertingConfig {
   };
 }
 
-export interface ISuppressionRule {
+export interface ISimpleSuppressionRule {
   id: string;
   name: string;
   condition: string;
@@ -37,16 +44,16 @@ export interface ISuppressionRule {
 }
 
 @Injectable()
-export class EnterpriseAlertingService {
-  private readonly logger = new Logger(EnterpriseAlertingService.name);
+export class AlertingService {
+  private readonly logger = new Logger(AlertingService.name);
   private alerts: Map<string, IAnomalyAlert> = new Map();
   private alertRules: Map<string, IAlertRule> = new Map();
-  private suppressionRules: Map<string, ISuppressionRule> = new Map();
+  private suppressionRules: Map<string, ISimpleSuppressionRule> = new Map();
   private alertHistory: IAnomalyAlert[] = [];
-  private config: IAlertingConfig;
+  private config: IAlertingServiceConfig;
   private alertCounts = {
     lastMinute: { count: 0, timestamp: Date.now() },
-    lastHour: { count: 0, timestamp: Date.now() }
+    lastHour: { count: 0, timestamp: Date.now() },
   };
 
   constructor(private readonly eventEmitter: EventEmitter2) {
@@ -59,42 +66,44 @@ export class EnterpriseAlertingService {
         name: "Default Escalation",
         description: "Default escalation policy",
         enabled: true,
-        escalationLevels: [
+        levels: [
           {
             level: 1,
-            waitTime: 0,
+            delay: 0,
             recipients: [],
-            channels: [NotificationChannelType.LOG]
+            channels: [NotificationChannel.LOG],
+            stopEscalation: false,
           },
           {
             level: 2,
-            waitTime: 300000, // 5 minutes
+            delay: 5, // 5 minutes
             recipients: [],
-            channels: [NotificationChannelType.WEBHOOK]
+            channels: [NotificationChannel.WEBHOOK],
+            stopEscalation: false,
           },
           {
             level: 3,
-            waitTime: 900000, // 15 minutes
+            delay: 10, // 10 minutes after level 2
             recipients: [],
-            channels: [NotificationChannelType.EMAIL]
-          }
+            channels: [NotificationChannel.EMAIL],
+            stopEscalation: true,
+          },
         ],
-        maxLevel: 3,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
+        repeat: false,
+        repeatInterval: 0,
       },
       rateLimiting: {
         maxAlertsPerMinute: 10,
-        maxAlertsPerHour: 100
+        maxAlertsPerHour: 100,
       },
       autoAcknowledgment: {
         enabled: true,
-        timeoutMinutes: 60
-      }
+        timeoutMinutes: 60,
+      },
     };
   }
 
-  configure(config: Partial<IAlertingConfig>): void {
+  configure(config: Partial<IAlertingServiceConfig>): void {
     this.config = { ...this.config, ...config };
     this.logger.log(`Alerting service configured with ${this.config.channels.length} channels`);
   }
@@ -135,7 +144,7 @@ export class EnterpriseAlertingService {
     this.scheduleEscalations(alert);
 
     // Emit event for external systems
-    this.eventEmitter.emit('anomaly.alert.created', alert);
+    this.eventEmitter.emit("anomaly.alert.created", alert);
 
     this.logger.log(`Alert ${alert.id} created for anomaly ${anomaly.id}`);
     return alert;
@@ -156,7 +165,7 @@ export class EnterpriseAlertingService {
           type: anomaly.type,
           metric: anomaly.context.metric,
           score: anomaly.score,
-          ...anomaly.data.metadata
+          ...anomaly.data.metadata,
         };
 
         if (this.evaluateCondition(rule.condition, context)) {
@@ -202,21 +211,27 @@ export class EnterpriseAlertingService {
     for (const rule of this.alertRules.values()) {
       if (!rule.enabled) continue;
 
-      // Check severity threshold
-      if (rule.severityThreshold && !this.meetsSeveityThreshold(anomaly.severity, rule.severityThreshold)) {
+      // Check severity threshold from metadata
+      if (
+        rule.metadata?.severityThreshold &&
+        !this.meetsSeveityThreshold(anomaly.severity, rule.metadata.severityThreshold)
+      ) {
         continue;
       }
 
-      // Check metric patterns
-      if (rule.metricPatterns?.length > 0) {
-        const matchesPattern = rule.metricPatterns.some(pattern => 
-          new RegExp(pattern).test(anomaly.context.metric)
+      // Check metric patterns from metadata
+      if (rule.metadata?.metricPatterns?.length > 0) {
+        const matchesPattern = rule.metadata.metricPatterns.some((pattern: string) =>
+          new RegExp(pattern).test(anomaly.context.metric),
         );
         if (!matchesPattern) continue;
       }
 
-      // Check anomaly types
-      if (rule.anomalyTypes?.length > 0 && !rule.anomalyTypes.includes(anomaly.type)) {
+      // Check anomaly types from metadata
+      if (
+        rule.metadata?.anomalyTypes?.length > 0 &&
+        !rule.metadata.anomalyTypes.includes(anomaly.type)
+      ) {
         continue;
       }
 
@@ -227,7 +242,7 @@ export class EnterpriseAlertingService {
   }
 
   private meetsSeveityThreshold(severity: string, threshold: string): boolean {
-    const severityOrder = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+    const severityOrder = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
     const severityIndex = severityOrder.indexOf(severity.toUpperCase());
     const thresholdIndex = severityOrder.indexOf(threshold.toUpperCase());
     return severityIndex >= thresholdIndex;
@@ -245,18 +260,22 @@ export class EnterpriseAlertingService {
       notifications: [],
       suppressions: [],
       metadata: {
-        source: "EnterpriseAlertingService",
-        version: "1.0.0"
-      }
+        source: "AlertingService",
+        version: "1.0.0",
+      },
     };
   }
 
   private async triggerNotifications(alert: IAnomalyAlert): Promise<void> {
-    const escalationLevel = this.config.escalationPolicy.escalationLevels[0];
-    
+    const escalationLevel = this.config.escalationPolicy.levels[0];
+
     for (const channelType of escalationLevel.channels) {
       try {
-        await this.sendNotification(alert, channelType, escalationLevel.recipients);
+        await this.sendNotification(
+          alert,
+          channelType,
+          escalationLevel.recipients.map((r: any) => r.id || r),
+        );
       } catch (error) {
         this.logger.error(`Failed to send notification via ${channelType}: ${error.message}`);
       }
@@ -264,11 +283,11 @@ export class EnterpriseAlertingService {
   }
 
   private async sendNotification(
-    alert: IAnomalyAlert, 
-    channelType: NotificationChannelType, 
-    recipients: string[]
+    alert: IAnomalyAlert,
+    channelType: NotificationChannel,
+    recipients: string[],
   ): Promise<void> {
-    const channel = this.config.channels.find(c => c.type === channelType);
+    const channel = this.config.channels.find((c) => c.type === channelType);
     if (!channel || !channel.enabled) {
       return;
     }
@@ -276,29 +295,29 @@ export class EnterpriseAlertingService {
     const message = this.formatAlertMessage(alert);
 
     switch (channelType) {
-      case NotificationChannelType.LOG:
+      case NotificationChannel.LOG:
         this.logger.warn(`ALERT: ${message}`);
         break;
 
-      case NotificationChannelType.WEBHOOK:
+      case NotificationChannel.WEBHOOK:
         if (channel.config.url) {
           await this.sendWebhookNotification(channel.config.url, alert);
         }
         break;
 
-      case NotificationChannelType.EMAIL:
+      case NotificationChannel.EMAIL:
         if (channel.config.recipients?.length > 0) {
           await this.sendEmailNotification(channel.config.recipients, alert);
         }
         break;
 
-      case NotificationChannelType.SLACK:
+      case NotificationChannel.SLACK:
         if (channel.config.webhook) {
           await this.sendSlackNotification(channel.config.webhook, alert);
         }
         break;
 
-      case NotificationChannelType.SMS:
+      case NotificationChannel.SMS:
         if (channel.config.phoneNumbers?.length > 0) {
           await this.sendSMSNotification(channel.config.phoneNumbers, alert);
         }
@@ -309,10 +328,16 @@ export class EnterpriseAlertingService {
     alert.notifications.push({
       id: uuidv4(),
       channel: channelType,
-      recipients,
+      recipient: recipients[0] || "system",
       sentAt: Date.now(),
-      success: true,
-      metadata: {}
+      status: NotificationStatus.SENT,
+      retryCount: 0,
+      content: {
+        subject: "Anomaly Alert",
+        body: this.formatAlertMessage(alert),
+        format: ContentFormat.TEXT,
+      },
+      metadata: {},
     });
   }
 
@@ -324,7 +349,7 @@ Severity: ${anomaly.severity}
 Type: ${anomaly.type}
 Score: ${anomaly.score.toFixed(3)}
 Value: ${anomaly.actualValue}
-Expected: ${anomaly.expectedValue || 'N/A'}
+Expected: ${anomaly.expectedValue || "N/A"}
 Deviation: ${anomaly.deviation.toFixed(3)}
 Timestamp: ${new Date(anomaly.timestamp).toISOString()}
 Description: ${anomaly.description}`;
@@ -337,7 +362,7 @@ Description: ${anomaly.description}`;
 
   private async sendEmailNotification(recipients: string[], alert: IAnomalyAlert): Promise<void> {
     // Implementation would integrate with email service
-    this.logger.debug(`Sending email notification to ${recipients.join(', ')}`);
+    this.logger.debug(`Sending email notification to ${recipients.join(", ")}`);
   }
 
   private async sendSlackNotification(webhook: string, alert: IAnomalyAlert): Promise<void> {
@@ -347,22 +372,29 @@ Description: ${anomaly.description}`;
 
   private async sendSMSNotification(phoneNumbers: string[], alert: IAnomalyAlert): Promise<void> {
     // Implementation would integrate with SMS service
-    this.logger.debug(`Sending SMS notification to ${phoneNumbers.join(', ')}`);
+    this.logger.debug(`Sending SMS notification to ${phoneNumbers.join(", ")}`);
   }
 
   private scheduleEscalations(alert: IAnomalyAlert): void {
     const policy = this.config.escalationPolicy;
-    
-    for (let i = 1; i < policy.escalationLevels.length; i++) {
-      const level = policy.escalationLevels[i];
-      
-      setTimeout(async () => {
-        // Check if alert is still open and not acknowledged
-        const currentAlert = this.alerts.get(alert.id);
-        if (currentAlert && currentAlert.status === AlertStatus.OPEN && !currentAlert.acknowledgedAt) {
-          await this.escalateAlert(currentAlert, level);
-        }
-      }, level.waitTime);
+
+    for (let i = 1; i < policy.levels.length; i++) {
+      const level = policy.levels[i];
+
+      setTimeout(
+        async () => {
+          // Check if alert is still open and not acknowledged
+          const currentAlert = this.alerts.get(alert.id);
+          if (
+            currentAlert &&
+            currentAlert.status === AlertStatus.OPEN &&
+            !currentAlert.acknowledgedAt
+          ) {
+            await this.escalateAlert(currentAlert, level);
+          }
+        },
+        level.delay * 60 * 1000,
+      ); // delay is in minutes
     }
   }
 
@@ -372,24 +404,30 @@ Description: ${anomaly.description}`;
     // Send notifications for this escalation level
     for (const channelType of escalationLevel.channels) {
       try {
-        await this.sendNotification(alert, channelType, escalationLevel.recipients);
+        await this.sendNotification(
+          alert,
+          channelType,
+          escalationLevel.recipients.map((r: any) => r.id || r),
+        );
       } catch (error) {
-        this.logger.error(`Failed to send escalation notification via ${channelType}: ${error.message}`);
+        this.logger.error(
+          `Failed to send escalation notification via ${channelType}: ${error.message}`,
+        );
       }
     }
 
     // Record escalation
     alert.escalations.push({
-      id: uuidv4(),
       level: escalationLevel.level,
       triggeredAt: Date.now(),
-      channels: escalationLevel.channels,
-      recipients: escalationLevel.recipients,
-      success: true
+      recipients: escalationLevel.recipients.map((r: any) => r.id || r),
+      channels: escalationLevel.channels.map((c: any) => c.toString()),
+      reason: "Auto-escalation due to unacknowledged alert",
+      acknowledged: false,
     });
 
     alert.updatedAt = Date.now();
-    this.eventEmitter.emit('anomaly.alert.escalated', alert);
+    this.eventEmitter.emit("anomaly.alert.escalated", alert);
   }
 
   // Alert management methods
@@ -404,7 +442,7 @@ Description: ${anomaly.description}`;
     alert.acknowledgedBy = acknowledgedBy;
     alert.updatedAt = Date.now();
 
-    this.eventEmitter.emit('anomaly.alert.acknowledged', alert);
+    this.eventEmitter.emit("anomaly.alert.acknowledged", alert);
     this.logger.log(`Alert ${alertId} acknowledged by ${acknowledgedBy}`);
     return true;
   }
@@ -419,7 +457,7 @@ Description: ${anomaly.description}`;
     alert.resolvedAt = Date.now();
     alert.updatedAt = Date.now();
 
-    this.eventEmitter.emit('anomaly.alert.resolved', alert);
+    this.eventEmitter.emit("anomaly.alert.resolved", alert);
     this.logger.log(`Alert ${alertId} resolved`);
     return true;
   }
@@ -430,7 +468,7 @@ Description: ${anomaly.description}`;
     this.logger.log(`Added alert rule: ${rule.name}`);
   }
 
-  addSuppressionRule(rule: ISuppressionRule): void {
+  addSuppressionRule(rule: ISimpleSuppressionRule): void {
     this.suppressionRules.set(rule.id, rule);
     this.logger.log(`Added suppression rule: ${rule.name}`);
   }
@@ -438,7 +476,7 @@ Description: ${anomaly.description}`;
   // Query methods
   getActiveAlerts(): IAnomalyAlert[] {
     return Array.from(this.alerts.values()).filter(
-      alert => alert.status === AlertStatus.OPEN || alert.status === AlertStatus.ACKNOWLEDGED
+      (alert) => alert.status === AlertStatus.OPEN || alert.status === AlertStatus.ACKNOWLEDGED,
     );
   }
 
@@ -451,27 +489,28 @@ Description: ${anomaly.description}`;
     return {
       total: alerts.length,
       byStatus: {
-        open: alerts.filter(a => a.status === AlertStatus.OPEN).length,
-        acknowledged: alerts.filter(a => a.status === AlertStatus.ACKNOWLEDGED).length,
-        resolved: alerts.filter(a => a.status === AlertStatus.RESOLVED).length,
-        suppressed: alerts.filter(a => a.status === AlertStatus.SUPPRESSED).length
+        open: alerts.filter((a) => a.status === AlertStatus.OPEN).length,
+        acknowledged: alerts.filter((a) => a.status === AlertStatus.ACKNOWLEDGED).length,
+        resolved: alerts.filter((a) => a.status === AlertStatus.RESOLVED).length,
+        suppressed: alerts.filter((a) => a.status === AlertStatus.SUPPRESSED).length,
       },
       bySeverity: {
-        critical: alerts.filter(a => a.anomaly.severity === 'CRITICAL').length,
-        high: alerts.filter(a => a.anomaly.severity === 'HIGH').length,
-        medium: alerts.filter(a => a.anomaly.severity === 'MEDIUM').length,
-        low: alerts.filter(a => a.anomaly.severity === 'LOW').length
+        critical: alerts.filter((a) => a.anomaly.severity === AnomalySeverity.CRITICAL).length,
+        high: alerts.filter((a) => a.anomaly.severity === AnomalySeverity.HIGH).length,
+        medium: alerts.filter((a) => a.anomaly.severity === AnomalySeverity.MEDIUM).length,
+        low: alerts.filter((a) => a.anomaly.severity === AnomalySeverity.LOW).length,
       },
-      averageResolutionTime: this.calculateAverageResolutionTime(alerts)
+      averageResolutionTime: this.calculateAverageResolutionTime(alerts),
     };
   }
 
   private calculateAverageResolutionTime(alerts: IAnomalyAlert[]): number {
-    const resolvedAlerts = alerts.filter(a => a.resolvedAt && a.createdAt);
+    const resolvedAlerts = alerts.filter((a) => a.resolvedAt && a.createdAt);
     if (resolvedAlerts.length === 0) return 0;
 
-    const totalTime = resolvedAlerts.reduce((sum, alert) => 
-      sum + (alert.resolvedAt! - alert.createdAt), 0
+    const totalTime = resolvedAlerts.reduce(
+      (sum, alert) => sum + (alert.resolvedAt! - alert.createdAt),
+      0,
     );
 
     return totalTime / resolvedAlerts.length;
@@ -483,10 +522,10 @@ Description: ${anomaly.description}`;
       // Replace variables in condition with actual values
       let evaluableCondition = condition;
       for (const [key, value] of Object.entries(context)) {
-        const regex = new RegExp(`\\b${key}\\b`, 'g');
+        const regex = new RegExp(`\\b${key}\\b`, "g");
         evaluableCondition = evaluableCondition.replace(regex, JSON.stringify(value));
       }
-      
+
       // This is a simplified evaluation - use a proper expression library in production
       return Function(`"use strict"; return (${evaluableCondition})`)();
     } catch (error) {
