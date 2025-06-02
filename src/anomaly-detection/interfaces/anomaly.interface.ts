@@ -1,6 +1,11 @@
+import { IEscalationPolicy } from "./alert.interface";
+export { IEscalationPolicy, ISuppressionRule } from "./alert.interface";
+
 export interface IAnomalyData {
+  metricName: string;
   value: number;
   timestamp: number;
+  type?: string;
   metadata?: Record<string, any>;
   labels?: Record<string, string>;
   source?: string;
@@ -86,14 +91,6 @@ export enum BusinessCriticality {
   CRITICAL = "critical",
 }
 
-export interface IEscalationPolicy {
-  immediate: string[];
-  after5min: string[];
-  after15min: string[];
-  after30min: string[];
-  after1hour: string[];
-}
-
 export interface IAnomalyPattern {
   name: string;
   description: string;
@@ -110,11 +107,4 @@ export interface IPatternCondition {
   value: number | [number, number];
   timeWindow: number;
   aggregation: "avg" | "sum" | "count" | "min" | "max" | "p95" | "p99";
-}
-
-export interface ISuppressionRule {
-  name: string;
-  condition: string; // Expression like "maintenance_mode === true"
-  duration: number; // How long to suppress in ms
-  reason: string;
 }

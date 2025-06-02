@@ -287,6 +287,78 @@ exportMetrics() {
 }
 ```
 
+#### 🤖 Enterprise Anomaly Detection
+**NEW!** Advanced AI-powered anomaly detection for production environments:
+
+```typescript
+import { EnterpriseAnomalyDetectionService } from '@usex/nest-shield';
+
+ShieldModule.forRoot({
+  advanced: {
+    adaptiveProtection: {
+      enabled: true,
+      anomalyDetection: {
+        enabled: true,
+        detectorType: "Composite Anomaly Detector",
+        sensitivity: 0.8,
+        alerting: {
+          enabled: true,
+          channels: [
+            {
+              type: "SLACK",
+              config: { webhook: process.env.SLACK_WEBHOOK }
+            },
+            {
+              type: "EMAIL", 
+              config: { recipients: ["ops@company.com"] }
+            }
+          ]
+        },
+        performance: {
+          enabled: true,
+          scaling: { maxInstances: 5, minInstances: 1 }
+        }
+      }
+    }
+  }
+})
+
+// In your service
+@Injectable()
+export class MonitoringService {
+  constructor(
+    private anomalyService: EnterpriseAnomalyDetectionService
+  ) {}
+
+  async detectAnomalies() {
+    const metrics = [
+      { metricName: 'response_time', value: 2500, timestamp: Date.now() },
+      { metricName: 'error_rate', value: 0.15, timestamp: Date.now() }
+    ];
+
+    const anomalies = await this.anomalyService.detectAnomalies(metrics);
+    
+    for (const anomaly of anomalies) {
+      console.log(`🚨 ${anomaly.severity} anomaly: ${anomaly.description}`);
+    }
+  }
+}
+```
+
+**Features:**
+- 🧠 **7 Advanced Detectors**: Z-Score, Isolation Forest, Seasonal, ML-based, and more
+- 🔔 **Smart Alerting**: Multi-channel notifications with escalation policies  
+- 📈 **Auto-Scaling**: Intelligent scaling based on performance metrics
+- 🔒 **Enterprise Security**: Encryption, audit logging, compliance features
+- 🌐 **Clustering**: Multi-node deployment with state synchronization
+- 📊 **Rich Analytics**: Comprehensive reporting and trend analysis
+
+📚 **Comprehensive Documentation:**
+- [**Enterprise Anomaly Detection Guide**](docs/anomaly-detection/index.md) - Complete implementation guide
+- [**The Science Behind Anomaly Detection**](docs/anomaly-detection/science.md) - Mathematical foundations and algorithms
+- [**Detector Comparison & Selection Guide**](docs/anomaly-detection/comparison.md) - Choose the right detector for your use case
+- [**Practical Examples & Use Cases**](docs/anomaly-detection/examples.md) - Real-world implementations and code examples
+
 #### 🦅 Graceful Shutdown
 Handle shutdowns like a pro:
 

@@ -1,6 +1,11 @@
 import { Injectable } from "@nestjs/common";
 import { BaseAnomalyDetector } from "./base.detector";
-import { IAnomalyData, IAnomaly, AnomalyType } from "../interfaces/anomaly.interface";
+import {
+  IAnomalyData,
+  IAnomaly,
+  AnomalyType,
+  AnomalySeverity,
+} from "../interfaces/anomaly.interface";
 import { IDetectorContext } from "../interfaces/detector.interface";
 
 @Injectable()
@@ -289,19 +294,14 @@ export class ThresholdAnomalyDetector extends BaseAnomalyDetector {
     return violations;
   }
 
-  private calculateSeverity(value: number, threshold: number, type: string): number {
-    const deviation = Math.abs(value - threshold);
-    const relativeDeviation = deviation / Math.abs(threshold);
+  protected calculateSeverity(score: number, confidence: number): AnomalySeverity {
+    // Combine score and confidence to determine severity
+    const combinedScore = score * confidence;
 
-    // Scale severity based on how far beyond threshold
-    let severity = Math.min(1.0, relativeDeviation);
-
-    // Boost severity for critical thresholds
-    if (type === "upper" || type === "lower") {
-      severity = Math.min(1.0, severity * 1.5);
-    }
-
-    return severity;
+    if (combinedScore >= 0.8) return AnomalySeverity.CRITICAL;
+    if (combinedScore >= 0.6) return AnomalySeverity.HIGH;
+    if (combinedScore >= 0.3) return AnomalySeverity.MEDIUM;
+    return AnomalySeverity.LOW;
   }
 
   private calculateViolationScore(

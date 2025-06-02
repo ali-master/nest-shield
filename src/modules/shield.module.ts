@@ -9,13 +9,16 @@ import {
   ThrottleService,
   OverloadService,
   MetricsService,
+  EnhancedMetricsService,
   GracefulShutdownService,
   DistributedSyncService,
   PriorityManagerService,
+  AnomalyDetectionService,
 } from "../services";
 import { ShieldGuard } from "../guards/shield.guard";
 import { CircuitBreakerInterceptor, OverloadReleaseInterceptor } from "../interceptors";
 import { AdapterFactory } from "../adapters";
+import { AnomalyDetectionModule } from "../anomaly-detection/anomaly-detection.module";
 
 export interface ShieldModuleOptions extends IShieldConfig {}
 
@@ -39,6 +42,7 @@ export class ShieldModule {
 
     return {
       module: ShieldModule,
+      imports: [AnomalyDetectionModule],
       providers: [
         {
           provide: SHIELD_MODULE_OPTIONS,
@@ -53,9 +57,12 @@ export class ShieldModule {
         ThrottleService,
         OverloadService,
         MetricsService,
+        EnhancedMetricsService,
         GracefulShutdownService,
         DistributedSyncService,
         PriorityManagerService,
+        AnomalyDetectionService,
+        AnomalyDetectionModule,
       ],
     };
   }
@@ -63,7 +70,7 @@ export class ShieldModule {
   static forRootAsync(options: ShieldModuleAsyncOptions): DynamicModule {
     return {
       module: ShieldModule,
-      imports: options.imports || [],
+      imports: [AnomalyDetectionModule, ...(options.imports || [])],
       providers: [...this.createAsyncProviders(options), ...this.createProviders()],
       exports: [
         SHIELD_MODULE_OPTIONS,
@@ -72,9 +79,12 @@ export class ShieldModule {
         ThrottleService,
         OverloadService,
         MetricsService,
+        EnhancedMetricsService,
         GracefulShutdownService,
         DistributedSyncService,
         PriorityManagerService,
+        AnomalyDetectionService,
+        AnomalyDetectionModule,
       ],
     };
   }
@@ -83,6 +93,7 @@ export class ShieldModule {
     return [
       AdapterFactory,
       MetricsService,
+      EnhancedMetricsService,
       CircuitBreakerService,
       RateLimitService,
       ThrottleService,
@@ -90,6 +101,7 @@ export class ShieldModule {
       GracefulShutdownService,
       DistributedSyncService,
       PriorityManagerService,
+      AnomalyDetectionService,
       ShieldGuard,
       CircuitBreakerInterceptor,
       OverloadReleaseInterceptor,

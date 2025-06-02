@@ -189,10 +189,133 @@ export interface IAdaptiveProtectionConfig {
 
 export interface IAnomalyDetectionConfig {
   enabled: boolean;
-  algorithm: "zscore" | "isolation-forest" | "custom";
+  detectorType?:
+    | "Z-Score Detector"
+    | "Isolation Forest Detector"
+    | "Seasonal Anomaly Detector"
+    | "Threshold Anomaly Detector"
+    | "Statistical Anomaly Detector"
+    | "Machine Learning Detector"
+    | "Composite Anomaly Detector";
+  sensitivity?: number;
+  threshold?: number;
+  windowSize?: number;
+  minDataPoints?: number;
+  learningPeriod?: number;
+  adaptiveThresholds?: boolean;
+  businessRules?: IBusinessRule[];
+  alerting?: IAnomalyAlertConfig;
+  autoTraining?: IAutoTrainingConfig;
+  detectorSpecificConfig?: {
+    zscore?: IZScoreConfig;
+    isolationForest?: IIsolationForestConfig;
+    seasonal?: ISeasonalConfig;
+    threshold?: IThresholdDetectorConfig;
+    statistical?: IStatisticalConfig;
+    machineLearning?: IMLConfig;
+    composite?: ICompositeConfig;
+  };
+}
+
+export interface IBusinessRule {
+  id: string;
+  name: string;
+  condition: string;
+  action: "suppress" | "escalate" | "auto_resolve";
+  description: string;
+  enabled: boolean;
+}
+
+export interface IAnomalyAlertConfig {
+  enabled: boolean;
+  channels: ("log" | "webhook" | "email" | "slack")[];
+  thresholds: {
+    critical: number;
+    high: number;
+    medium: number;
+  };
+  webhookUrl?: string;
+  emailConfig?: {
+    to: string[];
+    subject?: string;
+  };
+  slackConfig?: {
+    webhook: string;
+    channel?: string;
+  };
+}
+
+export interface IAutoTrainingConfig {
+  enabled: boolean;
+  interval: number; // in milliseconds
+  minDataPoints: number;
+  retrainOnDrift: boolean;
+  driftThreshold: number;
+}
+
+export interface IZScoreConfig {
   threshold: number;
   windowSize: number;
-  customDetector?: (data: number[]) => boolean;
+  enableModifiedZScore: boolean;
+  seasonalAdjustment: boolean;
+  volatilityBasedThresholds: boolean;
+}
+
+export interface IIsolationForestConfig {
+  numTrees: number;
+  subsampleSize: number;
+  maxDepth: number;
+  threshold: number;
+  enableFeatureImportance: boolean;
+}
+
+export interface ISeasonalConfig {
+  enableHourlyPattern: boolean;
+  enableDailyPattern: boolean;
+  enableWeeklyPattern: boolean;
+  enableMonthlyPattern: boolean;
+  trendDetection: boolean;
+  volatilityModeling: boolean;
+}
+
+export interface IThresholdDetectorConfig {
+  staticThresholds?: {
+    upper: number;
+    lower: number;
+    upperWarning: number;
+    lowerWarning: number;
+  };
+  enableAdaptiveThresholds: boolean;
+  enableRateThresholds: boolean;
+  contextualAdjustment: boolean;
+}
+
+export interface IStatisticalConfig {
+  methods: ("zscore" | "modified-zscore" | "iqr" | "grubbs" | "tukey" | "esd")[];
+  ensembleWeights?: Record<string, number>;
+  enableDataQualityAnalysis: boolean;
+}
+
+export interface IMLConfig {
+  algorithms: ("autoencoder" | "lstm" | "one-svm" | "isolation-forest-ml" | "gaussian-mixture")[];
+  enableOnlineLearning: boolean;
+  featureEngineering: {
+    enableTimeFeatures: boolean;
+    enableStatisticalFeatures: boolean;
+    enableTrendFeatures: boolean;
+  };
+}
+
+export interface ICompositeConfig {
+  strategy:
+    | "majority_vote"
+    | "weighted_average"
+    | "adaptive_weighted"
+    | "stacking"
+    | "hierarchical";
+  detectorWeights?: Record<string, number>;
+  enableContextualSelection: boolean;
+  enablePerformanceTracking: boolean;
 }
 
 export interface IDistributedSyncConfig {

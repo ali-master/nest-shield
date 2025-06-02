@@ -25,26 +25,29 @@ export abstract class BaseAnomalyDetector implements IAnomalyDetector {
   abstract readonly description: string;
 
   constructor() {
+    // modelInfo will be initialized in configure method
     this.modelInfo = {
-      algorithm: this.name,
+      algorithm: "base",
       lastUpdated: Date.now(),
-      version: this.version,
+      version: "1.0.0",
       parameters: {},
     };
   }
 
   configure(config: IDetectorConfig): void {
     this.config = {
-      enabled: true,
-      sensitivity: 0.5,
-      threshold: 2.0,
-      windowSize: 100,
-      minDataPoints: 10,
       learningPeriod: 1000,
       ...config,
     };
 
-    this.modelInfo.parameters = { ...this.config };
+    // Update modelInfo with actual detector information
+    this.modelInfo = {
+      algorithm: this.name,
+      lastUpdated: Date.now(),
+      version: this.version,
+      parameters: { ...this.config },
+    };
+    
     this.logger.log(`Configured detector ${this.name} with sensitivity ${this.config.sensitivity}`);
   }
 
@@ -182,7 +185,7 @@ export abstract class BaseAnomalyDetector implements IAnomalyDetector {
     );
   }
 
-  protected applyBusinessRules(anomaly: IAnomaly): IAnomaly {
+  protected applyBusinessRules(anomaly: IAnomaly): IAnomaly | null {
     if (!this.config.businessRules) return anomaly;
 
     for (const rule of this.config.businessRules) {
