@@ -1,7 +1,9 @@
 <p align="center">
   <img src="./assets/logo.svg" alt="NestJS Shield - Enterprise-grade protection for NestJS applications">
 </p>
-
+<p align="center">
+  <sub>Built by developers who've been there at 3 AM when the servers are on fire 🔥</sub>
+</p>
 <p align="center">
   <a href="https://www.npmjs.com/package/@usex/nest-shield">
     <img src="https://img.shields.io/npm/v/@usex/nest-shield.svg" alt="npm version">
@@ -529,21 +531,6 @@ MIT © [Ali Torki](https://github.com/ali-master)
 
 ## 🙏 Acknowledgments
 
-<div align="center">
-  <p>
-    <strong>Ready to build distributed systems that just work?</strong>
-  </p>
-  <p>
-    <a href="./docs/installation.md">🚀 Get Started</a> •
-    <a href="./docs/examples.md">📚 View Examples</a> •
-    <a href="https://github.com/ali-master/nest-shield">⭐ Star on GitHub</a>
-  </p>
-  <p>
-    Made with ❤️ by <a href="https://github.com/ali-master">Ali Master</a> and the open source community.
-  </p>
-</div>
----
-
 <p align="center">
   <strong>Ready to protect your API?</strong><br>
   <a href="https://github.com/ali-master/nest-shield">Documentation</a> •
@@ -553,5 +540,5 @@ MIT © [Ali Torki](https://github.com/ali-master)
 </p>
 
 <p align="center">
-  <sub>Built by developers who've been there at 3 AM when the servers are on fire 🔥</sub>
+ Made with ❤️ by <a href="https://github.com/ali-master">Ali Master</a> and the open source community.
 </p>
