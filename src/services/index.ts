@@ -1,6 +1,5 @@
 export * from "./circuit-breaker.service";
 export * from "./metrics.service";
-export * from "./enhanced-metrics.service";
 export * from "./rate-limit.service";
 export * from "./throttle.service";
 export * from "./overload.service";

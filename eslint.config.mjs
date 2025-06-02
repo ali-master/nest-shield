@@ -6,7 +6,7 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["tests/**"],
+    ignores: ["tests/**", "./examples/**"],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,

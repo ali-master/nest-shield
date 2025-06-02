@@ -9,7 +9,7 @@ import {
 } from "./collectors";
 import { TimeWindowAggregator, RollingWindowAggregator, PercentileAggregator } from "./aggregators";
 import { PrometheusExporter, JsonExporter, OpenMetricsExporter } from "./exporters";
-import { EnhancedMetricsService } from "../services/enhanced-metrics.service";
+import { MetricsService } from "../services/metrics.service";
 import { IMetricsConfig } from "../interfaces/shield-config.interface";
 
 @Module({})
@@ -23,7 +23,7 @@ export class MetricsModule {
       TimeWindowAggregator,
       RollingWindowAggregator,
       PercentileAggregator,
-      EnhancedMetricsService,
+      MetricsService,
     ];
 
     // Add collector based on config
@@ -116,7 +116,7 @@ export class MetricsModule {
       module: MetricsModule,
       providers,
       exports: [
-        EnhancedMetricsService,
+        MetricsService,
         TimeWindowAggregator,
         RollingWindowAggregator,
         PercentileAggregator,
