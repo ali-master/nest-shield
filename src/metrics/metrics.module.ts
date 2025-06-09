@@ -1,16 +1,17 @@
-import { Module, DynamicModule, Provider } from "@nestjs/common";
+import type { Provider, DynamicModule } from "@nestjs/common";
+import { Module } from "@nestjs/common";
+import type { BaseMetricsCollector } from "./collectors";
 import {
-  PrometheusCollector,
   StatsDCollector,
+  PrometheusCollector,
   DatadogCollector,
-  CloudWatchCollector,
   CustomMetricsCollector,
-  BaseMetricsCollector,
+  CloudWatchCollector,
 } from "./collectors";
 import { TimeWindowAggregator, RollingWindowAggregator, PercentileAggregator } from "./aggregators";
-import { PrometheusExporter, JsonExporter, OpenMetricsExporter } from "./exporters";
+import { PrometheusExporter, JsonExporter } from "./exporters";
 import { MetricsService } from "../services/metrics.service";
-import { IMetricsConfig } from "../interfaces/shield-config.interface";
+import type { IMetricsConfig } from "../interfaces/shield-config.interface";
 
 @Module({})
 export class MetricsModule {

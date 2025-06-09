@@ -1,7 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { BaseAnomalyDetector } from "./base.detector";
-import { IAnomalyData, IAnomaly, AnomalyType } from "../interfaces/anomaly.interface";
-import { IDetectorContext } from "../interfaces/detector.interface";
+import type { IAnomalyData, IAnomaly } from "../interfaces/anomaly.interface";
+import { AnomalyType } from "../interfaces/anomaly.interface";
+import type { IDetectorContext } from "../interfaces/detector.interface";
 
 @Injectable()
 export class IsolationForestDetector extends BaseAnomalyDetector {
@@ -80,7 +81,7 @@ export class IsolationForestDetector extends BaseAnomalyDetector {
 
     // Normalize path length to isolation score (0-1)
     const c = this.calculateC(this.config.windowSize);
-    return Math.pow(2, -avgPathLength / c);
+    return 2 ** (-avgPathLength / c);
   }
 
   private calculateC(n: number): number {
@@ -92,7 +93,7 @@ export class IsolationForestDetector extends BaseAnomalyDetector {
     const pathLengths = this.trees.map((tree) => tree.getPathLength(features));
     const mean = pathLengths.reduce((sum, len) => sum + len, 0) / pathLengths.length;
     const variance =
-      pathLengths.reduce((sum, len) => sum + Math.pow(len - mean, 2), 0) / pathLengths.length;
+      pathLengths.reduce((sum, len) => sum + (len - mean) ** 2, 0) / pathLengths.length;
     const stdDev = Math.sqrt(variance);
 
     // Lower variance = higher confidence
@@ -369,32 +370,38 @@ class FeatureExtractor {
     return value;
   }
 
-  private calculateRateOfChange(dataPoint: IAnomalyData, context?: IDetectorContext): number {
+  private calculateRateOfChange(_dataPoint: IAnomalyData, _context?: IDetectorContext): number {
     // Simplified rate calculation - in production, use historical data
     return Math.random() * 2 - 1; // Placeholder
   }
 
-  private calculateLocalVariance(dataPoint: IAnomalyData, context?: IDetectorContext): number {
+  private calculateLocalVariance(_dataPoint: IAnomalyData, _context?: IDetectorContext): number {
     // Simplified variance calculation
     return Math.random(); // Placeholder
   }
 
-  private calculateZScore(dataPoint: IAnomalyData, context?: IDetectorContext): number {
+  private calculateZScore(_dataPoint: IAnomalyData, _context?: IDetectorContext): number {
     // Simplified Z-score calculation
     return Math.random() * 6 - 3; // Placeholder
   }
 
-  private calculateMovingAverageRatio(dataPoint: IAnomalyData, context?: IDetectorContext): number {
+  private calculateMovingAverageRatio(
+    _dataPoint: IAnomalyData,
+    _context?: IDetectorContext,
+  ): number {
     // Simplified moving average ratio
     return Math.random() * 2; // Placeholder
   }
 
-  private calculatePercentileRank(dataPoint: IAnomalyData, context?: IDetectorContext): number {
+  private calculatePercentileRank(_dataPoint: IAnomalyData, _context?: IDetectorContext): number {
     // Simplified percentile rank
     return Math.random(); // Placeholder
   }
 
-  private calculateTimeSinceLastSpike(dataPoint: IAnomalyData, context?: IDetectorContext): number {
+  private calculateTimeSinceLastSpike(
+    _dataPoint: IAnomalyData,
+    _context?: IDetectorContext,
+  ): number {
     // Simplified time calculation
     return Math.random() * 3600000; // Placeholder
   }
@@ -416,8 +423,7 @@ class FeatureExtractor {
     for (let i = 0; i < numFeatures; i++) {
       const values = features.map((f) => f[i]);
       const variance =
-        values.reduce((sum, val) => sum + Math.pow(val - this.featureMeans[i], 2), 0) /
-        values.length;
+        values.reduce((sum, val) => sum + (val - this.featureMeans[i]) ** 2, 0) / values.length;
       this.featureStds[i] = Math.sqrt(variance);
     }
   }

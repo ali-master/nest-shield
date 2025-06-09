@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { BaseAnomalyDetector } from "./base.detector";
-import { IAnomalyData, IAnomaly, AnomalyType } from "../interfaces/anomaly.interface";
-import { IDetectorContext } from "../interfaces/detector.interface";
+import type { IDetectorContext, IAnomalyData, IAnomaly } from "../interfaces";
+import { AnomalyType } from "../interfaces";
 
 @Injectable()
 export class StatisticalAnomalyDetector extends BaseAnomalyDetector {
@@ -184,7 +184,7 @@ export class StatisticalAnomalyDetector extends BaseAnomalyDetector {
     const scores = results.map((r) => r.score);
     const avgScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
     const scoreVariance =
-      scores.reduce((sum, score) => sum + Math.pow(score - avgScore, 2), 0) / scores.length;
+      scores.reduce((sum, score) => sum + (score - avgScore) ** 2, 0) / scores.length;
     const scoreConsistency = Math.max(0, 1 - Math.sqrt(scoreVariance));
 
     confidence += scoreConsistency * 0.2;
@@ -259,7 +259,7 @@ export class StatisticalAnomalyDetector extends BaseAnomalyDetector {
 
     // Basic statistics
     const mean = values.reduce((sum, val) => sum + val, 0) / n;
-    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / n;
+    const variance = values.reduce((sum, val) => sum + (val - mean) ** 2, 0) / n;
     const stdDev = Math.sqrt(variance);
 
     // Percentiles
@@ -298,16 +298,16 @@ export class StatisticalAnomalyDetector extends BaseAnomalyDetector {
 
   private calculateSkewness(values: number[], mean: number, stdDev: number): number {
     const n = values.length;
-    const sum = values.reduce((sum, val) => sum + Math.pow((val - mean) / stdDev, 3), 0);
+    const sum = values.reduce((sum, val) => sum + ((val - mean) / stdDev) ** 3, 0);
     return (n / ((n - 1) * (n - 2))) * sum;
   }
 
   private calculateKurtosis(values: number[], mean: number, stdDev: number): number {
     const n = values.length;
-    const sum = values.reduce((sum, val) => sum + Math.pow((val - mean) / stdDev, 4), 0);
+    const sum = values.reduce((sum, val) => sum + ((val - mean) / stdDev) ** 4, 0);
     return (
       ((n * (n + 1)) / ((n - 1) * (n - 2) * (n - 3))) * sum -
-      (3 * Math.pow(n - 1, 2)) / ((n - 2) * (n - 3))
+      (3 * (n - 1) ** 2) / ((n - 2) * (n - 3))
     );
   }
 
@@ -381,15 +381,13 @@ export class StatisticalAnomalyDetector extends BaseAnomalyDetector {
     const mean = sorted.reduce((sum, val) => sum + val, 0) / n;
 
     // Calculate test statistic (simplified)
-    const numerator = Math.pow(
+    const numerator =
       sorted.reduce((sum, val, i) => {
         const weight = this.shapiroWilkWeight(i + 1, n);
         return sum + weight * val;
-      }, 0),
-      2,
-    );
+      }, 0) ** 2;
 
-    const denominator = sorted.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0);
+    const denominator = sorted.reduce((sum, val) => sum + (val - mean) ** 2, 0);
 
     const w = numerator / denominator;
 
@@ -562,7 +560,7 @@ class ZScoreMethod extends DetectionMethodBase {
     return Math.min(confidence, 1);
   }
 
-  async train(values: number[], model: IStatisticalModel): Promise<void> {
+  async train(_values: number[], _model: IStatisticalModel): Promise<void> {
     // Z-score doesn't require additional training beyond basic statistics
   }
 }
@@ -589,7 +587,7 @@ class ModifiedZScoreMethod extends DetectionMethodBase {
     };
   }
 
-  async train(values: number[], model: IStatisticalModel): Promise<void> {
+  async train(_values: number[], _model: IStatisticalModel): Promise<void> {
     // Modified Z-score uses median and MAD, already calculated
   }
 }
@@ -600,7 +598,7 @@ class IQRMethod extends DetectionMethodBase {
   async detect(
     dataPoint: IAnomalyData,
     model: IStatisticalModel,
-    config: any,
+    _config: any,
   ): Promise<IDetectionResult> {
     const stats = model.statistics;
     const lowerBound = stats.q1 - 1.5 * stats.iqr;
@@ -626,7 +624,7 @@ class IQRMethod extends DetectionMethodBase {
     };
   }
 
-  async train(values: number[], model: IStatisticalModel): Promise<void> {
+  async train(_values: number[], _model: IStatisticalModel): Promise<void> {
     // IQR method uses quartiles, already calculated
   }
 }
@@ -637,7 +635,7 @@ class GrubbsTestMethod extends DetectionMethodBase {
   async detect(
     dataPoint: IAnomalyData,
     model: IStatisticalModel,
-    config: any,
+    _config: any,
   ): Promise<IDetectionResult> {
     const stats = model.statistics;
     const n = model.sampleSize;
@@ -647,8 +645,7 @@ class GrubbsTestMethod extends DetectionMethodBase {
     const alpha = 0.05;
     const tCritical = this.getTCritical(n - 2, alpha / (2 * n));
     const grubbsCritical =
-      ((n - 1) / Math.sqrt(n)) *
-      Math.sqrt(Math.pow(tCritical, 2) / (n - 2 + Math.pow(tCritical, 2)));
+      ((n - 1) / Math.sqrt(n)) * Math.sqrt(tCritical ** 2 / (n - 2 + tCritical ** 2));
 
     return {
       method: this.name,
@@ -666,7 +663,7 @@ class GrubbsTestMethod extends DetectionMethodBase {
     return 2.0 + alpha * df * 0.1; // Rough approximation
   }
 
-  async train(values: number[], model: IStatisticalModel): Promise<void> {
+  async train(_values: number[], _model: IStatisticalModel): Promise<void> {
     // Grubbs test uses basic statistics
   }
 }
@@ -677,7 +674,7 @@ class TukeyMethod extends DetectionMethodBase {
   async detect(
     dataPoint: IAnomalyData,
     model: IStatisticalModel,
-    config: any,
+    _config: any,
   ): Promise<IDetectionResult> {
     const stats = model.statistics;
     const k = 2.2; // Tukey constant
@@ -704,7 +701,7 @@ class TukeyMethod extends DetectionMethodBase {
     };
   }
 
-  async train(values: number[], model: IStatisticalModel): Promise<void> {
+  async train(_values: number[], _model: IStatisticalModel): Promise<void> {
     // Tukey method uses quartiles
   }
 }
@@ -716,7 +713,7 @@ class ESDTestMethod extends DetectionMethodBase {
   async detect(
     dataPoint: IAnomalyData,
     model: IStatisticalModel,
-    config: any,
+    _config: any,
   ): Promise<IDetectionResult> {
     // Simplified ESD test for single point
     // In production, implement full iterative ESD test
@@ -729,8 +726,8 @@ class ESDTestMethod extends DetectionMethodBase {
     const lambda =
       ((n - 1) / Math.sqrt(n)) *
       Math.sqrt(
-        Math.pow(this.getTCritical(n - 2, alpha / (2 * n)), 2) /
-          (n - 2 + Math.pow(this.getTCritical(n - 2, alpha / (2 * n)), 2)),
+        this.getTCritical(n - 2, alpha / (2 * n)) ** 2 /
+          (n - 2 + this.getTCritical(n - 2, alpha / (2 * n)) ** 2),
       );
 
     return {
@@ -747,7 +744,7 @@ class ESDTestMethod extends DetectionMethodBase {
     return 2.0 + alpha * df * 0.1;
   }
 
-  async train(values: number[], model: IStatisticalModel): Promise<void> {
+  async train(_values: number[], _model: IStatisticalModel): Promise<void> {
     // ESD test configuration
   }
 }
@@ -756,9 +753,13 @@ class ESDTestMethod extends DetectionMethodBase {
 
 interface IDetectionMethod {
   name: string;
-  detect(dataPoint: IAnomalyData, model: IStatisticalModel, config: any): Promise<IDetectionResult>;
-  train(values: number[], model: IStatisticalModel): Promise<void>;
-  reset(): void;
+  detect: (
+    dataPoint: IAnomalyData,
+    model: IStatisticalModel,
+    config: any,
+  ) => Promise<IDetectionResult>;
+  train: (values: number[], model: IStatisticalModel) => Promise<void>;
+  reset: () => void;
 }
 
 interface IDetectionResult {

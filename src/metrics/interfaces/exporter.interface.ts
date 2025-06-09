@@ -1,8 +1,6 @@
-import { IMetric } from "./metrics.interface";
-
 export interface IMetricsExporter {
-  export(): Promise<string>;
-  exportJson(): Promise<any>;
+  export: () => Promise<string>;
+  exportJson: () => Promise<any>;
   contentType: string;
 }
 

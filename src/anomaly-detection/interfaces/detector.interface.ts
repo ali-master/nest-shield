@@ -1,16 +1,16 @@
-import { IAnomalyData, IAnomaly } from "./anomaly.interface";
+import type { IAnomalyData, IAnomaly } from "./anomaly.interface";
 
 export interface IAnomalyDetector {
   name: string;
   version: string;
   description: string;
 
-  configure(config: IDetectorConfig): void;
-  detect(data: IAnomalyData[], context?: IDetectorContext): Promise<IAnomaly[]>;
-  train?(historicalData: IAnomalyData[]): Promise<void>;
-  getModelInfo?(): IModelInfo;
-  isReady(): boolean;
-  reset(): void;
+  configure: (config: IDetectorConfig) => void;
+  detect: (data: IAnomalyData[], context?: IDetectorContext) => Promise<IAnomaly[]>;
+  train?: (historicalData: IAnomalyData[]) => Promise<void>;
+  getModelInfo?: () => IModelInfo;
+  isReady: () => boolean;
+  reset: () => void;
 }
 
 export interface IDetectorConfig {

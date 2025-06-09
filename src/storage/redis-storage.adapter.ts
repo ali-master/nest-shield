@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import { Redis, RedisOptions } from "ioredis";
+import type { RedisOptions } from "ioredis";
+import { Redis } from "ioredis";
 import { BaseStorageAdapter } from "./base-storage.adapter";
 
 export interface RedisStorageOptions extends RedisOptions {

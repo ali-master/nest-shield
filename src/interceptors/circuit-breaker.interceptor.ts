@@ -1,10 +1,11 @@
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Inject } from "@nestjs/common";
-import { Observable, throwError, firstValueFrom } from "rxjs";
-import { catchError, tap } from "rxjs/operators";
-import { Reflector } from "@nestjs/core";
+import type { NestInterceptor, ExecutionContext, CallHandler } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
+import { throwError, Observable, firstValueFrom } from "rxjs";
+import { tap, catchError } from "rxjs/operators";
+import type { Reflector } from "@nestjs/core";
 import { SHIELD_MODULE_OPTIONS, SHIELD_DECORATORS } from "../core/constants";
-import { IShieldConfig, ICircuitBreakerConfig } from "../interfaces/shield-config.interface";
-import { CircuitBreakerService } from "../services";
+import type { IShieldConfig, ICircuitBreakerConfig } from "../interfaces/shield-config.interface";
+import type { CircuitBreakerService } from "../services";
 
 @Injectable()
 export class CircuitBreakerInterceptor implements NestInterceptor {

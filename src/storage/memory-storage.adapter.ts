@@ -54,7 +54,7 @@ export class MemoryStorageAdapter extends BaseStorageAdapter {
 
   async increment(key: string, value: number = 1): Promise<number> {
     try {
-      const fullKey = this.getKey(key);
+      const _fullKey = this.getKey(key);
       const current = (await this.get(key)) || 0;
       const newValue = Number(current) + value;
       await this.set(key, newValue);
@@ -66,7 +66,7 @@ export class MemoryStorageAdapter extends BaseStorageAdapter {
 
   async decrement(key: string, value: number = 1): Promise<number> {
     try {
-      const fullKey = this.getKey(key);
+      const _fullKey = this.getKey(key);
       const current = (await this.get(key)) || 0;
       const newValue = Number(current) - value;
       await this.set(key, newValue);

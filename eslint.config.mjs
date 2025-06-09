@@ -1,45 +1,44 @@
-// @ts-check
-import eslint from "@eslint/js";
-import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
-import globals from "globals";
-import tseslint from "typescript-eslint";
+import antfu from "@antfu/eslint-config";
 
-export default tseslint.config(
-  {
-    ignores: ["tests/**", "./examples/**"],
-  },
-  eslint.configs.recommended,
-  ...tseslint.configs.recommendedTypeChecked,
-  eslintPluginPrettierRecommended,
-  {
-    languageOptions: {
-      globals: {
-        ...globals.node,
-        ...globals.jest,
-      },
-      ecmaVersion: 5,
-      sourceType: "module",
-      parserOptions: {
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname,
-      },
+export default antfu({
+  formatters: {
+    prettierOptions: {
+      printWidth: 100,
+      trailingComma: "all",
+      singleQuote: false,
+      semi: true,
+      tabWidth: 2,
+      quoteProps: "as-needed",
+      jsxSingleQuote: false,
+      arrowParens: "always",
     },
   },
-  {
-    rules: {
-      "@typescript-eslint/no-explicit-any": "off",
-      "@typescript-eslint/no-unsafe-assignment": "off",
-      "@typescript-eslint/no-unsafe-call": "off",
-      "@typescript-eslint/no-unsafe-member-access": "off",
-      "@typescript-eslint/no-unsafe-function-type": "off",
-      "@typescript-eslint/no-unsafe-argument": "off",
-      "@typescript-eslint/no-unsafe-return": "off",
-      "@typescript-eslint/require-await": "warn",
-      "@typescript-eslint/no-unused-expressions": "warn",
-      "@typescript-eslint/no-empty-object-type": "off",
-      "@typescript-eslint/no-misused-promises": "off",
-      "@typescript-eslint/no-implied-eval": "off",
-      "@typescript-eslint/no-unsafe-enum-comparison": "off",
-    },
+  stylistic: false,
+  type: "lib",
+  typescript: true,
+  name: "nest-shield",
+  gitignore: true,
+  jsonc: false,
+  unicorn: false,
+  ignores: ["README.md", "*/examples/**/*", "playground/**/*"],
+}).append({
+  files: ["./**/*.ts"],
+  rules: {
+    "no-console": "off",
+    "ts/ban-ts-comment": "off",
+    "no-new": "off",
+    "unicorn/prefer-node-protocol": "off",
+    "antfu/if-newline": "off",
+    "test/prefer-lowercase-title": "off",
+    "unicorn/no-new-array": "off",
+    "test/prefer-hooks-in-order": "off",
+    "ts/no-unsafe-function-type": "off",
+    "perfectionist/sort-imports": "off",
+    "ts/explicit-function-return-type": "off",
+    "regexp/no-unused-capturing-group": "off",
+    "node/prefer-global/buffer": "off",
+    "node/prefer-global/process": "off",
+    "no-throw-literal": "off",
+    "perfectionist/sort-named-imports": ["error", { order: "desc" }],
   },
-);
+});

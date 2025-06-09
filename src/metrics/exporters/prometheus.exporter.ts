@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import { IMetricsExporter, IExporterConfig } from "../interfaces/exporter.interface";
-import { PrometheusCollector } from "../collectors/prometheus.collector";
+import type { IMetricsExporter, IExporterConfig } from "../interfaces/exporter.interface";
+import type { PrometheusCollector } from "../collectors/prometheus.collector";
 
 @Injectable()
 export class PrometheusExporter implements IMetricsExporter {

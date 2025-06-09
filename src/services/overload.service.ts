@@ -1,12 +1,12 @@
 import { Injectable, Inject } from "@nestjs/common";
-import {
-  IOverloadConfig,
-  IProtectionContext,
+import type {
   IProtectionResult,
+  IProtectionContext,
+  IOverloadConfig,
 } from "../interfaces/shield-config.interface";
 import { SHIELD_MODULE_OPTIONS, ShedStrategy } from "../core/constants";
 import { OverloadException } from "../core/exceptions";
-import { MetricsService } from "./metrics.service";
+import type { MetricsService } from "./metrics.service";
 
 interface QueueItem {
   context: IProtectionContext;
@@ -241,7 +241,7 @@ export class OverloadService {
       try {
         this.healthScore = await config.healthIndicator();
         this.healthScore = Math.max(0, Math.min(1, this.healthScore));
-      } catch (error) {
+      } catch {
         this.healthScore = 0.5;
       }
     } else {

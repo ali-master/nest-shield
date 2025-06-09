@@ -1,6 +1,5 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { EventEmitter2 } from "@nestjs/event-emitter";
-import { IAnomaly } from "../interfaces/anomaly.interface";
+import { Logger, Injectable } from "@nestjs/common";
+import type { EventEmitter2 } from "@nestjs/event-emitter";
 
 export interface IPerformanceMetrics {
   detectionLatency: number; // Time to detect anomaly (ms)
@@ -149,7 +148,7 @@ export class PerformanceMonitorService {
     }
   }
 
-  private shouldScaleUp(metrics: IPerformanceMetrics, currentInstances: number): boolean {
+  private shouldScaleUp(metrics: IPerformanceMetrics, _currentInstances: number): boolean {
     return (
       metrics.cpuUsage > this.config.metrics.cpuThreshold ||
       metrics.memoryUsage > this.config.metrics.memoryThreshold ||

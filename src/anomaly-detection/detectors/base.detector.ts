@@ -1,16 +1,12 @@
-import { Injectable, Logger } from "@nestjs/common";
-import {
-  IAnomalyDetector,
-  IDetectorConfig,
-  IDetectorContext,
+import { Logger, Injectable } from "@nestjs/common";
+import type {
   IModelInfo,
+  IDetectorContext,
+  IDetectorConfig,
+  IAnomalyDetector,
 } from "../interfaces/detector.interface";
-import {
-  IAnomalyData,
-  IAnomaly,
-  AnomalyType,
-  AnomalySeverity,
-} from "../interfaces/anomaly.interface";
+import type { IAnomalyData, IAnomaly, AnomalyType } from "../interfaces/anomaly.interface";
+import { AnomalySeverity } from "../interfaces/anomaly.interface";
 import { v4 as uuidv4 } from "uuid";
 
 @Injectable()
@@ -138,7 +134,7 @@ export abstract class BaseAnomalyDetector implements IAnomalyDetector {
 
     const sorted = [...values].sort((a, b) => a - b);
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+    const variance = values.reduce((sum, val) => sum + (val - mean) ** 2, 0) / values.length;
     const stdDev = Math.sqrt(variance);
 
     return {
@@ -230,7 +226,8 @@ export abstract class BaseAnomalyDetector implements IAnomalyDetector {
       });
 
       // Evaluate the condition (use a safe evaluator in production)
-      return new Function("return " + evaluableCondition)();
+      // eslint-disable-next-line no-new-func
+      return new Function(`return ${evaluableCondition}`)();
     } catch (error) {
       this.logger.warn(`Failed to evaluate business rule: ${condition}`, error);
       return false;

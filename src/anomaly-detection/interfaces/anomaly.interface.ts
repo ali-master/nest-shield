@@ -1,4 +1,4 @@
-import { IEscalationPolicy } from "./alert.interface";
+import type { IEscalationPolicy } from "./alert.interface";
 export { IEscalationPolicy, ISuppressionRule } from "./alert.interface";
 
 export interface IAnomalyData {

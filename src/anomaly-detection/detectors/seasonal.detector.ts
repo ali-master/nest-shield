@@ -1,7 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { BaseAnomalyDetector } from "./base.detector";
-import { IAnomalyData, IAnomaly, AnomalyType } from "../interfaces/anomaly.interface";
-import { IDetectorContext } from "../interfaces/detector.interface";
+import type { IAnomalyData, IAnomaly } from "../interfaces/anomaly.interface";
+import { AnomalyType } from "../interfaces/anomaly.interface";
+import type { IDetectorContext } from "../interfaces/detector.interface";
 
 @Injectable()
 export class SeasonalAnomalyDetector extends BaseAnomalyDetector {
@@ -254,7 +255,7 @@ export class SeasonalAnomalyDetector extends BaseAnomalyDetector {
     const pattern = this.seasonalPatterns.get(dataPoint.source || "default");
     if (!pattern) return 0;
 
-    const isAnomalous = Math.abs(dataPoint.value - expectedValue) > this.config.threshold;
+    const _isAnomalous = Math.abs(dataPoint.value - expectedValue) > this.config.threshold;
 
     // Check each component for consistency
     if (pattern.hourlyPattern && this.isHourlyAnomalous(dataPoint, timeFeatures, pattern)) {
@@ -484,9 +485,9 @@ export class SeasonalAnomalyDetector extends BaseAnomalyDetector {
 }
 
 class TimeSeriesDecomposer {
-  decompose(data: IAnomalyData[], seasonality: ISeasonalityInfo): IDecomposition {
+  decompose(data: IAnomalyData[], _seasonality: ISeasonalityInfo): IDecomposition {
     const values = data.map((d) => d.value);
-    const timestamps = data.map((d) => d.timestamp);
+    const _timestamps = data.map((d) => d.timestamp);
 
     // Simple trend extraction (linear regression)
     const trend = this.extractTrend(values);
@@ -600,8 +601,7 @@ class TimeSeriesDecomposer {
     return hourlyValues.map((values) => {
       if (values.length < 2) return 1;
       const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-      const variance =
-        values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+      const variance = values.reduce((sum, val) => sum + (val - mean) ** 2, 0) / values.length;
       return Math.sqrt(variance);
     });
   }
@@ -617,8 +617,7 @@ class TimeSeriesDecomposer {
     return dailyValues.map((values) => {
       if (values.length < 2) return 1;
       const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-      const variance =
-        values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+      const variance = values.reduce((sum, val) => sum + (val - mean) ** 2, 0) / values.length;
       return Math.sqrt(variance);
     });
   }
@@ -679,8 +678,8 @@ class SeasonalityDetector {
       const hour = new Date(d.timestamp).getHours();
       const hourlyMean = hourlyMeans[hour];
 
-      totalVariance += Math.pow(d.value - overallMean, 2);
-      explainedVariance += Math.pow(hourlyMean - overallMean, 2);
+      totalVariance += (d.value - overallMean) ** 2;
+      explainedVariance += (hourlyMean - overallMean) ** 2;
     });
 
     return totalVariance > 0 ? explainedVariance / totalVariance : 0;
@@ -698,14 +697,14 @@ class SeasonalityDetector {
       const dayOfWeek = new Date(d.timestamp).getDay();
       const dailyMean = dailyMeans[dayOfWeek];
 
-      totalVariance += Math.pow(d.value - overallMean, 2);
-      explainedVariance += Math.pow(dailyMean - overallMean, 2);
+      totalVariance += (d.value - overallMean) ** 2;
+      explainedVariance += (dailyMean - overallMean) ** 2;
     });
 
     return totalVariance > 0 ? explainedVariance / totalVariance : 0;
   }
 
-  private calculateWeeklySeasonality(data: IAnomalyData[]): number {
+  private calculateWeeklySeasonality(_data: IAnomalyData[]): number {
     // Simplified weekly seasonality calculation
     return 0.1; // Placeholder
   }

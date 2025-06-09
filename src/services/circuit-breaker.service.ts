@@ -1,9 +1,12 @@
 import { Injectable, Inject } from "@nestjs/common";
 import * as CircuitBreaker from "opossum";
-import { ICircuitBreakerConfig, IProtectionContext } from "../interfaces/shield-config.interface";
+import type {
+  IProtectionContext,
+  ICircuitBreakerConfig,
+} from "../interfaces/shield-config.interface";
 import { SHIELD_MODULE_OPTIONS } from "../core/constants";
 import { CircuitBreakerException } from "../core/exceptions";
-import { MetricsService } from "./metrics.service";
+import type { MetricsService } from "./metrics.service";
 
 interface CircuitBreakerInstance {
   breaker: CircuitBreaker;
@@ -183,11 +186,11 @@ export class CircuitBreakerService {
       this.metricsService.increment("circuit_breaker_fires", 1, { key });
     });
 
-    breaker.on("success", (result: any) => {
+    breaker.on("success", (_result: any) => {
       this.metricsService.increment("circuit_breaker_successes", 1, { key });
     });
 
-    breaker.on("failure", (error: Error) => {
+    breaker.on("failure", (_error: Error) => {
       this.metricsService.increment("circuit_breaker_failures", 1, { key });
     });
 
@@ -211,7 +214,7 @@ export class CircuitBreakerService {
       this.metricsService.gauge("circuit_breaker_state", 0, { key, state: "closed" });
     });
 
-    breaker.on("fallback", (data: any) => {
+    breaker.on("fallback", (_data: any) => {
       this.metricsService.increment("circuit_breaker_fallbacks", 1, { key });
     });
   }

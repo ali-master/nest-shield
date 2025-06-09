@@ -1,8 +1,7 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Logger, Injectable } from "@nestjs/common";
 import * as dgram from "dgram";
 import { BaseMetricsCollector } from "./base.collector";
-import { ICollectorConfig } from "../interfaces/collector.interface";
-import { MetricType } from "../interfaces/metrics.interface";
+import type { ICollectorConfig } from "../interfaces/collector.interface";
 
 interface StatsDConfig extends ICollectorConfig {
   host?: string;

@@ -1,8 +1,9 @@
-import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
-import { IMetricsConfig, IMetricsCollector } from "../interfaces/shield-config.interface";
+import type { OnModuleInit, OnModuleDestroy } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
+import type { IMetricsConfig, IMetricsCollector } from "../interfaces/shield-config.interface";
 import { SHIELD_MODULE_OPTIONS } from "../core/constants";
-import { AnomalyDetectionService } from "./anomaly-detection.service";
-import { IAnomalyData } from "../anomaly-detection";
+import type { AnomalyDetectionService } from "./anomaly-detection.service";
+import type { IAnomalyData } from "../anomaly-detection";
 
 // Import enhanced collectors if available
 let PrometheusCollector: any;
@@ -18,28 +19,7 @@ let PrometheusExporter: any;
 let JsonExporter: any;
 let OpenMetricsExporter: any;
 
-try {
-  // Try to import enhanced components if they exist
-  const collectors = require("../metrics/collectors");
-  PrometheusCollector = collectors.PrometheusCollector;
-  StatsDCollector = collectors.StatsDCollector;
-  DatadogCollector = collectors.DatadogCollector;
-  CloudWatchCollector = collectors.CloudWatchCollector;
-  CustomMetricsCollector = collectors.CustomMetricsCollector;
-  BaseMetricsCollector = collectors.BaseMetricsCollector;
-
-  const aggregators = require("../metrics/aggregators");
-  TimeWindowAggregator = aggregators.TimeWindowAggregator;
-  RollingWindowAggregator = aggregators.RollingWindowAggregator;
-  PercentileAggregator = aggregators.PercentileAggregator;
-
-  const exporters = require("../metrics/exporters");
-  PrometheusExporter = exporters.PrometheusExporter;
-  JsonExporter = exporters.JsonExporter;
-  OpenMetricsExporter = exporters.OpenMetricsExporter;
-} catch {
-  // Enhanced components not available, will fall back to basic implementation
-}
+// Dynamic imports are loaded asynchronously during service initialization
 
 class NoOpMetricsCollector implements IMetricsCollector {
   increment(): void {}
@@ -96,6 +76,32 @@ export class MetricsService implements IMetricsCollector, OnModuleInit, OnModule
   }
 
   async onModuleInit(): Promise<void> {
+    // Load enhanced components if available
+    try {
+      const collectors = await import("../metrics/collectors");
+      PrometheusCollector = collectors.PrometheusCollector;
+      StatsDCollector = collectors.StatsDCollector;
+      DatadogCollector = collectors.DatadogCollector;
+      CloudWatchCollector = collectors.CloudWatchCollector;
+      CustomMetricsCollector = collectors.CustomMetricsCollector;
+      BaseMetricsCollector = collectors.BaseMetricsCollector;
+
+      const aggregators = await import("../metrics/aggregators");
+      TimeWindowAggregator = aggregators.TimeWindowAggregator;
+      RollingWindowAggregator = aggregators.RollingWindowAggregator;
+      PercentileAggregator = aggregators.PercentileAggregator;
+
+      const exporters = await import("../metrics/exporters");
+      PrometheusExporter = exporters.PrometheusExporter;
+      JsonExporter = exporters.JsonExporter;
+      OpenMetricsExporter = exporters.OpenMetricsExporter;
+
+      this.enhancedMode = true;
+    } catch {
+      // Enhanced components not available, will fall back to basic implementation
+      this.enhancedMode = false;
+    }
+
     if (this.enhancedMode && this.collector && typeof this.collector.connect === "function") {
       await this.collector.connect();
     }

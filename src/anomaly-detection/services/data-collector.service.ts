@@ -1,6 +1,6 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { EventEmitter2 } from "@nestjs/event-emitter";
-import { IAnomalyData } from "../interfaces/anomaly.interface";
+import { Logger, Injectable } from "@nestjs/common";
+import type { EventEmitter2 } from "@nestjs/event-emitter";
+import type { IAnomalyData } from "../interfaces/anomaly.interface";
 
 export interface IDataSource {
   id: string;
@@ -313,7 +313,7 @@ export class DataCollectorService {
   }
 
   private aggregateData(data: any[], config: any): any[] {
-    const { groupBy, aggregations, timeWindow } = config;
+    const { groupBy, aggregations, timeWindow: _timeWindow } = config;
 
     if (!groupBy || !aggregations) {
       return data;
@@ -333,7 +333,7 @@ export class DataCollectorService {
 
     const result: any[] = [];
 
-    for (const [groupKey, groupData] of groups) {
+    for (const [_groupKey, groupData] of groups) {
       const aggregated: any = {};
 
       // Copy group by fields
@@ -395,7 +395,7 @@ export class DataCollectorService {
   private async enrichData(data: any[], config: any): Promise<any[]> {
     // This would typically fetch additional data from external sources
     // For now, just add some basic enrichment
-    const { enrichments } = config;
+    const { enrichments: _enrichments } = config;
 
     return data.map((item) => {
       const enriched = { ...item };
@@ -538,7 +538,7 @@ export class DataCollectorService {
 
     const mean = values.reduce((a, b) => a + b, 0) / values.length;
     const stdDev = Math.sqrt(
-      values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / values.length,
+      values.reduce((acc, val) => acc + (val - mean) ** 2, 0) / values.length,
     );
     const outliers = values.filter((v) => Math.abs(v - mean) > 3 * stdDev);
     const rangeConsistency = 1 - outliers.length / values.length;
@@ -624,8 +624,7 @@ export class DataCollectorService {
 
       const sum = values.reduce((a, b) => a + b, 0);
       const mean = sum / values.length;
-      const variance =
-        values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / values.length;
+      const variance = values.reduce((acc, val) => acc + (val - mean) ** 2, 0) / values.length;
 
       stats[field] = {
         min: Math.min(...values),
@@ -649,6 +648,7 @@ export class DataCollectorService {
         evaluableExpression = evaluableExpression.replace(regex, JSON.stringify(value));
       }
 
+      // eslint-disable-next-line no-new-func
       return Function(`"use strict"; return (${evaluableExpression})`)();
     } catch (error) {
       this.logger.error(`Error evaluating expression: ${expression}`, error);

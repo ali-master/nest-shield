@@ -1,13 +1,13 @@
 import { Injectable, Inject } from "@nestjs/common";
-import {
+import type {
   IStorageAdapter,
   IRateLimitConfig,
-  IProtectionContext,
   IProtectionResult,
+  IProtectionContext,
 } from "../interfaces/shield-config.interface";
 import { SHIELD_MODULE_OPTIONS, HEADER_NAMES } from "../core/constants";
 import { RateLimitException } from "../core/exceptions";
-import { MetricsService } from "./metrics.service";
+import type { MetricsService } from "./metrics.service";
 
 interface RateLimitInfo {
   points: number;
@@ -180,7 +180,7 @@ export class RateLimitService {
   }
 
   async cleanup(): Promise<void> {
-    const now = Date.now();
+    const _now = Date.now();
     const keys = (await this.storage.scan?.("rate_limit:*")) || [];
 
     for (const key of keys) {

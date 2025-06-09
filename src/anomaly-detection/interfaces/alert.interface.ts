@@ -1,4 +1,4 @@
-import { IAnomaly } from "./anomaly.interface";
+import type { IAnomaly } from "./anomaly.interface";
 
 export interface IAnomalyAlert {
   id: string;

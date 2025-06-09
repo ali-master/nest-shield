@@ -1,30 +1,25 @@
-import { Injectable, Logger } from "@nestjs/common";
-import {
-  IAnomalyData,
-  IAnomaly,
-  AnomalySeverity,
-} from "../anomaly-detection/interfaces/anomaly.interface";
-import {
-  IDetectorContext,
-  BusinessRuleAction,
-} from "../anomaly-detection/interfaces/detector.interface";
-import { IAnalysisResult } from "../anomaly-detection/interfaces/analyzer.interface";
-import { IAnomalyAlert } from "../anomaly-detection/interfaces/alert.interface";
-import { IAnomalyDetectionConfig } from "../interfaces/shield-config.interface";
+import { Logger, Injectable } from "@nestjs/common";
+import type { IAnomalyData, IAnomaly } from "../anomaly-detection/interfaces/anomaly.interface";
+import { AnomalySeverity } from "../anomaly-detection/interfaces/anomaly.interface";
+import type { IDetectorContext } from "../anomaly-detection/interfaces/detector.interface";
+import { BusinessRuleAction } from "../anomaly-detection/interfaces/detector.interface";
+import type { IAnalysisResult } from "../anomaly-detection/interfaces/analyzer.interface";
+import type {
+  IMetricsCollector,
+  IAnomalyDetectionConfig,
+} from "../interfaces/shield-config.interface";
 
 // Import all detectors
+import type { BaseAnomalyDetector } from "../anomaly-detection/detectors";
 import {
-  BaseAnomalyDetector,
   ZScoreDetector,
-  IsolationForestDetector,
-  SeasonalAnomalyDetector,
   ThresholdAnomalyDetector,
   StatisticalAnomalyDetector,
+  SeasonalAnomalyDetector,
   MachineLearningDetector,
+  IsolationForestDetector,
   CompositeAnomalyDetector,
 } from "../anomaly-detection/detectors";
-
-import { IMetricsCollector } from "../interfaces/shield-config.interface";
 
 @Injectable()
 export class AnomalyDetectionService {
@@ -352,7 +347,7 @@ export class AnomalyDetectionService {
   }
 
   // Integration with metrics system
-  integrateWithMetrics(metricsCollector: IMetricsCollector): void {
+  integrateWithMetrics(_metricsCollector: IMetricsCollector): void {
     // This method can be used to integrate with the metrics system
     // for automatic anomaly detection on collected metrics
     this.logger.log("Integrated anomaly detection with metrics collector");
@@ -396,9 +391,9 @@ export class AnomalyDetectionService {
       {} as Record<string, number>,
     );
 
-    if (severityCounts["CRITICAL"] > 0) return "CRITICAL";
-    if (severityCounts["HIGH"] > 0) return "HIGH";
-    if (severityCounts["MEDIUM"] > 0) return "MEDIUM";
+    if (severityCounts.CRITICAL > 0) return "CRITICAL";
+    if (severityCounts.HIGH > 0) return "HIGH";
+    if (severityCounts.MEDIUM > 0) return "MEDIUM";
     return "LOW";
   }
 }

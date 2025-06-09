@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus } from "@nestjs/common";
+import { HttpStatus, HttpException } from "@nestjs/common";
 
 export class ShieldException extends HttpException {
   constructor(

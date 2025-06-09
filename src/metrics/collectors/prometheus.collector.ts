@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { BaseMetricsCollector } from "./base.collector";
-import { ICollectorConfig } from "../interfaces/collector.interface";
+import type { ICollectorConfig } from "../interfaces/collector.interface";
 import { MetricType } from "../interfaces/metrics.interface";
 
 @Injectable()
@@ -61,7 +61,7 @@ export class PrometheusCollector extends BaseMetricsCollector {
       });
     });
 
-    return lines.join("\\n") + "\\n";
+    return `${lines.join("\\n")}\\n`;
   }
 
   private mapMetricType(type: MetricType): string {
@@ -108,19 +108,19 @@ export class PrometheusCollector extends BaseMetricsCollector {
     ];
 
     const values = metric.values || [];
-    let cumulativeCount = 0;
+    let _cumulativeCount = 0;
 
     buckets.forEach((bucket) => {
       const count = values.filter((v: number) => v <= bucket).length;
-      cumulativeCount = count;
+      _cumulativeCount = count;
       const bucketLabels = labelStr
-        ? labelStr.slice(0, -1) + `,le="${bucket}"}`
+        ? `${labelStr.slice(0, -1)},le="${bucket}"}`
         : `{le="${bucket}"}`;
       lines.push(`${name}_bucket${bucketLabels} ${count}`);
     });
 
     // +Inf bucket
-    const infLabels = labelStr ? labelStr.slice(0, -1) + ',le="+Inf"}' : '{le="+Inf"}';
+    const infLabels = labelStr ? `${labelStr.slice(0, -1)},le="+Inf"}` : '{le="+Inf"}';
     lines.push(`${name}_bucket${infLabels} ${values.length}`);
 
     // Sum and count
@@ -137,7 +137,7 @@ export class PrometheusCollector extends BaseMetricsCollector {
         const index = Math.ceil(percentile * values.length) - 1;
         const value = values[Math.max(0, index)];
         const quantileLabels = labelStr
-          ? labelStr.slice(0, -1) + `,quantile="${percentile}"}`
+          ? `${labelStr.slice(0, -1)},quantile="${percentile}"}`
           : `{quantile="${percentile}"}`;
         lines.push(`${name}${quantileLabels} ${value}`);
       });

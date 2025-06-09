@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import { IMetricsExporter, IExporterConfig } from "../interfaces/exporter.interface";
-import { PrometheusCollector } from "../collectors/prometheus.collector";
+import type { IMetricsExporter, IExporterConfig } from "../interfaces/exporter.interface";
+import type { PrometheusCollector } from "../collectors/prometheus.collector";
 import { MetricType } from "../interfaces/metrics.interface";
 
 @Injectable()
@@ -61,7 +61,7 @@ export class OpenMetricsExporter implements IMetricsExporter {
     // Add EOF marker for OpenMetrics
     lines.push("# EOF");
 
-    return lines.join("\\n") + "\\n";
+    return `${lines.join("\\n")}\\n`;
   }
 
   async exportJson(): Promise<any> {
@@ -132,13 +132,13 @@ export class OpenMetricsExporter implements IMetricsExporter {
     buckets.forEach((bucket) => {
       const count = values.filter((v: number) => v <= bucket).length;
       const bucketLabels = labelStr
-        ? labelStr.slice(0, -1) + `,le="${bucket}"}`
+        ? `${labelStr.slice(0, -1)},le="${bucket}"}`
         : `{le="${bucket}"}`;
       lines.push(`${name}_bucket${bucketLabels} ${count}${timestamp}`);
     });
 
     // +Inf bucket
-    const infLabels = labelStr ? labelStr.slice(0, -1) + ',le="+Inf"}' : '{le="+Inf"}';
+    const infLabels = labelStr ? `${labelStr.slice(0, -1)},le="+Inf"}` : '{le="+Inf"}';
     lines.push(`${name}_bucket${infLabels} ${values.length}${timestamp}`);
 
     // Sum and count
@@ -161,7 +161,7 @@ export class OpenMetricsExporter implements IMetricsExporter {
         const index = Math.ceil(percentile * values.length) - 1;
         const value = values[Math.max(0, index)];
         const quantileLabels = labelStr
-          ? labelStr.slice(0, -1) + `,quantile="${percentile}"}`
+          ? `${labelStr.slice(0, -1)},quantile="${percentile}"}`
           : `{quantile="${percentile}"}`;
         lines.push(`${name}${quantileLabels} ${value}${timestamp}`);
       });

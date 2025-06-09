@@ -1,12 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import {
-  IsolationForestDetector,
-  MachineLearningDetector,
-  SeasonalAnomalyDetector,
-  StatisticalAnomalyDetector,
   ZScoreDetector,
+  StatisticalAnomalyDetector,
+  SeasonalAnomalyDetector,
+  MachineLearningDetector,
+  IsolationForestDetector,
 } from "../detectors";
-import { IAnomalyData } from "../interfaces";
+import type { IAnomalyData } from "../interfaces";
 import { IDataQualityMetrics } from "./data-collector.service";
 
 export interface IDetectorStats {

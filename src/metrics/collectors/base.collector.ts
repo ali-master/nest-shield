@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import { IMetricsCollector, ICollectorConfig } from "../interfaces/collector.interface";
-import { IMetric, MetricType } from "../interfaces/metrics.interface";
+import type { IMetricsCollector, ICollectorConfig } from "../interfaces/collector.interface";
+import type { IMetric } from "../interfaces/metrics.interface";
+import { MetricType } from "../interfaces/metrics.interface";
 
 @Injectable()
 export abstract class BaseMetricsCollector implements IMetricsCollector {

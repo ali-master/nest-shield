@@ -1,4 +1,4 @@
-export * from "./interfaces";
-export * from "./detectors";
-export * from "./services";
 export * from "./anomaly-detection.module";
+export * from "./detectors";
+export * from "./interfaces";
+export * from "./services";

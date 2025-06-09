@@ -1,12 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { BaseAnomalyDetector } from "./base.detector";
-import {
-  IAnomalyData,
-  IAnomaly,
-  AnomalyType,
-  AnomalySeverity,
-} from "../interfaces/anomaly.interface";
-import { IDetectorContext } from "../interfaces/detector.interface";
+import type { IAnomalyData, IAnomaly } from "../interfaces/anomaly.interface";
+import { AnomalyType } from "../interfaces/anomaly.interface";
+import type { IDetectorContext } from "../interfaces/detector.interface";
 
 // Import all detector types
 import { ZScoreDetector } from "./zscore.detector";
@@ -15,6 +11,35 @@ import { SeasonalAnomalyDetector } from "./seasonal.detector";
 import { ThresholdAnomalyDetector } from "./threshold.detector";
 import { StatisticalAnomalyDetector } from "./statistical.detector";
 import { MachineLearningDetector } from "./machine-learning.detector";
+
+// Enums and Interfaces
+
+enum EnsembleStrategy {
+  MAJORITY_VOTE = "majority_vote",
+  WEIGHTED_AVERAGE = "weighted_average",
+  ADAPTIVE_WEIGHTED = "adaptive_weighted",
+  STACKING = "stacking",
+  HIERARCHICAL = "hierarchical",
+}
+
+interface IDetectorAnomaly {
+  detectorName: string;
+  anomaly: IAnomaly;
+  weight: number;
+  confidence: number;
+  responseTime: number;
+}
+
+interface IDetectorPerformance {
+  accuracy: number;
+  precision: number;
+  recall: number;
+  f1Score: number;
+  falsePositiveRate: number;
+  responseTime: number;
+  detectionCount: number;
+  lastUpdated: number;
+}
 
 @Injectable()
 export class CompositeAnomalyDetector extends BaseAnomalyDetector {
@@ -763,7 +788,7 @@ class ContextAnalyzer {
     };
   }
 
-  private analyzePerformanceRequirements(context?: IDetectorContext): IPerformanceRequirements {
+  private analyzePerformanceRequirements(_context?: IDetectorContext): IPerformanceRequirements {
     // Default performance requirements for now
     // TODO: Add performanceRequirements to IDetectorContext if needed
     return {
@@ -811,13 +836,13 @@ class ContextAnalyzer {
       hourlyAverages.reduce((sum, avg, i) => {
         if (hourlyCounts[i] > 0) {
           const hourlyMean = avg / hourlyCounts[i];
-          return sum + Math.pow(hourlyMean - overallMean, 2);
+          return sum + (hourlyMean - overallMean) ** 2;
         }
         return sum;
       }, 0) / nonZeroHours.length;
 
     const totalVariance =
-      values.reduce((sum, val) => sum + Math.pow(val - overallMean, 2), 0) / values.length;
+      values.reduce((sum, val) => sum + (val - overallMean) ** 2, 0) / values.length;
 
     return hourlyVariance / totalVariance > 0.1; // 10% threshold for seasonality
   }
@@ -869,43 +894,7 @@ class ContextAnalyzer {
   }
 }
 
-// Enums and Interfaces
-
-enum EnsembleStrategy {
-  MAJORITY_VOTE = "majority_vote",
-  WEIGHTED_AVERAGE = "weighted_average",
-  ADAPTIVE_WEIGHTED = "adaptive_weighted",
-  STACKING = "stacking",
-  HIERARCHICAL = "hierarchical",
-}
-
-interface IDetectorAnomaly {
-  detectorName: string;
-  anomaly: IAnomaly;
-  weight: number;
-  confidence: number;
-  responseTime: number;
-}
-
-interface IDetectorPerformance {
-  accuracy: number;
-  precision: number;
-  recall: number;
-  f1Score: number;
-  falsePositiveRate: number;
-  responseTime: number;
-  detectionCount: number;
-  lastUpdated: number;
-}
-
-interface IPerformanceMetrics {
-  totalRequests: number;
-  successfulDetections: number;
-  falsePositives: number;
-  falseNegatives: number;
-  averageResponseTime: number;
-  lastReset: number;
-}
+// Additional interfaces
 
 interface IContextAnalysis {
   dataCharacteristics: IDataCharacteristics;
@@ -950,7 +939,17 @@ interface IEnsembleStatistics {
 
 interface IDetectorFeedback {
   dataPoint: IAnomalyData;
-  wasAnomaly: boolean;
+  isAnomaly: boolean;
   confidence: number;
+  feedback: "correct" | "false_positive" | "false_negative";
   timestamp: number;
+}
+
+interface IPerformanceMetrics {
+  totalRequests: number;
+  successfulDetections: number;
+  falsePositives: number;
+  falseNegatives: number;
+  averageResponseTime: number;
+  lastReset: number;
 }

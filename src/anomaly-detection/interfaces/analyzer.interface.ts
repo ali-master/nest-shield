@@ -1,10 +1,10 @@
-import { IAnomaly, IAnomalyData } from "./anomaly.interface";
+import type { IAnomalyData, IAnomaly } from "./anomaly.interface";
 
 export interface IAnomalyAnalyzer {
-  analyze(anomalies: IAnomaly[]): Promise<IAnalysisResult>;
-  generateInsights(anomalies: IAnomaly[], historicalData: IAnomalyData[]): Promise<IInsight[]>;
-  predictImpact(anomaly: IAnomaly): Promise<IImpactPrediction>;
-  recommendActions(anomaly: IAnomaly): Promise<IActionRecommendation[]>;
+  analyze: (anomalies: IAnomaly[]) => Promise<IAnalysisResult>;
+  generateInsights: (anomalies: IAnomaly[], historicalData: IAnomalyData[]) => Promise<IInsight[]>;
+  predictImpact: (anomaly: IAnomaly) => Promise<IImpactPrediction>;
+  recommendActions: (anomaly: IAnomaly) => Promise<IActionRecommendation[]>;
 }
 
 export interface IAnalysisResult {

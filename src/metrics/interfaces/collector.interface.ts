@@ -1,11 +1,11 @@
-import { IMetric } from "./metrics.interface";
+import type { IMetric } from "./metrics.interface";
 
 export interface IMetricsCollector {
-  increment(metric: string, value?: number, labels?: Record<string, string>): void;
-  decrement(metric: string, value?: number, labels?: Record<string, string>): void;
-  gauge(metric: string, value: number, labels?: Record<string, string>): void;
-  histogram(metric: string, value: number, labels?: Record<string, string>): void;
-  summary(metric: string, value: number, labels?: Record<string, string>): void;
+  increment: (metric: string, value?: number, labels?: Record<string, string>) => void;
+  decrement: (metric: string, value?: number, labels?: Record<string, string>) => void;
+  gauge: (metric: string, value: number, labels?: Record<string, string>) => void;
+  histogram: (metric: string, value: number, labels?: Record<string, string>) => void;
+  summary: (metric: string, value: number, labels?: Record<string, string>) => void;
 }
 
 export interface ICollectorConfig {
@@ -19,8 +19,8 @@ export interface ICollectorConfig {
 }
 
 export interface IMetricBuffer {
-  add(metric: IMetric): void;
-  flush(): IMetric[];
-  size(): number;
-  clear(): void;
+  add: (metric: IMetric) => void;
+  flush: () => IMetric[];
+  size: () => number;
+  clear: () => void;
 }

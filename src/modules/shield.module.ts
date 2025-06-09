@@ -1,21 +1,22 @@
-import { Module, DynamicModule, Global, Provider, Type } from "@nestjs/common";
-import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
-import { IShieldConfig } from "../interfaces/shield-config.interface";
+import type { Type, Provider, DynamicModule } from "@nestjs/common";
+import { Module, Global } from "@nestjs/common";
+import { APP_INTERCEPTOR, APP_GUARD } from "@nestjs/core";
+import type { IShieldConfig } from "../interfaces/shield-config.interface";
 import { SHIELD_MODULE_OPTIONS, DEFAULT_CONFIG } from "../core/constants";
 import { StorageFactory } from "../storage";
 import {
-  CircuitBreakerService,
-  RateLimitService,
   ThrottleService,
+  RateLimitService,
+  PriorityManagerService,
   OverloadService,
   MetricsService,
   GracefulShutdownService,
   DistributedSyncService,
-  PriorityManagerService,
+  CircuitBreakerService,
   AnomalyDetectionService,
 } from "../services";
 import { ShieldGuard } from "../guards/shield.guard";
-import { CircuitBreakerInterceptor, OverloadReleaseInterceptor } from "../interceptors";
+import { OverloadReleaseInterceptor, CircuitBreakerInterceptor } from "../interceptors";
 import { AdapterFactory } from "../adapters";
 import { AnomalyDetectionModule } from "../anomaly-detection/anomaly-detection.module";
 
@@ -30,7 +31,7 @@ export interface ShieldModuleAsyncOptions {
 }
 
 export interface ShieldOptionsFactory {
-  createShieldOptions(): Promise<ShieldModuleOptions> | ShieldModuleOptions;
+  createShieldOptions: () => Promise<ShieldModuleOptions> | ShieldModuleOptions;
 }
 
 @Global()
@@ -56,7 +57,7 @@ export class ShieldModule {
         ThrottleService,
         OverloadService,
         MetricsService,
-              GracefulShutdownService,
+        GracefulShutdownService,
         DistributedSyncService,
         PriorityManagerService,
         AnomalyDetectionService,
@@ -77,7 +78,7 @@ export class ShieldModule {
         ThrottleService,
         OverloadService,
         MetricsService,
-              GracefulShutdownService,
+        GracefulShutdownService,
         DistributedSyncService,
         PriorityManagerService,
         AnomalyDetectionService,
@@ -90,7 +91,7 @@ export class ShieldModule {
     return [
       AdapterFactory,
       MetricsService,
-          CircuitBreakerService,
+      CircuitBreakerService,
       RateLimitService,
       ThrottleService,
       OverloadService,

@@ -103,7 +103,7 @@ export class MemcachedStorageAdapter extends BaseStorageAdapter {
         });
       });
       return result;
-    } catch (error) {
+    } catch {
       const current = (await this.get(key)) || 0;
       const newValue = Number(current) + value;
       await this.set(key, newValue);
@@ -122,7 +122,7 @@ export class MemcachedStorageAdapter extends BaseStorageAdapter {
         });
       });
       return result;
-    } catch (error) {
+    } catch {
       const current = (await this.get(key)) || 0;
       const newValue = Math.max(0, Number(current) - value);
       await this.set(key, newValue);
@@ -134,7 +134,7 @@ export class MemcachedStorageAdapter extends BaseStorageAdapter {
     try {
       const value = await this.get(key);
       return value !== null;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -148,7 +148,7 @@ export class MemcachedStorageAdapter extends BaseStorageAdapter {
           else resolve();
         });
       });
-    } catch (error) {
+    } catch {
       const value = await this.get(key);
       if (value !== null) {
         await this.set(key, value, ttl);
@@ -156,7 +156,7 @@ export class MemcachedStorageAdapter extends BaseStorageAdapter {
     }
   }
 
-  async ttl(key: string): Promise<number> {
+  async ttl(_key: string): Promise<number> {
     return -1;
   }
 

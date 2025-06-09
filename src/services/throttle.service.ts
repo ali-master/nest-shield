@@ -1,13 +1,13 @@
 import { Injectable, Inject } from "@nestjs/common";
-import {
-  IStorageAdapter,
+import type {
   IThrottleConfig,
-  IProtectionContext,
+  IStorageAdapter,
   IProtectionResult,
+  IProtectionContext,
 } from "../interfaces/shield-config.interface";
 import { SHIELD_MODULE_OPTIONS, HEADER_NAMES } from "../core/constants";
 import { ThrottleException } from "../core/exceptions";
-import { MetricsService } from "./metrics.service";
+import type { MetricsService } from "./metrics.service";
 
 interface ThrottleRecord {
   count: number;

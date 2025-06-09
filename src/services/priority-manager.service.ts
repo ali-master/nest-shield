@@ -1,11 +1,11 @@
 import { Injectable, Inject } from "@nestjs/common";
 import { SHIELD_MODULE_OPTIONS } from "../core/constants";
-import {
+import type {
   IRequestPriorityConfig,
-  IPriorityLevel,
   IProtectionContext,
+  IPriorityLevel,
 } from "../interfaces/shield-config.interface";
-import { MetricsService } from "./metrics.service";
+import type { MetricsService } from "./metrics.service";
 
 interface PriorityQueue {
   level: IPriorityLevel;

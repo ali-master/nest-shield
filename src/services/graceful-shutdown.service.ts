@@ -1,9 +1,10 @@
-import { Injectable, OnApplicationShutdown, Inject, Logger } from "@nestjs/common";
+import type { OnApplicationShutdown } from "@nestjs/common";
+import { Logger, Injectable, Inject } from "@nestjs/common";
 import { SHIELD_MODULE_OPTIONS } from "../core/constants";
-import { IGracefulShutdownConfig } from "../interfaces/shield-config.interface";
-import { OverloadService } from "./overload.service";
-import { CircuitBreakerService } from "./circuit-breaker.service";
-import { MetricsService } from "./metrics.service";
+import type { IGracefulShutdownConfig } from "../interfaces/shield-config.interface";
+import type { OverloadService } from "./overload.service";
+import type { CircuitBreakerService } from "./circuit-breaker.service";
+import type { MetricsService } from "./metrics.service";
 
 @Injectable()
 export class GracefulShutdownService implements OnApplicationShutdown {

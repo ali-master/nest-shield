@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { FastifyRequest, FastifyReply } from "fastify";
+import type { FastifyRequest, FastifyReply } from "fastify";
 import { BaseHttpAdapter } from "./base-http.adapter";
 
 @Injectable()

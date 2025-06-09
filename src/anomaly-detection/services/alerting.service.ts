@@ -1,14 +1,13 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { EventEmitter2 } from "@nestjs/event-emitter";
-import { IAnomaly, AnomalySeverity } from "../interfaces/anomaly.interface";
+import { Logger, Injectable } from "@nestjs/common";
+import type { EventEmitter2 } from "@nestjs/event-emitter";
+import type { IAnomaly } from "../interfaces/anomaly.interface";
+import { AnomalySeverity } from "../interfaces/anomaly.interface";
+import type { IEscalationPolicy, IAnomalyAlert, IAlertRule } from "../interfaces/alert.interface";
 import {
-  IAnomalyAlert,
-  IAlertRule,
-  AlertStatus,
-  IEscalationPolicy,
-  NotificationChannel,
   NotificationStatus,
+  NotificationChannel,
   ContentFormat,
+  AlertStatus,
 } from "../interfaces/alert.interface";
 import { v4 as uuidv4 } from "uuid";
 
@@ -355,22 +354,22 @@ Timestamp: ${new Date(anomaly.timestamp).toISOString()}
 Description: ${anomaly.description}`;
   }
 
-  private async sendWebhookNotification(url: string, alert: IAnomalyAlert): Promise<void> {
+  private async sendWebhookNotification(url: string, _alert: IAnomalyAlert): Promise<void> {
     // Implementation would use HTTP client to send webhook
     this.logger.debug(`Sending webhook notification to ${url}`);
   }
 
-  private async sendEmailNotification(recipients: string[], alert: IAnomalyAlert): Promise<void> {
+  private async sendEmailNotification(recipients: string[], _alert: IAnomalyAlert): Promise<void> {
     // Implementation would integrate with email service
     this.logger.debug(`Sending email notification to ${recipients.join(", ")}`);
   }
 
-  private async sendSlackNotification(webhook: string, alert: IAnomalyAlert): Promise<void> {
+  private async sendSlackNotification(webhook: string, _alert: IAnomalyAlert): Promise<void> {
     // Implementation would send Slack webhook
     this.logger.debug(`Sending Slack notification to ${webhook}`);
   }
 
-  private async sendSMSNotification(phoneNumbers: string[], alert: IAnomalyAlert): Promise<void> {
+  private async sendSMSNotification(phoneNumbers: string[], _alert: IAnomalyAlert): Promise<void> {
     // Implementation would integrate with SMS service
     this.logger.debug(`Sending SMS notification to ${phoneNumbers.join(", ")}`);
   }
@@ -527,6 +526,7 @@ Description: ${anomaly.description}`;
       }
 
       // This is a simplified evaluation - use a proper expression library in production
+      // eslint-disable-next-line no-new-func
       return Function(`"use strict"; return (${evaluableCondition})`)();
     } catch (error) {
       this.logger.error(`Error evaluating condition: ${condition}`, error);

@@ -49,10 +49,10 @@ export interface IMetricOptions {
 }
 
 export interface IMetricRegistry {
-  register(metric: IMetric): void;
-  unregister(name: string): void;
-  get(name: string): IMetric | undefined;
-  getAll(): IMetric[];
-  clear(): void;
-  collect(): Promise<IMetric[]>;
+  register: (metric: IMetric) => void;
+  unregister: (name: string) => void;
+  get: (name: string) => IMetric | undefined;
+  getAll: () => IMetric[];
+  clear: () => void;
+  collect: () => Promise<IMetric[]>;
 }

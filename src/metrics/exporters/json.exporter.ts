@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import { IMetricsExporter, IExporterConfig } from "../interfaces/exporter.interface";
-import { BaseMetricsCollector } from "../collectors/base.collector";
+import type { IMetricsExporter, IExporterConfig } from "../interfaces/exporter.interface";
+import type { BaseMetricsCollector } from "../collectors/base.collector";
 
 @Injectable()
 export class JsonExporter implements IMetricsExporter {

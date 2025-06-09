@@ -1,7 +1,6 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Logger, Injectable } from "@nestjs/common";
 import { BaseMetricsCollector } from "./base.collector";
-import { ICollectorConfig } from "../interfaces/collector.interface";
-import { MetricType } from "../interfaces/metrics.interface";
+import type { ICollectorConfig } from "../interfaces/collector.interface";
 
 interface CloudWatchConfig extends ICollectorConfig {
   region?: string;
@@ -90,7 +89,7 @@ export class CloudWatchCollector extends BaseMetricsCollector {
       return;
     }
 
-    const params = {
+    const _params = {
       Namespace: this.cloudWatchConfig.namespace,
       MetricData: metrics,
     };

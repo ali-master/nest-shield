@@ -1,10 +1,11 @@
-import { Test, TestingModule } from "@nestjs/testing";
+import type { TestingModule } from "@nestjs/testing";
+import { Test } from "@nestjs/testing";
 import { ShieldModule } from "./modules/shield.module";
 import {
-  CircuitBreakerService,
-  RateLimitService,
   ThrottleService,
+  RateLimitService,
   OverloadService,
+  CircuitBreakerService,
 } from "./services";
 import { SHIELD_MODULE_OPTIONS } from "./core/constants";
 

@@ -4,10 +4,10 @@ import { ScheduleModule } from "@nestjs/schedule";
 
 // Import services
 import {
-  AnomalyDetectionService,
-  AlertingService,
   PerformanceMonitorService,
   DataCollectorService,
+  AnomalyDetectionService,
+  AlertingService,
 } from "./services";
 import { DetectorManagementService } from "./services/detector-management.service";
 
@@ -18,11 +18,11 @@ import { DetectorManagementController } from "./controllers/detector-management.
 // Import all detectors
 import {
   ZScoreDetector,
-  IsolationForestDetector,
-  SeasonalAnomalyDetector,
   ThresholdAnomalyDetector,
   StatisticalAnomalyDetector,
+  SeasonalAnomalyDetector,
   MachineLearningDetector,
+  IsolationForestDetector,
   CompositeAnomalyDetector,
 } from "./detectors";
 

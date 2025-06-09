@@ -34,61 +34,61 @@
     "production-ready"
   ],
   "scripts": {
-    "test": "jest",
     "build": "tsc -p tsconfig.build.json",
-    "format": "prettier --write \"**/*.ts\"",
-    "lint": "eslint \"src/**/*.ts\" --fix",
-    "typecheck": "tsc --noEmit",
+    "test": "jest",
     "test:unit": "jest --config ./test/jest-unit.json",
-    "prepublish:next": "npm run build",
-    "publish:next": "npm publish --access public --tag next",
-    "prepublish:npm": "npm run build",
-    "publish:npm": "npm publish --access public",
-    "prerelease": "npm run build",
+    "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
+    "format": "prettier --write \"**/*.ts\"",
+    "format:check": "prettier --check \"**/*.ts\"",
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint:fix": "pnpm run lint --fix",
+    "typecheck": "tsc --noEmit",
+    "prepublish:next": "pnpm run build",
+    "publish:next": "pnpm publish --access public --tag next",
+    "prepublish:npm": "pnpm run build",
+    "publish:npm": "pnpm publish --access public",
+    "prerelease": "pnpm run build",
     "release": "release-it",
-    "prepare": "husky",
-    "test:e2e": "jest --config ./test/jest-e2e.json --runInBand"
+    "prepare": "simple-git-hooks install",
+    "preinstall": "npx is-ci || npx only-allow pnpm"
   },
   "dependencies": {
-    "@nestjs/platform-express": "^11.1.2",
-    "@nestjs/platform-fastify": "^11.1.2",
-    "ioredis": "^5.3.2",
+    "@nestjs/platform-express": "^11.1.3",
+    "@nestjs/platform-fastify": "^11.1.3",
+    "ioredis": "^5.6.1",
     "memjs": "^1.3.2",
     "node-cache": "^5.1.2",
-    "opossum": "^8.1.3",
-    "uuid": "^9.0.0"
+    "opossum": "^9.0.0",
+    "uuid": "^11.1.0"
   },
   "optionalDependencies": {
-    "@nestjs/event-emitter": "^2.1.1",
-    "@nestjs/schedule": "^4.1.2"
+    "@nestjs/event-emitter": "^3.0.1",
+    "@nestjs/schedule": "^6.0.0"
   },
   "devDependencies": {
+    "@antfu/eslint-config": "4.13.2",
     "@commitlint/cli": "19.8.1",
     "@commitlint/config-angular": "19.8.1",
-    "@eslint/eslintrc": "3.3.1",
-    "@eslint/js": "9.28.0",
-    "@nestjs/common": "11.1.2",
-    "@nestjs/core": "11.1.2",
-    "@nestjs/testing": "11.1.2",
-    "@types/express": "^4.17.17",
+    "@nestjs/common": "11.1.3",
+    "@nestjs/core": "11.1.3",
+    "@nestjs/testing": "11.1.3",
+    "@types/express": "^5.0.3",
     "@types/jest": "29.5.14",
     "@types/memjs": "^1.3.3",
-    "@types/node": "22.15.29",
+    "@types/node": "22.15.30",
     "@types/uuid": "^10.0.0",
-    "eslint": "9.28.0",
-    "eslint-config-prettier": "10.1.5",
-    "eslint-plugin-prettier": "5.4.1",
+    "eslint": "9.27.0",
+    "eslint-plugin-format": "^1.0.1",
     "globals": "16.2.0",
-    "husky": "9.1.7",
     "jest": "29.7.0",
+    "simple-git-hooks": "2.13.0",
     "lint-staged": "16.1.0",
     "prettier": "3.5.3",
     "reflect-metadata": "0.2.2",
     "release-it": "19.0.3",
     "rxjs": "7.8.2",
     "ts-jest": "29.3.4",
-    "typescript": "5.8.3",
-    "typescript-eslint": "8.33.0"
+    "typescript": "5.8.3"
   },
   "peerDependencies": {
     "@nestjs/common": "^10.0.0 || ^11.0.0",
@@ -97,7 +97,9 @@
     "rxjs": "^7.2.0"
   },
   "lint-staged": {
-    "**/*.{ts,json}": []
+    "*.{js,ts,mjs,cjs,json,.*rc}": [
+      "pnpm eslint --fix"
+    ]
   },
   "repository": {
     "type": "git",
@@ -114,5 +116,9 @@
       "status: blocked": "Breaking changes",
       "breaking change": "Breaking changes"
     }
+  },
+  "packageManager": "pnpm@10.11.0",
+  "publishConfig": {
+    "access": "public"
   }
 }

@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { Request, Response } from "express";
+import type { Response, Request } from "express";
 import { BaseHttpAdapter } from "./base-http.adapter";
 
 @Injectable()

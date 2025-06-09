@@ -1,16 +1,16 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Body,
-  Param,
   Query,
-  HttpException,
+  Put,
+  Post,
+  Param,
   HttpStatus,
+  HttpException,
+  Get,
+  Controller,
+  Body,
 } from "@nestjs/common";
-import { DetectorManagementService } from "../services/detector-management.service";
-import { IAnomalyData } from "../interfaces";
+import type { DetectorManagementService } from "../services/detector-management.service";
+import type { IAnomalyData } from "../interfaces";
 
 @Controller("anomaly-detection/detectors")
 export class DetectorManagementController {

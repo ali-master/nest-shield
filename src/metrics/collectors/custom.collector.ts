@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { IMetricsCollector } from "../interfaces/collector.interface";
+import type { IMetricsCollector } from "../interfaces/collector.interface";
 
 /**
  * Custom metrics collector that delegates to a user-provided implementation

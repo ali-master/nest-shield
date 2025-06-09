@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { IStorageAdapter, IStorageConfig } from "../interfaces/shield-config.interface";
+import type { IStorageConfig, IStorageAdapter } from "../interfaces/shield-config.interface";
 import { StorageType } from "../core/constants";
 import { ConfigurationException } from "../core/exceptions";
 import { MemoryStorageAdapter } from "./memory-storage.adapter";

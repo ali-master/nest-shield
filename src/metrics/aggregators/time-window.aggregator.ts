@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import { IMetric, MetricType } from "../interfaces/metrics.interface";
+import type { IMetric } from "../interfaces/metrics.interface";
+import { MetricType } from "../interfaces/metrics.interface";
 
 interface TimeWindow {
   start: number;
@@ -139,7 +140,7 @@ export class TimeWindowAggregator {
 
     const aggregated: IMetric[] = [];
 
-    grouped.forEach((metricGroup, key) => {
+    grouped.forEach((metricGroup, _key) => {
       const first = metricGroup[0];
 
       switch (first.type) {

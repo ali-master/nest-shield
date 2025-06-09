@@ -80,7 +80,7 @@ export class RollingWindowAggregator {
     if (points.length === 0) return 0;
 
     const average = this.getAverage(key, timestamp);
-    const squaredDifferences = points.map((p) => Math.pow(p.value - average, 2));
+    const squaredDifferences = points.map((p) => (p.value - average) ** 2);
     const variance = squaredDifferences.reduce((acc, diff) => acc + diff, 0) / points.length;
 
     return Math.sqrt(variance);

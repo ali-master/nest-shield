@@ -1,5 +1,6 @@
-import { createParamDecorator, ExecutionContext } from "@nestjs/common";
-import { IProtectionContext } from "../interfaces/shield-config.interface";
+import type { ExecutionContext } from "@nestjs/common";
+import { createParamDecorator } from "@nestjs/common";
+import type { IProtectionContext } from "../interfaces/shield-config.interface";
 
 export const ShieldContext = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): IProtectionContext => {

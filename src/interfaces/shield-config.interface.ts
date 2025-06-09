@@ -32,18 +32,18 @@ export interface IStorageConfig {
 }
 
 export interface IStorageAdapter {
-  get(key: string): Promise<any>;
-  set(key: string, value: any, ttl?: number): Promise<void>;
-  delete(key: string): Promise<void>;
-  increment(key: string, value?: number): Promise<number>;
-  decrement(key: string, value?: number): Promise<number>;
-  exists(key: string): Promise<boolean>;
-  expire(key: string, ttl: number): Promise<void>;
-  ttl(key: string): Promise<number>;
-  clear?(): Promise<void>;
-  mget?(keys: string[]): Promise<any[]>;
-  mset?(entries: Array<[string, any]>, ttl?: number): Promise<void>;
-  scan?(pattern: string, count?: number): Promise<string[]>;
+  get: (key: string) => Promise<any>;
+  set: (key: string, value: any, ttl?: number) => Promise<void>;
+  delete: (key: string) => Promise<void>;
+  increment: (key: string, value?: number) => Promise<number>;
+  decrement: (key: string, value?: number) => Promise<number>;
+  exists: (key: string) => Promise<boolean>;
+  expire: (key: string, ttl: number) => Promise<void>;
+  ttl: (key: string) => Promise<number>;
+  clear?: () => Promise<void>;
+  mget?: (keys: string[]) => Promise<any[]>;
+  mset?: (entries: Array<[string, any]>, ttl?: number) => Promise<void>;
+  scan?: (pattern: string, count?: number) => Promise<string[]>;
 }
 
 export interface ICircuitBreakerConfig {
@@ -125,11 +125,11 @@ export interface IMetricsConfig {
 }
 
 export interface IMetricsCollector {
-  increment(metric: string, value?: number, labels?: Record<string, string>): void;
-  decrement(metric: string, value?: number, labels?: Record<string, string>): void;
-  gauge(metric: string, value: number, labels?: Record<string, string>): void;
-  histogram(metric: string, value: number, labels?: Record<string, string>): void;
-  summary(metric: string, value: number, labels?: Record<string, string>): void;
+  increment: (metric: string, value?: number, labels?: Record<string, string>) => void;
+  decrement: (metric: string, value?: number, labels?: Record<string, string>) => void;
+  gauge: (metric: string, value: number, labels?: Record<string, string>) => void;
+  histogram: (metric: string, value: number, labels?: Record<string, string>) => void;
+  summary: (metric: string, value: number, labels?: Record<string, string>) => void;
 }
 
 export interface IAdapterConfig {
@@ -138,15 +138,15 @@ export interface IAdapterConfig {
 }
 
 export interface IHttpAdapter {
-  getRequest(context: any): any;
-  getResponse(context: any): any;
-  getIp(request: any): string;
-  getUserAgent(request: any): string;
-  getPath(request: any): string;
-  getMethod(request: any): string;
-  getHeaders(request: any): Record<string, string>;
-  setHeaders(response: any, headers: Record<string, string>): void;
-  send(response: any, data: any, statusCode?: number): void;
+  getRequest: (context: any) => any;
+  getResponse: (context: any) => any;
+  getIp: (request: any) => string;
+  getUserAgent: (request: any) => string;
+  getPath: (request: any) => string;
+  getMethod: (request: any) => string;
+  getHeaders: (request: any) => Record<string, string>;
+  setHeaders: (response: any, headers: Record<string, string>) => void;
+  send: (response: any, data: any, statusCode?: number) => void;
 }
 
 export interface IAdvancedConfig {
@@ -340,6 +340,8 @@ export interface IProtectionContext {
   headers: Record<string, string>;
   metadata?: Record<string, any>;
   timestamp: number;
+  // Additional properties for test compatibility
+  userId?: string;
 }
 
 export interface IProtectionResult {

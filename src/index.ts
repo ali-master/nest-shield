@@ -5,13 +5,13 @@
  * MIT Licensed
  */
 
-export * from "./interfaces/shield-config.interface";
+export * from "./adapters";
 export * from "./core/constants";
 export * from "./core/exceptions";
 export * from "./decorators";
-export * from "./modules/shield.module";
-export * from "./storage";
-export * from "./adapters";
-export * from "./services";
 export * from "./guards/shield.guard";
 export * from "./interceptors";
+export * from "./interfaces/shield-config.interface";
+export * from "./modules/shield.module";
+export * from "./services";
+export * from "./storage";

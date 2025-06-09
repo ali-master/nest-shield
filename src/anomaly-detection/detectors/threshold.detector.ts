@@ -1,12 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { BaseAnomalyDetector } from "./base.detector";
-import {
-  IAnomalyData,
-  IAnomaly,
-  AnomalyType,
-  AnomalySeverity,
-} from "../interfaces/anomaly.interface";
-import { IDetectorContext } from "../interfaces/detector.interface";
+import type { IAnomalyData, IAnomaly } from "../interfaces/anomaly.interface";
+import { AnomalyType, AnomalySeverity } from "../interfaces/anomaly.interface";
+import type { IDetectorContext } from "../interfaces/detector.interface";
 
 @Injectable()
 export class ThresholdAnomalyDetector extends BaseAnomalyDetector {
@@ -473,7 +469,7 @@ export class ThresholdAnomalyDetector extends BaseAnomalyDetector {
 
   private calculateRollingStatistics(values: number[]): { mean: number; stdDev: number } {
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+    const variance = values.reduce((sum, val) => sum + (val - mean) ** 2, 0) / values.length;
 
     return {
       mean,

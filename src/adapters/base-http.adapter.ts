@@ -1,4 +1,4 @@
-import { IHttpAdapter } from "../interfaces/shield-config.interface";
+import type { IHttpAdapter } from "../interfaces/shield-config.interface";
 
 export abstract class BaseHttpAdapter implements IHttpAdapter {
   abstract getRequest(context: any): any;

@@ -1,7 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { BaseAnomalyDetector } from "./base.detector";
-import { IAnomalyData, IAnomaly, AnomalyType } from "../interfaces/anomaly.interface";
-import { IDetectorContext, IModelInfo } from "../interfaces/detector.interface";
+import type { IAnomalyData, IAnomaly } from "../interfaces/anomaly.interface";
+import { AnomalyType } from "../interfaces/anomaly.interface";
+import type { IModelInfo, IDetectorContext } from "../interfaces/detector.interface";
 
 @Injectable()
 export class MachineLearningDetector extends BaseAnomalyDetector {
@@ -138,7 +139,7 @@ export class MachineLearningDetector extends BaseAnomalyDetector {
     const scores = predictions.map((p) => p.anomalyScore);
     const meanScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
     const variance =
-      scores.reduce((sum, score) => sum + Math.pow(score - meanScore, 2), 0) / scores.length;
+      scores.reduce((sum, score) => sum + (score - meanScore) ** 2, 0) / scores.length;
     const uncertainty = Math.sqrt(variance);
 
     // Expected value (if available)
@@ -173,7 +174,7 @@ export class MachineLearningDetector extends BaseAnomalyDetector {
   private determineMLAnomalyType(
     dataPoint: IAnomalyData,
     ensembleResult: IMLEnsembleResult,
-    features: number[],
+    _features: number[],
   ): AnomalyType {
     // Use algorithm-specific insights for anomaly type determination
     const contributions = ensembleResult.algorithmContributions;
@@ -372,10 +373,10 @@ export class MachineLearningDetector extends BaseAnomalyDetector {
     trueLabels: boolean[],
     predictedLabels: boolean[],
   ): IAlgorithmPerformance {
-    let tp = 0,
-      fp = 0,
-      tn = 0,
-      fn = 0;
+    let tp = 0;
+    let fp = 0;
+    let tn = 0;
+    let fn = 0;
 
     for (let i = 0; i < trueLabels.length; i++) {
       if (trueLabels[i] && predictedLabels[i]) tp++;
@@ -488,11 +489,11 @@ abstract class MLAlgorithmBase implements IMLAlgorithm {
     // Base implementation
   }
 
-  getFeatureImportance?(modelData: any): number[] | null {
+  getFeatureImportance?(_modelData: any): number[] | null {
     return null;
   }
 
-  updateModel?(modelData: any, feedback: IModelFeedback[]): Promise<void> {
+  updateModel?(_modelData: any, _feedback: IModelFeedback[]): Promise<void> {
     throw new Error("Online learning not supported");
   }
 }
@@ -549,7 +550,7 @@ class AutoencoderAlgorithm extends MLAlgorithmBase {
   }
 
   private calculateMSE(actual: number[], predicted: number[]): number {
-    const diff = actual.map((val, i) => Math.pow(val - predicted[i], 2));
+    const diff = actual.map((val, i) => (val - predicted[i]) ** 2);
     return diff.reduce((sum, val) => sum + val, 0) / diff.length;
   }
 
@@ -577,7 +578,7 @@ class AutoencoderAlgorithm extends MLAlgorithmBase {
 
     const meanError = errors.reduce((sum, err) => sum + err, 0) / errors.length;
     const stdError = Math.sqrt(
-      errors.reduce((sum, err) => sum + Math.pow(err - meanError, 2), 0) / errors.length,
+      errors.reduce((sum, err) => sum + (err - meanError) ** 2, 0) / errors.length,
     );
 
     return meanError + 2 * stdError; // 95% confidence interval
@@ -652,13 +653,13 @@ class LSTMAlgorithm extends MLAlgorithmBase {
     );
   }
 
-  private simpleLSTMPredict(features: number[], modelData: any): number {
+  private simpleLSTMPredict(features: number[], _modelData: any): number {
     // Very simplified LSTM prediction
     // In production, implement proper LSTM forward pass
     return features.reduce((sum, val) => sum + val, 0) / features.length;
   }
 
-  private calculateErrorThreshold(modelData: any): number {
+  private calculateErrorThreshold(_modelData: any): number {
     // Calculate threshold based on training sequences
     return 1.0; // Simplified threshold
   }
@@ -706,7 +707,7 @@ class OneSVMAlgorithm extends MLAlgorithmBase {
   }
 
   private euclideanDistance(a: number[], b: number[]): number {
-    return Math.sqrt(a.reduce((sum, val, i) => sum + Math.pow(val - b[i], 2), 0));
+    return Math.sqrt(a.reduce((sum, val, i) => sum + (val - b[i]) ** 2, 0));
   }
 
   private calculatePercentile(values: number[], percentile: number): number {
@@ -736,7 +737,7 @@ class IsolationForestMLAlgorithm extends MLAlgorithmBase {
     // Simplified isolation score calculation
     const pathLength = this.estimatePathLength(features);
     const c = modelData.avgPathLength;
-    const isolationScore = Math.pow(2, -pathLength / c);
+    const isolationScore = 2 ** (-pathLength / c);
     const anomalyScore = 1 - isolationScore;
 
     return {
@@ -752,7 +753,7 @@ class IsolationForestMLAlgorithm extends MLAlgorithmBase {
     return 2 * (Math.log(n - 1) + 0.5772156649) - (2 * (n - 1)) / n;
   }
 
-  private estimatePathLength(features: number[]): number {
+  private estimatePathLength(_features: number[]): number {
     // Simplified path length estimation
     return Math.random() * 10 + 2; // Mock path length
   }
@@ -828,7 +829,7 @@ class GaussianMixtureAlgorithm extends MLAlgorithmBase {
     }, 0);
   }
 
-  private gaussianPDF(x: number[], mean: number[], covariance: number[][]): number {
+  private gaussianPDF(x: number[], mean: number[], _covariance: number[][]): number {
     // Simplified Gaussian PDF calculation
     const diff = x.map((val, i) => val - mean[i]);
     const distance = Math.sqrt(diff.reduce((sum, val) => sum + val * val, 0));
@@ -864,7 +865,7 @@ class MLFeatureExtractor {
     "frequency_domain_energy",
   ];
 
-  extract(dataPoint: IAnomalyData, context?: IDetectorContext): number[] {
+  extract(dataPoint: IAnomalyData, _context?: IDetectorContext): number[] {
     return [
       dataPoint.value,
       this.normalizeValue(dataPoint.value),
@@ -894,33 +895,33 @@ class MLFeatureExtractor {
     return Math.tanh(value / 100); // Assuming values are typically < 100
   }
 
-  private calculateRateOfChange(dataPoint: IAnomalyData): number {
+  private calculateRateOfChange(_dataPoint: IAnomalyData): number {
     // Simplified rate calculation
     return Math.random() * 2 - 1; // Placeholder
   }
 
-  private calculateAcceleration(dataPoint: IAnomalyData): number {
+  private calculateAcceleration(_dataPoint: IAnomalyData): number {
     // Simplified acceleration calculation
     return Math.random() * 2 - 1; // Placeholder
   }
 
-  private calculateLocalVariance(dataPoint: IAnomalyData): number {
+  private calculateLocalVariance(_dataPoint: IAnomalyData): number {
     return Math.random(); // Placeholder
   }
 
-  private calculateZScore(dataPoint: IAnomalyData): number {
+  private calculateZScore(_dataPoint: IAnomalyData): number {
     return Math.random() * 6 - 3; // Placeholder
   }
 
-  private calculateMovingAverage(dataPoint: IAnomalyData, window: number): number {
+  private calculateMovingAverage(dataPoint: IAnomalyData, _window: number): number {
     return dataPoint.value; // Simplified
   }
 
-  private calculatePercentileRank(dataPoint: IAnomalyData): number {
+  private calculatePercentileRank(_dataPoint: IAnomalyData): number {
     return Math.random(); // Placeholder
   }
 
-  private calculateTimeSinceLastSpike(dataPoint: IAnomalyData): number {
+  private calculateTimeSinceLastSpike(_dataPoint: IAnomalyData): number {
     return Math.random() * 3600000; // Placeholder
   }
 
@@ -932,19 +933,19 @@ class MLFeatureExtractor {
     return new Date(timestamp).getDay() / 7;
   }
 
-  private calculateTrendStrength(dataPoint: IAnomalyData): number {
+  private calculateTrendStrength(_dataPoint: IAnomalyData): number {
     return Math.random(); // Placeholder
   }
 
-  private calculateVolatility(dataPoint: IAnomalyData): number {
+  private calculateVolatility(_dataPoint: IAnomalyData): number {
     return Math.random(); // Placeholder
   }
 
-  private calculateAutocorrelation(dataPoint: IAnomalyData): number {
+  private calculateAutocorrelation(_dataPoint: IAnomalyData): number {
     return Math.random() * 2 - 1; // Placeholder
   }
 
-  private calculateFrequencyDomainEnergy(dataPoint: IAnomalyData): number {
+  private calculateFrequencyDomainEnergy(_dataPoint: IAnomalyData): number {
     return Math.random(); // Placeholder
   }
 }
@@ -962,8 +963,7 @@ class DataPreprocessor {
       const values = features.map((f) => f[i]);
       means[i] = values.reduce((sum, val) => sum + val, 0) / values.length;
 
-      const variance =
-        values.reduce((sum, val) => sum + Math.pow(val - means[i], 2), 0) / values.length;
+      const variance = values.reduce((sum, val) => sum + (val - means[i]) ** 2, 0) / values.length;
       stds[i] = Math.sqrt(variance);
 
       mins[i] = Math.min(...values);
@@ -988,11 +988,11 @@ class DataPreprocessor {
 
 interface IMLAlgorithm {
   name: string;
-  train(features: number[][]): Promise<any>;
-  predict(features: number[], modelData: any): Promise<IMLPrediction>;
-  reset(): void;
-  getFeatureImportance?(modelData: any): number[] | null;
-  updateModel?(modelData: any, feedback: IModelFeedback[]): Promise<void>;
+  train: (features: number[][]) => Promise<any>;
+  predict: (features: number[], modelData: any) => Promise<IMLPrediction>;
+  reset: () => void;
+  getFeatureImportance?: (modelData: any) => number[] | null;
+  updateModel?: (modelData: any, feedback: IModelFeedback[]) => Promise<void>;
 }
 
 interface IMLPrediction {

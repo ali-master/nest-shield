@@ -1,20 +1,34 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
-import { EventEmitter2 } from "@nestjs/event-emitter";
-import { Cron, CronExpression } from "@nestjs/schedule";
-import { IAnomalyData, IAnomaly, AnomalySeverity } from "../interfaces/anomaly.interface";
-import { IDetectorContext } from "../interfaces/detector.interface";
-import { IAnomalyDetectionConfig } from "../../interfaces/shield-config.interface";
+import type { OnModuleInit, OnModuleDestroy } from "@nestjs/common";
+import { Logger, Injectable } from "@nestjs/common";
+import type { EventEmitter2 } from "@nestjs/event-emitter";
+import { CronExpression, Cron } from "@nestjs/schedule";
+import type { IAnomalyData, IAnomaly } from "../interfaces/anomaly.interface";
+import { AnomalySeverity } from "../interfaces/anomaly.interface";
+import type { IDetectorContext } from "../interfaces/detector.interface";
+import type { IAnomalyDetectionConfig } from "../../interfaces/shield-config.interface";
 import { NotificationChannel } from "../interfaces/alert.interface";
 
 // Import services
-import { AlertingService } from "./alerting.service";
-import {
+import type { AlertingService } from "./alerting.service";
+import type {
   PerformanceMonitorService,
-  IAutoScalingConfig,
   IPerformanceMetrics,
+  IAutoScalingConfig,
 } from "./performance-monitor.service";
-import { DataCollectorService, IDataCollectionConfig, IDataSource } from "./data-collector.service";
-import { DetectorManagementService } from "./detector-management.service";
+import type { IDataCollectionConfig, DataCollectorService } from "./data-collector.service";
+import type { DetectorManagementService } from "./detector-management.service";
+
+// Import detectors
+import type {
+  ZScoreDetector,
+  ThresholdAnomalyDetector,
+  StatisticalAnomalyDetector,
+  SeasonalAnomalyDetector,
+  MachineLearningDetector,
+  IsolationForestDetector,
+  CompositeAnomalyDetector,
+  BaseAnomalyDetector,
+} from "../detectors";
 
 // Local interfaces for service configuration
 interface IAlertingConfig {
@@ -26,18 +40,6 @@ interface IAlertingConfig {
     maxAlertsPerHour: number;
   };
 }
-
-// Import detectors
-import {
-  BaseAnomalyDetector,
-  ZScoreDetector,
-  IsolationForestDetector,
-  SeasonalAnomalyDetector,
-  ThresholdAnomalyDetector,
-  StatisticalAnomalyDetector,
-  MachineLearningDetector,
-  CompositeAnomalyDetector,
-} from "../detectors";
 
 export interface IAnomalyDetectionConfigExtended extends Omit<IAnomalyDetectionConfig, "alerting"> {
   alerting: IAlertingConfig;

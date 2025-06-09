@@ -1,7 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { BaseAnomalyDetector } from "./base.detector";
-import { IAnomalyData, IAnomaly, AnomalyType } from "../interfaces/anomaly.interface";
-import { IDetectorContext } from "../interfaces/detector.interface";
+import type { IAnomalyData, IAnomaly } from "../interfaces/anomaly.interface";
+import { AnomalyType } from "../interfaces/anomaly.interface";
+import type { IDetectorContext } from "../interfaces/detector.interface";
 
 @Injectable()
 export class ZScoreDetector extends BaseAnomalyDetector {
@@ -189,7 +190,7 @@ export class ZScoreDetector extends BaseAnomalyDetector {
   }
 
   // Adaptive threshold based on recent data volatility
-  private getAdaptiveThreshold(source: string): number {
+  private getAdaptiveThreshold(_source: string): number {
     if (this.rollingWindow.length < this.config.minDataPoints) {
       return this.config.threshold;
     }
@@ -222,7 +223,7 @@ export class ZScoreDetector extends BaseAnomalyDetector {
 
     const meanReturn = returns.reduce((sum, ret) => sum + ret, 0) / returns.length;
     const variance =
-      returns.reduce((sum, ret) => sum + Math.pow(ret - meanReturn, 2), 0) / returns.length;
+      returns.reduce((sum, ret) => sum + (ret - meanReturn) ** 2, 0) / returns.length;
 
     return Math.sqrt(variance);
   }

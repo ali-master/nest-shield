@@ -1,11 +1,10 @@
 import { SetMetadata, applyDecorators } from "@nestjs/common";
 import { SHIELD_DECORATORS } from "../core/constants";
-import {
-  ICircuitBreakerConfig,
-  IRateLimitConfig,
+import type {
   IThrottleConfig,
+  IRateLimitConfig,
   IOverloadConfig,
-  IShieldMetadata,
+  ICircuitBreakerConfig,
 } from "../interfaces/shield-config.interface";
 
 export const CircuitBreaker = (config?: Partial<ICircuitBreakerConfig>) =>

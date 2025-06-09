@@ -1,20 +1,20 @@
-import { Injectable, CanActivate, ExecutionContext, Inject } from "@nestjs/common";
-import { Reflector } from "@nestjs/core";
-import { Observable } from "rxjs";
-import { SHIELD_MODULE_OPTIONS, SHIELD_DECORATORS, HEADER_NAMES } from "../core/constants";
-import {
+import type { ExecutionContext, CanActivate } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
+import type { Reflector } from "@nestjs/core";
+import { SHIELD_MODULE_OPTIONS, SHIELD_DECORATORS } from "../core/constants";
+import type {
   IShieldConfig,
   IProtectionContext,
   IHttpAdapter,
 } from "../interfaces/shield-config.interface";
-import {
-  CircuitBreakerService,
-  RateLimitService,
+import type {
   ThrottleService,
+  RateLimitService,
   OverloadService,
   MetricsService,
+  CircuitBreakerService,
 } from "../services";
-import { AdapterFactory } from "../adapters";
+import type { AdapterFactory } from "../adapters";
 
 @Injectable()
 export class ShieldGuard implements CanActivate {

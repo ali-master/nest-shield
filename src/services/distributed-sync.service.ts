@@ -1,6 +1,10 @@
-import { Injectable, Inject, Logger, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
+import type { OnModuleInit, OnModuleDestroy } from "@nestjs/common";
+import { Logger, Injectable, Inject } from "@nestjs/common";
 import { SHIELD_MODULE_OPTIONS } from "../core/constants";
-import { IDistributedSyncConfig, IStorageAdapter } from "../interfaces/shield-config.interface";
+import type {
+  IStorageAdapter,
+  IDistributedSyncConfig,
+} from "../interfaces/shield-config.interface";
 import { v4 as uuidv4 } from "uuid";
 
 interface NodeInfo {

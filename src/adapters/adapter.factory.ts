@@ -1,11 +1,12 @@
-import { Injectable, Type } from "@nestjs/common";
-import { HttpAdapterHost } from "@nestjs/core";
-import { IHttpAdapter, IAdapterConfig } from "../interfaces/shield-config.interface";
+import type { Type } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
+import type { HttpAdapterHost } from "@nestjs/core";
+import type { IHttpAdapter, IAdapterConfig } from "../interfaces/shield-config.interface";
 import { AdapterType } from "../core/constants";
 import { ConfigurationException } from "../core/exceptions";
 import { ExpressAdapter } from "./express.adapter";
 import { FastifyAdapter } from "./fastify.adapter";
-import { BaseHttpAdapter } from "./base-http.adapter";
+import type { BaseHttpAdapter } from "./base-http.adapter";
 
 @Injectable()
 export class AdapterFactory {
@@ -86,6 +87,6 @@ export class AdapterFactory {
       }
     }
 
-    return new type();
+    return new (type as new () => IHttpAdapter)();
   }
 }

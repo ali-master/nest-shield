@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { StatsDCollector } from "./statsd.collector";
-import { ICollectorConfig } from "../interfaces/collector.interface";
+import type { ICollectorConfig } from "../interfaces/collector.interface";
 
 interface DatadogConfig extends ICollectorConfig {
   host?: string;
