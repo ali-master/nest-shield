@@ -250,17 +250,5 @@ export const ANOMALY_DETECTION_EXPORTS = [
   DI_TOKENS.DETECTOR_REGISTRY,
   DI_TOKENS.DETECTOR_FACTORY,
 
-  // Legacy exports for backward compatibility
-  "AnomalyDetectionService",
-  "AlertingService",
-  "PerformanceMonitorService",
-  "DataCollectorService",
-  "DetectorManagementService",
-  "ZScoreDetector",
-  "ThresholdAnomalyDetector",
-  "StatisticalAnomalyDetector",
-  "SeasonalAnomalyDetector",
-  "MachineLearningDetector",
-  "IsolationForestDetector",
-  "CompositeAnomalyDetector",
+  // Legacy exports handled by the actual class providers
 ];

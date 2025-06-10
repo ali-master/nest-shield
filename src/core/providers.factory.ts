@@ -68,7 +68,7 @@ export class ProviderFactory implements IProviderFactory {
       ...this.createServiceProviders(),
       ...this.createGuardProviders(),
       ...this.createInterceptorProviders(),
-      ...this.createAggregatorProviders(),
+      // Aggregators are now managed by MetricsModule
     ];
   }
 
@@ -152,7 +152,7 @@ export class ProviderFactory implements IProviderFactory {
         provide: DI_TOKENS.METRICS_CONFIG,
         useValue: config,
       },
-      ...this.createAggregatorProviders(),
+      // Aggregators are now managed by MetricsModule
     ];
 
     if (!config.enabled) {

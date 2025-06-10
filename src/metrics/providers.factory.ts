@@ -278,27 +278,15 @@ export const createExporterProvider = <T>(
  * Provider groups for easy exports
  */
 export const METRICS_EXPORTS = [
-  // Core service tokens (MetricsService is exported by ShieldModule)
+  // Core config token - always provided
   DI_TOKENS.METRICS_CONFIG,
 
-  // Aggregator tokens
+  // Aggregator tokens that are always provided
   DI_TOKENS.TIME_WINDOW_AGGREGATOR,
   DI_TOKENS.ROLLING_WINDOW_AGGREGATOR,
   DI_TOKENS.PERCENTILE_AGGREGATOR,
 
-  // Collector and exporter tokens
-  DI_TOKENS.METRICS_COLLECTOR,
-  DI_TOKENS.METRICS_EXPORTER,
-  DI_TOKENS.OPENMETRICS_EXPORTER,
-
-  // Factory tokens
+  // Factory tokens that are always provided
   DI_TOKENS.METRICS_COLLECTOR_FACTORY,
   DI_TOKENS.METRICS_EXPORTER_FACTORY,
-
-  // Legacy exports for backward compatibility (MetricsService is handled by ShieldModule)
-  "TimeWindowAggregator",
-  "RollingWindowAggregator",
-  "PercentileAggregator",
-  "METRICS_COLLECTOR",
-  "METRICS_EXPORTER",
 ];

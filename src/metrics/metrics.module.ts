@@ -27,7 +27,7 @@ export class MetricsModule {
         ...metricsProviderFactory.createAllProviders(config),
       ],
       exports: [
-        // Export both Symbol tokens and legacy string tokens
+        // Export Symbol tokens only
         ...METRICS_EXPORTS,
       ],
       global: true,

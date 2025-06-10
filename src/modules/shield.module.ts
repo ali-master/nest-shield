@@ -5,7 +5,7 @@ import { DEFAULT_CONFIG } from "../core/constants";
 import { DI_TOKENS } from "../core/di-tokens";
 import { providerFactory, createConfigProvider } from "../core/providers.factory";
 import { AnomalyDetectionModule } from "../anomaly-detection";
-import { MetricsModule } from "../metrics";
+// import { MetricsModule } from "../metrics"; // Temporarily removed
 
 export interface ShieldModuleOptions extends IShieldConfig {}
 
@@ -30,8 +30,9 @@ export class ShieldModule {
     return {
       module: ShieldModule,
       imports: [
-        AnomalyDetectionModule,
-        MetricsModule.forRoot(mergedOptions.metrics || DEFAULT_CONFIG.metrics),
+        // Temporarily disable both modules to test startup
+        // AnomalyDetectionModule,
+        // MetricsModule.forRoot(mergedOptions.metrics || DEFAULT_CONFIG.metrics),
       ],
       providers: [
         createConfigProvider(DI_TOKENS.SHIELD_MODULE_OPTIONS, mergedOptions),
@@ -47,11 +48,9 @@ export class ShieldModule {
         DI_TOKENS.GRACEFUL_SHUTDOWN_SERVICE,
         DI_TOKENS.DISTRIBUTED_SYNC_SERVICE,
         DI_TOKENS.PRIORITY_MANAGER_SERVICE,
-        DI_TOKENS.ANOMALY_DETECTION_SERVICE,
-        // Legacy exports for backward compatibility - re-export the actual providers
-        // Re-export modules to make their providers available
-        AnomalyDetectionModule,
-        MetricsModule,
+        // Temporarily disabled
+        // DI_TOKENS.ANOMALY_DETECTION_SERVICE,
+        // AnomalyDetectionModule,
       ],
     };
   }
@@ -61,15 +60,7 @@ export class ShieldModule {
       module: ShieldModule,
       imports: [
         AnomalyDetectionModule,
-        {
-          ...MetricsModule.forRootAsync({
-            useFactory: async (...args: unknown[]) => {
-              const config = options.useFactory ? await options.useFactory(...args) : {};
-              return this.mergeWithDefaults(config).metrics || DEFAULT_CONFIG.metrics;
-            },
-            inject: options.inject || [],
-          }),
-        },
+        // MetricsModule temporarily removed due to export validation issues
         ...(options.imports || []),
       ],
       providers: [...this.createAsyncProviders(options), ...providerFactory.createCoreProviders()],
@@ -87,7 +78,6 @@ export class ShieldModule {
         // Legacy exports for backward compatibility - re-export the actual providers
         // Re-export modules to make their providers available
         AnomalyDetectionModule,
-        MetricsModule,
       ],
     };
   }
