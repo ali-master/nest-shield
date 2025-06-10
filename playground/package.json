@@ -1,0 +1,38 @@
+{
+  "name": "nest-shield-playground",
+  "version": "1.0.0",
+  "description": "Comprehensive playground for testing NestShield protection features",
+  "scripts": {
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug --watch",
+    "typecheck": "tsc --noEmit",
+    "test:knip": "knip",
+    "test:knip:fix": "knip --fix",
+    "format:check": "prettier --check \"**/*.{ts,tsx,mdx}\"",
+    "format": "prettier --write \"**/*.{ts,tsx,mdx}\"",
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint:fix": "pnpm run lint --fix"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.3",
+    "@nestjs/core": "^11.1.3",
+    "@nestjs/platform-express": "^11.1.3",
+    "nest-shield": "file:../",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.7",
+    "@nestjs/schematics": "^11.0.5",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.0.0",
+    "prettier": "^3.5.3",
+    "source-map-support": "^0.5.21",
+    "ts-loader": "^9.5.2",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.8.3"
+  }
+}

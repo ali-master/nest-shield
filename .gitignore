@@ -1,8 +1,8 @@
 # dependencies
-/node_modules
+**/node_modules
 
 # IDE
-/.idea
+**/.idea
 /.awcache
 /.vscode
 
@@ -13,6 +13,7 @@ npm-debug.log
 /.nyc_output
 
 # dist
-dist
+**/dist
 .claude
 CLAUDE.md
+.code
