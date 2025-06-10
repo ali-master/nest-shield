@@ -30,17 +30,35 @@ export class AdvancedController {
   @Get("graceful-shutdown-info")
   @BypassShield() // Allow during shutdown
   async getGracefulShutdownInfo() {
+    const shutdownStatus = this.shutdownService.getShutdownStatus();
+    const isShuttingDown = this.shutdownService.isShutdownInProgress();
+
     return {
-      message: "Graceful shutdown service information",
+      message: "Graceful shutdown service information - Live Data",
+      injectionDecorator: "@InjectGracefulShutdown()",
       features: [
         "Drain existing requests during shutdown",
         "Configurable shutdown timeout",
         "Before/after shutdown hooks",
         "Health check integration",
       ],
-      currentStatus: {
-        isShuttingDown: false, // This would come from the service
-        activeRequests: Math.floor(Math.random() * 10),
+      liveStatus: {
+        isShuttingDown,
+        activeRequests: shutdownStatus.activeRequests,
+        queueLength: shutdownStatus.queueLength,
+        uptime: process.uptime(),
+        shutdownMode: process.env.SHIELD_SHUTDOWN_MODE === "true",
+      },
+      serviceCapabilities: {
+        canGetShutdownStatus: typeof this.shutdownService.getShutdownStatus === "function",
+        canCheckShutdownProgress: typeof this.shutdownService.isShutdownInProgress === "function",
+        hasApplicationShutdownHook:
+          typeof this.shutdownService.onApplicationShutdown === "function",
+      },
+      environmentVariables: {
+        activeRequests: process.env.SHIELD_ACTIVE_REQUESTS || "0",
+        queueLength: process.env.SHIELD_QUEUE_LENGTH || "0",
+        shutdownMode: process.env.SHIELD_SHUTDOWN_MODE || "false",
       },
       timestamp: new Date().toISOString(),
     };
@@ -48,19 +66,46 @@ export class AdvancedController {
 
   @Get("distributed-sync-status")
   async getDistributedSyncStatus() {
+    const activeNodes = this.syncService.getActiveNodes();
+    const nodeCount = this.syncService.getNodeCount();
+    const nodeId = this.syncService.getNodeId();
+    const isLeader = this.syncService.isLeader();
+
     return {
-      message: "Distributed synchronization status",
+      message: "Distributed synchronization status - Live Data",
+      injectionDecorator: "@InjectDistributedSync()",
       features: [
         "Multi-node coordination",
         "Shared state synchronization",
         "Node discovery and health",
         "Consistent rate limiting across nodes",
       ],
-      nodeInfo: {
-        nodeId: process.env.NODE_ID || require("os").hostname(),
-        connectedNodes: ["node-1", "node-2", "node-3"], // Mock data
-        syncChannel: "nest-shield-sync",
-        lastSyncTime: new Date().toISOString(),
+      liveNodeInfo: {
+        currentNodeId: nodeId,
+        nodeCount,
+        isLeader,
+        activeNodes: activeNodes.map((node) => ({
+          id: node.id,
+          lastHeartbeat: node.lastHeartbeat,
+          timeSinceLastHeartbeat: Date.now() - node.lastHeartbeat,
+          metadata: {
+            hostname: node.metadata?.hostname,
+            pid: node.metadata?.pid,
+            uptime: node.metadata?.uptime,
+            version: node.metadata?.version,
+          },
+        })),
+        networkTopology: {
+          totalNodes: nodeCount,
+          healthyNodes: activeNodes.filter((n) => Date.now() - n.lastHeartbeat < 30000).length,
+          staleNodes: activeNodes.filter((n) => Date.now() - n.lastHeartbeat >= 30000).length,
+        },
+      },
+      serviceCapabilities: {
+        canBroadcastCustomData: typeof this.syncService.broadcastCustomData === "function",
+        canGetActiveNodes: typeof this.syncService.getActiveNodes === "function",
+        canCheckLeadership: typeof this.syncService.isLeader === "function",
+        canGetNodeId: typeof this.syncService.getNodeId === "function",
       },
       timestamp: new Date().toISOString(),
     };
@@ -69,24 +114,58 @@ export class AdvancedController {
   @Get("priority-management")
   @Priority(6)
   async getPriorityManagement(@ShieldContext() context: IProtectionContext) {
+    const extractedPriority = this.priorityService.extractPriority(context);
+    const priorityLevel = this.priorityService.getPriorityLevel(extractedPriority);
+    const stats = this.priorityService.getStats();
+    const aggregateStats = this.priorityService.getAggregateStats();
+    const timeout = this.priorityService.getTimeout(extractedPriority);
+    const canAccept = this.priorityService.canAcceptRequest(extractedPriority);
+
     return {
-      message: "Priority management system information",
+      message: "Priority management system - Live Data",
+      injectionDecorator: "@InjectPriorityManager()",
       features: [
         "Request prioritization",
         "Priority-based queuing",
         "Dynamic priority assignment",
         "Priority level configuration",
       ],
-      priorityLevels: [
-        { name: "Critical", value: 10, description: "System critical operations" },
-        { name: "High", value: 8, description: "Important user operations" },
-        { name: "Normal", value: 5, description: "Standard requests" },
-        { name: "Low", value: 2, description: "Background tasks" },
-        { name: "Bulk", value: 1, description: "Batch operations" },
-      ],
-      currentRequest: {
-        priority: 6,
-        estimatedQueueTime: Math.floor(Math.random() * 1000),
+      currentRequestAnalysis: {
+        decoratorPriority: 6,
+        extractedPriority,
+        finalPriorityLevel: priorityLevel,
+        requestTimeout: timeout,
+        canBeAccepted: canAccept,
+        contextInfo: {
+          method: context.method,
+          path: context.path,
+          ip: context.ip,
+          userAgent: context.userAgent?.substring(0, 50),
+          headers: Object.keys(context.headers).length,
+        },
+      },
+      prioritySystemStats: {
+        aggregate: aggregateStats,
+        detailedStats: Array.from(stats.entries()).map(([priority, queue]) => ({
+          priority,
+          level: queue.level,
+          current: queue.currentRequests,
+          queued: queue.queuedRequests,
+          processed: queue.processedRequests,
+          rejected: queue.rejectedRequests,
+          lastProcessed: new Date(queue.lastProcessedTime).toISOString(),
+          utilization: queue.level.maxConcurrent
+            ? ((queue.currentRequests / queue.level.maxConcurrent) * 100).toFixed(2) + "%"
+            : "0%",
+        })),
+      },
+      serviceCapabilities: {
+        canExtractPriority: typeof this.priorityService.extractPriority === "function",
+        canGetPriorityLevel: typeof this.priorityService.getPriorityLevel === "function",
+        canGetStats: typeof this.priorityService.getStats === "function",
+        canCheckAcceptance: typeof this.priorityService.canAcceptRequest === "function",
+        canAcquireSlot: typeof this.priorityService.acquireSlot === "function",
+        canAdjustLimits: typeof this.priorityService.adjustPriorityLimits === "function",
       },
       timestamp: new Date().toISOString(),
     };
@@ -133,52 +212,51 @@ export class AdvancedController {
 
   @Get("anomaly-detection-advanced")
   async getAdvancedAnomalyDetection() {
+    const activeDetector = this.anomalyService.getActiveDetectorName();
+    const availableDetectors = this.anomalyService.getAvailableDetectors();
+    const detectorInfo = this.anomalyService.getDetectorInfo();
+    const statistics = this.anomalyService.getAnomalyStatistics();
+    const recentAnomalies = this.anomalyService.getRecentAnomalies(5);
+
     return {
-      message: "Advanced anomaly detection capabilities",
-      detectorTypes: [
-        {
-          name: "Z-Score Detector",
-          description: "Statistical outlier detection using z-scores",
-          useCase: "Simple threshold-based anomalies",
-        },
-        {
-          name: "Isolation Forest Detector",
-          description: "Machine learning-based anomaly detection",
-          useCase: "Complex multi-dimensional anomalies",
-        },
-        {
-          name: "Seasonal Anomaly Detector",
-          description: "Time-series pattern analysis",
-          useCase: "Detecting deviations from expected patterns",
-        },
-        {
-          name: "Threshold Anomaly Detector",
-          description: "Static and dynamic threshold monitoring",
-          useCase: "Known limit violations",
-        },
-        {
-          name: "Statistical Anomaly Detector",
-          description: "Advanced statistical methods",
-          useCase: "Comprehensive statistical analysis",
-        },
-        {
-          name: "Machine Learning Detector",
-          description: "Deep learning and neural networks",
-          useCase: "Complex pattern recognition",
-        },
-        {
-          name: "Composite Anomaly Detector",
-          description: "Combines multiple detection methods",
-          useCase: "Comprehensive anomaly coverage",
-        },
-      ],
-      features: [
+      message: "Advanced anomaly detection capabilities - Live Data",
+      injectionDecorator: "@InjectAnomalyDetection()",
+      liveDetectionInfo: {
+        activeDetector,
+        availableDetectors,
+        detectorInfo,
+        statistics,
+        recentAnomalies: recentAnomalies.map((anomaly) => ({
+          ...anomaly,
+          timeSinceDetection: Date.now() - anomaly.timestamp,
+        })),
+      },
+      detectorCapabilities: availableDetectors.map((name) => {
+        const info = detectorInfo[name] || {};
+        return {
+          name,
+          isActive: name === activeDetector,
+          description: this.getDetectorDescription(name),
+          useCase: this.getDetectorUseCase(name),
+          configuration: info,
+        };
+      }),
+      systemFeatures: [
         "Real-time detection",
         "Adaptive learning",
         "Business rule integration",
         "Alert management",
         "Performance tracking",
+        "Historical data analysis",
+        "Multiple detector types",
       ],
+      serviceCapabilities: {
+        canSwitchDetector: typeof this.anomalyService.switchDetector === "function",
+        canDetectAnomalies: typeof this.anomalyService.detectAnomalies === "function",
+        canGetStatistics: typeof this.anomalyService.getAnomalyStatistics === "function",
+        canGetHistoricalData: typeof this.anomalyService.getHistoricalData === "function",
+        canResetDetector: typeof this.anomalyService.resetDetector === "function",
+      },
       timestamp: new Date().toISOString(),
     };
   }
@@ -275,7 +353,7 @@ export class AdvancedController {
     circuitBreaker: {
       timeout: 1000,
       errorThresholdPercentage: 30,
-      fallback: (error, args, context) => {
+      fallback: (_error, _args, context) => {
         // Advanced fallback logic
         const fallbackType = context.headers["x-fallback-type"] || "cache";
 
@@ -419,6 +497,155 @@ export class AdvancedController {
       },
       timestamp: new Date().toISOString(),
     };
+  }
+
+  @Post("test-priority-system")
+  async testPrioritySystem(@Body() body: { priority?: number; simulate?: boolean }) {
+    const testPriority = body.priority || 5;
+    const canAccept = this.priorityService.canAcceptRequest(testPriority);
+    const acquired = this.priorityService.acquireSlot(testPriority);
+
+    // Simulate some work if requested
+    if (body.simulate) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    // Release the slot
+    if (acquired) {
+      this.priorityService.releaseSlot(testPriority);
+    }
+
+    const afterStats = this.priorityService.getAggregateStats();
+
+    return {
+      message: "Priority system test completed",
+      injectionDecorator: "@InjectPriorityManager()",
+      testResults: {
+        requestedPriority: testPriority,
+        wasAccepted: canAccept,
+        slotAcquired: acquired,
+        simulatedWork: !!body.simulate,
+      },
+      systemStateAfter: afterStats,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  @Post("broadcast-sync-data")
+  async broadcastSyncData(@Body() body: { data: any; type?: string }) {
+    await this.syncService.broadcastCustomData({
+      type: body.type || "playground_test",
+      payload: body.data,
+      timestamp: Date.now(),
+      nodeId: this.syncService.getNodeId(),
+    });
+
+    return {
+      message: "Data broadcasted to all nodes",
+      injectionDecorator: "@InjectDistributedSync()",
+      broadcastInfo: {
+        type: body.type || "playground_test",
+        dataSize: JSON.stringify(body.data).length,
+        targetNodes: this.syncService.getNodeCount() - 1, // Excluding self
+        fromNodeId: this.syncService.getNodeId(),
+      },
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  @Post("trigger-anomaly-detection")
+  async triggerAnomalyDetection(
+    @Body() body: { metricName: string; values: number[]; switchDetector?: string },
+  ) {
+    // Switch detector if requested
+    if (body.switchDetector) {
+      this.anomalyService.switchDetector(body.switchDetector);
+    }
+
+    // Create test data points
+    const dataPoints = body.values.map((value, index) => ({
+      metricName: body.metricName,
+      value,
+      timestamp: Date.now() - (body.values.length - index) * 1000,
+      type: "gauge" as const,
+      source: "advanced-controller-test",
+    }));
+
+    const detectionResults = await this.anomalyService.detectAnomalies(dataPoints);
+    const statistics = this.anomalyService.getAnomalyStatistics();
+
+    return {
+      message: "Anomaly detection triggered",
+      injectionDecorator: "@InjectAnomalyDetection()",
+      input: {
+        metricName: body.metricName,
+        valueCount: body.values.length,
+        detectorUsed: this.anomalyService.getActiveDetectorName(),
+        switchedDetector: !!body.switchDetector,
+      },
+      results: {
+        anomaliesDetected: detectionResults.length,
+        detectionResults: detectionResults.slice(-5), // Last 5 results
+        statistics,
+      },
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  @Get("shutdown-simulation-info")
+  async getShutdownSimulationInfo() {
+    const shutdownStatus = this.shutdownService.getShutdownStatus();
+    const isShuttingDown = this.shutdownService.isShutdownInProgress();
+
+    return {
+      message: "Shutdown simulation information (READ-ONLY)",
+      injectionDecorator: "@InjectGracefulShutdown()",
+      currentState: {
+        ...shutdownStatus,
+        isShuttingDown,
+      },
+      simulationNote:
+        "This endpoint demonstrates live shutdown service data. Actual shutdown is not triggered.",
+      environmentSignals: {
+        shutdownMode: process.env.SHIELD_SHUTDOWN_MODE === "true",
+        activeRequestsTracked: process.env.SHIELD_ACTIVE_REQUESTS || "not set",
+        queueLengthTracked: process.env.SHIELD_QUEUE_LENGTH || "not set",
+      },
+      gracefulShutdownFeatures: [
+        "Request draining with timeout",
+        "Circuit breaker shutdown signaling",
+        "Metrics flush before exit",
+        "Signal handling (SIGTERM, SIGINT, SIGUSR2)",
+        "Before/after shutdown hooks",
+      ],
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  private getDetectorDescription(name: string): string {
+    const descriptions = {
+      "Z-Score Detector": "Statistical outlier detection using z-scores",
+      "Isolation Forest Detector": "Machine learning-based anomaly detection",
+      "Seasonal Anomaly Detector": "Time-series pattern analysis",
+      "Threshold Anomaly Detector": "Static and dynamic threshold monitoring",
+      "Statistical Anomaly Detector": "Advanced statistical methods",
+      "Machine Learning Detector": "Deep learning and neural networks",
+      "Composite Anomaly Detector": "Combines multiple detection methods",
+    };
+    return descriptions[name] || "Unknown detector type";
+  }
+
+  private getDetectorUseCase(name: string): string {
+    const useCases = {
+      "Z-Score Detector": "Simple threshold-based anomalies",
+      "Isolation Forest Detector": "Complex multi-dimensional anomalies",
+      "Seasonal Anomaly Detector": "Detecting deviations from expected patterns",
+      "Threshold Anomaly Detector": "Known limit violations",
+      "Statistical Anomaly Detector": "Comprehensive statistical analysis",
+      "Machine Learning Detector": "Complex pattern recognition",
+      "Composite Anomaly Detector": "Comprehensive anomaly coverage",
+    };
+    return useCases[name] || "General anomaly detection";
   }
 
   private calculateProtectionLevel(userId?: string, action?: string) {
