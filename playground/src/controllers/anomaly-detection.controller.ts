@@ -1,15 +1,6 @@
 import { Controller, Get, Post, Body, Query } from "@nestjs/common";
 import { AnomalyDetectionService } from "nest-shield";
-
-interface IAnomalyData {
-  metricName: string;
-  value: number;
-  timestamp: number;
-  type?: string;
-  metadata?: Record<string, any>;
-  labels?: Record<string, string>;
-  source?: string;
-}
+import type { IAnomalyData } from "nest-shield";
 
 @Controller("anomaly-detection")
 export class AnomalyDetectionController {

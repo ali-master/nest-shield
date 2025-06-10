@@ -1,4 +1,4 @@
-import { Injectable, Inject } from "@nestjs/common";
+import { Optional, Injectable, Inject } from "@nestjs/common";
 import type {
   IProtectionResult,
   IProtectionContext,
@@ -28,7 +28,7 @@ export class OverloadService {
 
   constructor(
     @Inject(SHIELD_MODULE_OPTIONS) private readonly options: any,
-    private readonly metricsService: MetricsService,
+    @Optional() private readonly metricsService?: MetricsService,
   ) {
     this.globalConfig = this.options.overload || {};
     this.adaptiveThreshold = this.globalConfig.maxConcurrentRequests || 1000;
@@ -54,8 +54,8 @@ export class OverloadService {
 
     if (this.currentRequests < maxConcurrent) {
       this.currentRequests++;
-      this.metricsService.gauge("overload_current_requests", this.currentRequests);
-      this.metricsService.increment("overload_requests_accepted");
+      this.metricsService?.gauge("overload_current_requests", this.currentRequests);
+      this.metricsService?.increment("overload_requests_accepted");
 
       return {
         allowed: true,
@@ -71,7 +71,7 @@ export class OverloadService {
     const maxQueueSize = mergedConfig.maxQueueSize || 1000;
 
     if (this.queue.length >= maxQueueSize) {
-      this.metricsService.increment("overload_queue_full");
+      this.metricsService?.increment("overload_queue_full");
       throw new OverloadException("Server is overloaded, queue is full", {
         queueLength: this.queue.length,
         maxQueueSize,
@@ -85,7 +85,7 @@ export class OverloadService {
 
   release(): void {
     this.currentRequests = Math.max(0, this.currentRequests - 1);
-    this.metricsService.gauge("overload_current_requests", this.currentRequests);
+    this.metricsService?.gauge("overload_current_requests", this.currentRequests);
     this.processQueue();
   }
 
@@ -120,7 +120,7 @@ export class OverloadService {
       if (config.queueTimeout) {
         queueItem.timeoutId = setTimeout(() => {
           this.removeFromQueue(queueItem);
-          this.metricsService.increment("overload_queue_timeout");
+          this.metricsService?.increment("overload_queue_timeout");
           reject(
             new OverloadException("Request timeout in queue", {
               queueTimeout: config.queueTimeout,
@@ -133,8 +133,8 @@ export class OverloadService {
       this.queue.push(queueItem);
       this.sortQueue(config);
 
-      this.metricsService.gauge("overload_queue_length", this.queue.length);
-      this.metricsService.increment("overload_requests_queued");
+      this.metricsService?.gauge("overload_queue_length", this.queue.length);
+      this.metricsService?.increment("overload_requests_queued");
     });
   }
 
@@ -152,9 +152,9 @@ export class OverloadService {
       }
 
       this.currentRequests++;
-      this.metricsService.gauge("overload_current_requests", this.currentRequests);
-      this.metricsService.gauge("overload_queue_length", this.queue.length);
-      this.metricsService.histogram("overload_queue_wait_time", Date.now() - item.timestamp);
+      this.metricsService?.gauge("overload_current_requests", this.currentRequests);
+      this.metricsService?.gauge("overload_queue_length", this.queue.length);
+      this.metricsService?.histogram("overload_queue_wait_time", Date.now() - item.timestamp);
 
       item.resolve({
         allowed: true,
@@ -171,7 +171,7 @@ export class OverloadService {
     const index = this.queue.indexOf(item);
     if (index > -1) {
       this.queue.splice(index, 1);
-      this.metricsService.gauge("overload_queue_length", this.queue.length);
+      this.metricsService?.gauge("overload_queue_length", this.queue.length);
     }
   }
 
@@ -250,7 +250,7 @@ export class OverloadService {
       this.healthScore = 1 - Math.max(utilizationRate, queuePressure);
     }
 
-    this.metricsService.gauge("overload_health_score", this.healthScore);
+    this.metricsService?.gauge("overload_health_score", this.healthScore);
   }
 
   private startAdaptiveThresholdAdjustment(): void {
@@ -267,7 +267,7 @@ export class OverloadService {
         this.adaptiveThreshold = Math.min(config.maxThreshold, this.adaptiveThreshold * 1.1);
       }
 
-      this.metricsService.gauge("overload_adaptive_threshold", this.adaptiveThreshold);
+      this.metricsService?.gauge("overload_adaptive_threshold", this.adaptiveThreshold);
     }, config.adjustmentInterval);
   }
 
@@ -287,6 +287,6 @@ export class OverloadService {
         item.reject(new OverloadException("Queue cleared"));
       }
     }
-    this.metricsService.gauge("overload_queue_length", 0);
+    this.metricsService?.gauge("overload_queue_length", 0);
   }
 }

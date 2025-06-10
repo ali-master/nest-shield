@@ -10,14 +10,14 @@ import {
   CircuitBreakerInfo,
   OverloadInfo,
 } from "nest-shield";
-import type { IProtectionContext } from "nest-shield";
 import type {
+  IProtectionContext,
   IRateLimitInfo,
   IThrottleInfo,
   ICircuitBreakerInfo,
   IOverloadInfo,
   IShieldMetrics,
-} from "../interfaces/shield-info.interface";
+} from "nest-shield";
 import { MockExternalService } from "../services/mock-external.service";
 import { TestService } from "../services/test.service";
 

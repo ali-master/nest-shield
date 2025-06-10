@@ -1,7 +1,6 @@
 import { Controller, Get, Post, Body, Query } from "@nestjs/common";
 import { RateLimit, QuickRateLimit, ShieldContext, RateLimitInfo } from "nest-shield";
-import type { IProtectionContext } from "nest-shield";
-import type { IRateLimitInfo } from "../interfaces/shield-info.interface";
+import type { IProtectionContext, IRateLimitInfo } from "nest-shield";
 
 @Controller("rate-limit")
 export class RateLimitController {

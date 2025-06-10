@@ -6,12 +6,13 @@
  */
 
 export * from "./adapters";
+export type { IAnomaly, IAnomalyData } from "./anomaly-detection/interfaces/anomaly.interface";
 export * from "./core/constants";
 export * from "./core/exceptions";
 export * from "./decorators";
 export * from "./guards/shield.guard";
 export * from "./interceptors";
-export * from "./interfaces/shield-config.interface";
+export * from "./interfaces";
 export * from "./modules/shield.module";
 export * from "./services";
 export * from "./storage";
