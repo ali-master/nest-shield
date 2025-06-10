@@ -92,6 +92,11 @@ export interface IDetectorContext {
   externalFactors?: IExternalFactor[];
   maintenanceWindows?: IMaintenanceWindow[];
   deployments?: IDeploymentEvent[];
+  performanceRequirements?: {
+    lowLatency: boolean;
+    highThroughput: boolean;
+    highAccuracy: boolean;
+  };
 }
 
 export interface IExternalFactor {

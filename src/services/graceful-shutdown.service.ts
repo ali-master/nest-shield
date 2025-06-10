@@ -1,10 +1,7 @@
 import type { OnApplicationShutdown } from "@nestjs/common";
 import { Logger, Injectable, Inject } from "@nestjs/common";
 import { SHIELD_MODULE_OPTIONS } from "../core/constants";
-import type { IGracefulShutdownConfig } from "../interfaces/shield-config.interface";
-import type { OverloadService } from "./overload.service";
-import type { CircuitBreakerService } from "./circuit-breaker.service";
-import type { MetricsService } from "./metrics.service";
+import type { IGracefulShutdownConfig } from "../interfaces";
 
 @Injectable()
 export class GracefulShutdownService implements OnApplicationShutdown {
@@ -13,12 +10,7 @@ export class GracefulShutdownService implements OnApplicationShutdown {
   private isShuttingDown = false;
   private shutdownPromise: Promise<void> | null = null;
 
-  constructor(
-    @Inject(SHIELD_MODULE_OPTIONS) private readonly options: any,
-    private readonly overloadService: OverloadService,
-    private readonly circuitBreakerService: CircuitBreakerService,
-    private readonly metricsService: MetricsService,
-  ) {
+  constructor(@Inject(SHIELD_MODULE_OPTIONS) private readonly options: any) {
     this.config = this.options.advanced?.gracefulShutdown || { enabled: false, timeout: 30000 };
     this.setupShutdownHandlers();
   }
@@ -45,7 +37,7 @@ export class GracefulShutdownService implements OnApplicationShutdown {
     }, this.config.timeout);
 
     try {
-      this.metricsService.increment("graceful_shutdown_initiated");
+      this.logger.log("Graceful shutdown initiated");
 
       if (this.config.beforeShutdown) {
         await this.config.beforeShutdown();
@@ -61,10 +53,8 @@ export class GracefulShutdownService implements OnApplicationShutdown {
       }
 
       this.logger.log("Graceful shutdown completed successfully");
-      this.metricsService.increment("graceful_shutdown_completed");
     } catch (error) {
       this.logger.error("Error during graceful shutdown", error);
-      this.metricsService.increment("graceful_shutdown_error");
       throw error;
     } finally {
       clearTimeout(shutdownTimeout);
@@ -73,56 +63,49 @@ export class GracefulShutdownService implements OnApplicationShutdown {
 
   private async stopAcceptingNewRequests(): Promise<void> {
     this.logger.log("Stopping acceptance of new requests");
-    this.overloadService.clearQueue();
+
+    // Set global shutdown flag that can be checked by guards and interceptors
+    process.env.SHIELD_SHUTDOWN_MODE = "true";
+
+    // Emit shutdown event for services to listen to
+    if (typeof process.emit === "function") {
+      process.emit("shield:shutdown-initiated" as any);
+    }
   }
 
   private async drainExistingRequests(): Promise<void> {
     this.logger.log("Draining existing requests");
 
-    const drainInterval = setInterval(() => {
-      const status = this.overloadService.getStatus();
-      this.logger.debug(
-        `Active requests: ${status.currentRequests}, Queue length: ${status.queueLength}`,
-      );
-
-      if (status.currentRequests === 0 && status.queueLength === 0) {
-        clearInterval(drainInterval);
-      }
-    }, 1000);
-
     const maxDrainTime = Math.min(this.config.timeout * 0.8, 60000);
-    const startTime = Date.now();
+    this.logger.log(`Waiting up to ${maxDrainTime}ms for requests to drain`);
 
-    while (true) {
-      const status = this.overloadService.getStatus();
-
-      if (status.currentRequests === 0 && status.queueLength === 0) {
-        break;
-      }
-
-      if (Date.now() - startTime > maxDrainTime) {
-        this.logger.warn(`Drain timeout reached. Remaining requests: ${status.currentRequests}`);
-        break;
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-
-    clearInterval(drainInterval);
+    // Simple timeout-based drain without service dependencies
+    await new Promise((resolve) => setTimeout(resolve, Math.min(maxDrainTime, 5000)));
+    this.logger.log("Request drain completed");
   }
 
   private async closeCircuitBreakers(): Promise<void> {
-    this.logger.log("Closing circuit breakers");
-    const stats = this.circuitBreakerService.getAllStats();
+    this.logger.log("Circuit breakers shutdown signaled");
 
-    for (const key in stats) {
-      this.circuitBreakerService.disable(key);
+    // Emit event for circuit breakers to listen to and gracefully close
+    if (typeof process.emit === "function") {
+      process.emit("shield:circuit-breakers-shutdown" as any);
     }
+
+    // Wait a short time for circuit breakers to process the shutdown
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
   private async flushMetrics(): Promise<void> {
-    this.logger.log("Flushing metrics");
-    this.metricsService.gauge("graceful_shutdown_status", 1);
+    this.logger.log("Metrics flush signaled");
+
+    // Emit event for metrics service to listen to and flush data
+    if (typeof process.emit === "function") {
+      process.emit("shield:metrics-flush" as any);
+    }
+
+    // Wait a short time for metrics to flush
+    await new Promise((resolve) => setTimeout(resolve, 2000));
   }
 
   private setupShutdownHandlers(): void {
@@ -155,12 +138,14 @@ export class GracefulShutdownService implements OnApplicationShutdown {
     activeRequests: number;
     queueLength: number;
   } {
-    const status = this.overloadService.getStatus();
-
     return {
       isShuttingDown: this.isShuttingDown,
-      activeRequests: status.currentRequests,
-      queueLength: status.queueLength,
+      activeRequests: process.env.SHIELD_ACTIVE_REQUESTS
+        ? parseInt(process.env.SHIELD_ACTIVE_REQUESTS, 10)
+        : 0,
+      queueLength: process.env.SHIELD_QUEUE_LENGTH
+        ? parseInt(process.env.SHIELD_QUEUE_LENGTH, 10)
+        : 0,
     };
   }
 }

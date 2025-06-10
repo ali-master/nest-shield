@@ -788,9 +788,12 @@ class ContextAnalyzer {
     };
   }
 
-  private analyzePerformanceRequirements(_context?: IDetectorContext): IPerformanceRequirements {
-    // Default performance requirements for now
-    // TODO: Add performanceRequirements to IDetectorContext if needed
+  private analyzePerformanceRequirements(context?: IDetectorContext): IPerformanceRequirements {
+    // Use performance requirements from context if provided, otherwise use defaults
+    if (context?.performanceRequirements) {
+      return context.performanceRequirements;
+    }
+
     return {
       lowLatency: false,
       highThroughput: false,

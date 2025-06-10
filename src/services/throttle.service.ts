@@ -1,4 +1,4 @@
-import { Optional, Injectable, Inject } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
 import type {
   IThrottleConfig,
   IStorageAdapter,
@@ -21,7 +21,7 @@ export class ThrottleService {
   constructor(
     @Inject(SHIELD_MODULE_OPTIONS) private readonly options: any,
     @Inject("SHIELD_STORAGE") private readonly storage: IStorageAdapter,
-    @Optional() private readonly metricsService?: MetricsService,
+    private readonly metricsService: MetricsService,
   ) {
     this.globalConfig = this.options.throttle || {};
   }
@@ -69,7 +69,7 @@ export class ThrottleService {
       if (record.count >= mergedConfig.limit) {
         const retryAfter = Math.ceil((windowEnd - now) / 1000);
 
-        this.metricsService?.increment("throttle_exceeded", 1, {
+        this.metricsService.increment("throttle_exceeded", 1, {
           path: context.path,
           method: context.method,
         });
@@ -90,7 +90,7 @@ export class ThrottleService {
       const ttlSeconds = Math.ceil((windowEnd - now) / 1000);
       await this.setThrottleRecord(key, record, ttlSeconds);
 
-      this.metricsService?.increment("throttle_consumed", 1, {
+      this.metricsService.increment("throttle_consumed", 1, {
         path: context.path,
         method: context.method,
       });
@@ -109,7 +109,7 @@ export class ThrottleService {
         throw error;
       }
 
-      this.metricsService?.increment("throttle_error", 1, {
+      this.metricsService.increment("throttle_error", 1, {
         path: context.path,
         method: context.method,
       });

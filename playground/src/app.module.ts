@@ -70,7 +70,7 @@ import { CustomMetricsService } from "./services/custom-metrics.service";
           },
         },
         gracefulShutdown: {
-          enabled: true,
+          enabled: false,
           timeout: 30000,
         },
         requestPriority: {

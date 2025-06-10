@@ -30,7 +30,10 @@ export class ShieldGuard implements CanActivate {
     private readonly metricsService: MetricsService,
     private readonly httpAdapterHost: HttpAdapterHost,
   ) {
-    this.httpAdapter = AdapterFactory.create(this.options.adapters || { type: "auto" }, this.httpAdapterHost);
+    this.httpAdapter = AdapterFactory.create(
+      this.options.adapters || { type: "auto" },
+      this.httpAdapterHost,
+    );
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

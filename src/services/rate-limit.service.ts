@@ -1,4 +1,4 @@
-import { Optional, Injectable, Inject } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
 import type {
   IStorageAdapter,
   IRateLimitConfig,
@@ -21,7 +21,7 @@ export class RateLimitService {
   constructor(
     @Inject(SHIELD_MODULE_OPTIONS) private readonly options: any,
     @Inject("SHIELD_STORAGE") private readonly storage: IStorageAdapter,
-    @Optional() private readonly metricsService?: MetricsService,
+    private readonly metricsService: MetricsService,
   ) {
     this.globalConfig = this.options.rateLimit || {};
   }
@@ -48,7 +48,7 @@ export class RateLimitService {
       if (info.points >= mergedConfig.points) {
         const retryAfter = Math.ceil((info.resetTime - now) / 1000);
 
-        this.metricsService?.increment("rate_limit_exceeded", 1, {
+        this.metricsService.increment("rate_limit_exceeded", 1, {
           path: context.path,
           method: context.method,
         });
@@ -69,7 +69,7 @@ export class RateLimitService {
 
       const remaining = mergedConfig.points - info.points - 1;
 
-      this.metricsService?.increment("rate_limit_consumed", 1, {
+      this.metricsService.increment("rate_limit_consumed", 1, {
         path: context.path,
         method: context.method,
       });
@@ -88,7 +88,7 @@ export class RateLimitService {
         throw error;
       }
 
-      this.metricsService?.increment("rate_limit_error", 1, {
+      this.metricsService.increment("rate_limit_error", 1, {
         path: context.path,
         method: context.method,
       });

@@ -32,7 +32,9 @@ export class AdapterFactory {
 
   private static detectAdapter(httpAdapterHost?: HttpAdapterHost): IHttpAdapter {
     if (!httpAdapterHost) {
-      throw new ConfigurationException("HttpAdapterHost not available. Please specify adapter type explicitly or provide a custom adapter.");
+      throw new ConfigurationException(
+        "HttpAdapterHost not available. Please specify adapter type explicitly or provide a custom adapter.",
+      );
     }
 
     const httpAdapter = httpAdapterHost.httpAdapter;

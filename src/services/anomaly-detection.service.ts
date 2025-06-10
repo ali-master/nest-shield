@@ -99,10 +99,9 @@ export class AnomalyDetectionService {
       });
 
       // Train detector if historical data is provided
-      // TODO: Add historicalData to IAnomalyDetectionConfig if needed
-      // if (config.historicalData && config.historicalData.length > 0) {
-      //   await this.trainDetector(config.historicalData);
-      // }
+      if (config.historicalData && config.historicalData.length > 0) {
+        await this.trainDetector(config.historicalData);
+      }
 
       this.isInitialized = true;
       this.logger.log(`Anomaly detection service initialized with ${this.activeDetector.name}`);

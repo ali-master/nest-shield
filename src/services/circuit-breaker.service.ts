@@ -1,4 +1,4 @@
-import { Optional, Injectable, Inject } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
 import * as CircuitBreaker from "opossum";
 import type {
   IProtectionContext,
@@ -20,7 +20,7 @@ export class CircuitBreakerService {
 
   constructor(
     @Inject(SHIELD_MODULE_OPTIONS) private readonly options: any,
-    @Optional() private readonly metricsService?: MetricsService,
+    private readonly metricsService: MetricsService,
   ) {
     this.globalConfig = this.options.circuitBreaker || {};
   }
@@ -183,39 +183,39 @@ export class CircuitBreakerService {
 
   private setupEventHandlers(breaker: CircuitBreaker, key: string): void {
     breaker.on("fire", () => {
-      this.metricsService?.increment("circuit_breaker_fires", 1, { key });
+      this.metricsService.increment("circuit_breaker_fires", 1, { key });
     });
 
     breaker.on("success", (_result: any) => {
-      this.metricsService?.increment("circuit_breaker_successes", 1, { key });
+      this.metricsService.increment("circuit_breaker_successes", 1, { key });
     });
 
     breaker.on("failure", (_error: Error) => {
-      this.metricsService?.increment("circuit_breaker_failures", 1, { key });
+      this.metricsService.increment("circuit_breaker_failures", 1, { key });
     });
 
     breaker.on("timeout", () => {
-      this.metricsService?.increment("circuit_breaker_timeouts", 1, { key });
+      this.metricsService.increment("circuit_breaker_timeouts", 1, { key });
     });
 
     breaker.on("reject", () => {
-      this.metricsService?.increment("circuit_breaker_rejects", 1, { key });
+      this.metricsService.increment("circuit_breaker_rejects", 1, { key });
     });
 
     breaker.on("open", () => {
-      this.metricsService?.gauge("circuit_breaker_state", 1, { key, state: "open" });
+      this.metricsService.gauge("circuit_breaker_state", 1, { key, state: "open" });
     });
 
     breaker.on("halfOpen", () => {
-      this.metricsService?.gauge("circuit_breaker_state", 0.5, { key, state: "half_open" });
+      this.metricsService.gauge("circuit_breaker_state", 0.5, { key, state: "half_open" });
     });
 
     breaker.on("close", () => {
-      this.metricsService?.gauge("circuit_breaker_state", 0, { key, state: "closed" });
+      this.metricsService.gauge("circuit_breaker_state", 0, { key, state: "closed" });
     });
 
     breaker.on("fallback", (_data: any) => {
-      this.metricsService?.increment("circuit_breaker_fallbacks", 1, { key });
+      this.metricsService.increment("circuit_breaker_fallbacks", 1, { key });
     });
   }
 

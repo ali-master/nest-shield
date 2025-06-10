@@ -1,7 +1,7 @@
 import type { Type, Provider, DynamicModule } from "@nestjs/common";
 import { Module, Global } from "@nestjs/common";
 import { APP_INTERCEPTOR, APP_GUARD } from "@nestjs/core";
-import type { IShieldConfig } from "../interfaces/shield-config.interface";
+import type { IShieldConfig } from "../interfaces";
 import { SHIELD_MODULE_OPTIONS, DEFAULT_CONFIG } from "../core/constants";
 import { StorageFactory } from "../storage";
 import {
@@ -17,7 +17,7 @@ import {
 } from "../services";
 import { ShieldGuard } from "../guards/shield.guard";
 import { OverloadReleaseInterceptor, CircuitBreakerInterceptor } from "../interceptors";
-import { AnomalyDetectionModule } from "../anomaly-detection/anomaly-detection.module";
+import { AnomalyDetectionModule } from "../anomaly-detection";
 
 export interface ShieldModuleOptions extends IShieldConfig {}
 
@@ -88,15 +88,28 @@ export class ShieldModule {
 
   private static createProviders(): Provider[] {
     return [
+      // Storage provider must come first
+      {
+        provide: "SHIELD_STORAGE",
+        useFactory: async (options: IShieldConfig) => {
+          return await StorageFactory.createAsync(options.storage || { type: "memory" });
+        },
+        inject: [SHIELD_MODULE_OPTIONS],
+      },
+      // MetricsService comes first as it's a dependency for most other services
       MetricsService,
+      // Core protection services that depend on MetricsService and Storage
       CircuitBreakerService,
       RateLimitService,
       ThrottleService,
       OverloadService,
-      GracefulShutdownService,
-      DistributedSyncService,
+      // Support services
       PriorityManagerService,
+      DistributedSyncService,
       AnomalyDetectionService,
+      // GracefulShutdownService now simplified to avoid circular dependencies
+      GracefulShutdownService,
+      // Guards and interceptors
       ShieldGuard,
       CircuitBreakerInterceptor,
       OverloadReleaseInterceptor,
@@ -111,13 +124,6 @@ export class ShieldModule {
       {
         provide: APP_INTERCEPTOR,
         useClass: OverloadReleaseInterceptor,
-      },
-      {
-        provide: "SHIELD_STORAGE",
-        useFactory: async (options: IShieldConfig) => {
-          return await StorageFactory.createAsync(options.storage || { type: "memory" });
-        },
-        inject: [SHIELD_MODULE_OPTIONS],
       },
     ];
   }

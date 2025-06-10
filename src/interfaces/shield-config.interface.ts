@@ -203,6 +203,13 @@ export interface IAnomalyDetectionConfig {
   minDataPoints?: number;
   learningPeriod?: number;
   adaptiveThresholds?: boolean;
+  historicalData?: Array<{
+    metricName: string;
+    value: number;
+    timestamp: number;
+    labels?: Record<string, string>;
+    type: "counter" | "gauge" | "histogram" | "summary";
+  }>;
   businessRules?: IBusinessRule[];
   alerting?: IAnomalyAlertConfig;
   autoTraining?: IAutoTrainingConfig;

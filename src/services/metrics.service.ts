@@ -1,9 +1,7 @@
 import type { OnModuleInit, OnModuleDestroy } from "@nestjs/common";
-import { Optional, Injectable, Inject } from "@nestjs/common";
-import type { IMetricsConfig, IMetricsCollector } from "../interfaces/shield-config.interface";
+import { Injectable, Inject } from "@nestjs/common";
+import type { IMetricsConfig, IMetricsCollector } from "../interfaces";
 import { SHIELD_MODULE_OPTIONS } from "../core/constants";
-import type { AnomalyDetectionService } from "./anomaly-detection.service";
-import type { IAnomalyData } from "../anomaly-detection";
 
 // Import enhanced collectors if available
 let PrometheusCollector: any;
@@ -31,30 +29,22 @@ class NoOpMetricsCollector implements IMetricsCollector {
 
 @Injectable()
 export class MetricsService implements IMetricsCollector, OnModuleInit, OnModuleDestroy {
-  private collector: any;
+  private readonly collector: any;
   private config: IMetricsConfig;
-  private prefix: string;
+  private readonly prefix: string;
   private timeWindowAggregator?: any;
   private rollingWindowAggregator?: any;
   private percentileAggregator?: any;
   private exporter?: any;
-  private anomalyDetectionService?: AnomalyDetectionService;
   private anomalyDetectionEnabled = false;
   private anomalyDetectionConfig?: any;
   private enhancedMode = false;
 
-  constructor(
-    @Inject(SHIELD_MODULE_OPTIONS) private readonly options: any,
-    @Optional() private readonly anomalyDetection?: AnomalyDetectionService,
-  ) {
+  constructor(@Inject(SHIELD_MODULE_OPTIONS) private readonly options: any) {
     this.config = this.options.metrics || { enabled: false };
     this.prefix = this.config.prefix || "nest_shield";
     this.anomalyDetectionConfig = this.options.advanced?.adaptiveProtection?.anomalyDetection;
     this.anomalyDetectionEnabled = this.anomalyDetectionConfig?.enabled || false;
-
-    if (this.anomalyDetectionEnabled && this.anomalyDetection) {
-      this.anomalyDetectionService = this.anomalyDetection;
-    }
 
     // Check if enhanced components are available
     this.enhancedMode = !!(
@@ -144,7 +134,7 @@ export class MetricsService implements IMetricsCollector, OnModuleInit, OnModule
       });
 
       // Detect anomalies if enabled
-      this.detectAnomaliesForMetric(metricName, value, mergedLabels, "counter");
+      void this.detectAnomaliesForMetric(metricName, value, mergedLabels, "counter");
     }
   }
 
@@ -171,7 +161,7 @@ export class MetricsService implements IMetricsCollector, OnModuleInit, OnModule
       });
 
       // Detect anomalies if enabled
-      this.detectAnomaliesForMetric(metricName, value, mergedLabels, "gauge");
+      void this.detectAnomaliesForMetric(metricName, value, mergedLabels, "gauge");
     }
   }
 
@@ -195,7 +185,7 @@ export class MetricsService implements IMetricsCollector, OnModuleInit, OnModule
       });
 
       // Detect anomalies if enabled
-      this.detectAnomaliesForMetric(metricName, value, mergedLabels, "histogram");
+      void this.detectAnomaliesForMetric(metricName, value, mergedLabels, "histogram");
     }
   }
 
@@ -219,7 +209,7 @@ export class MetricsService implements IMetricsCollector, OnModuleInit, OnModule
       });
 
       // Detect anomalies if enabled
-      this.detectAnomaliesForMetric(metricName, value, mergedLabels, "summary");
+      void this.detectAnomaliesForMetric(metricName, value, mergedLabels, "summary");
     }
   }
 
@@ -391,24 +381,31 @@ export class MetricsService implements IMetricsCollector, OnModuleInit, OnModule
     labels: Record<string, string>,
     type: string,
   ): Promise<void> {
-    if (!this.anomalyDetectionEnabled || !this.anomalyDetectionService) {
+    if (!this.anomalyDetectionEnabled) {
       return;
     }
 
     try {
-      const anomalyData: IAnomalyData = {
-        metricName,
-        value,
-        timestamp: Date.now(),
-        labels,
-        type: type as any,
-      };
+      // Basic anomaly detection based on statistical thresholds
+      // This replaces the dependency on AnomalyDetectionService
+      const key = this.createAggregatorKey(metricName, labels);
+      const stats = this.rollingWindowAggregator?.getStatistics(key);
 
-      const anomalies = await this.anomalyDetectionService.detectAnomalies([anomalyData]);
+      if (stats && stats.count > 10) {
+        // Need sufficient data points
+        const zScore = Math.abs((value - stats.average) / (stats.stdDev || 1));
 
-      if (anomalies.length > 0) {
-        for (const anomaly of anomalies) {
-          this.handleAnomalyDetected(anomaly);
+        if (zScore > 3) {
+          // Simple z-score threshold
+          this.handleAnomalyDetected({
+            data: { metricName, value, labels, type },
+            severity: zScore > 5 ? "high" : "medium",
+            score: zScore,
+            type: "statistical",
+            detector: "z-score",
+            description: `Value ${value} deviates significantly from average ${stats.average.toFixed(2)}`,
+            timestamp: Date.now(),
+          });
         }
       }
     } catch (error) {
@@ -436,41 +433,9 @@ export class MetricsService implements IMetricsCollector, OnModuleInit, OnModule
     });
   }
 
-  // Method to get detected anomalies for a specific metric
-  async getAnomaliesForMetric(
-    metricName: string,
-    startTime?: number,
-    endTime?: number,
-  ): Promise<any[]> {
-    if (!this.anomalyDetectionService || !this.enhancedMode) {
-      return [];
-    }
-
-    const timeSeriesData = this.getTimeSeriesData(metricName);
-    if (!timeSeriesData) {
-      return [];
-    }
-
-    const anomalyDataPoints: IAnomalyData[] = timeSeriesData
-      .filter((point) => {
-        if (startTime && point.timestamp < startTime) return false;
-        if (endTime && point.timestamp > endTime) return false;
-        return true;
-      })
-      .map((point) => ({
-        metricName: this.formatMetricName(metricName),
-        value: point.value,
-        timestamp: point.timestamp,
-        labels: {},
-        type: "gauge" as any,
-      }));
-
-    return await this.anomalyDetectionService.detectAnomalies(anomalyDataPoints);
-  }
-
   // Method to enable/disable anomaly detection at runtime
   setAnomalyDetectionEnabled(enabled: boolean): void {
-    this.anomalyDetectionEnabled = enabled && !!this.anomalyDetectionService;
+    this.anomalyDetectionEnabled = enabled;
   }
 
   // Method to check if anomaly detection is enabled
