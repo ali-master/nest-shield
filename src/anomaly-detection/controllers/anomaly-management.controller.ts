@@ -30,10 +30,30 @@ export class AnomalyManagementController {
   constructor(private readonly detectorManagement: DetectorManagementService) {}
 
   /**
-   * Get statistics for all or specific detectors
+   * Get statistics for all detectors
    */
-  @Get("stats/:detector?")
-  async getDetectorStats(@Param("detector") detector?: string) {
+  @Get("stats")
+  async getAllDetectorStats() {
+    try {
+      const stats = await this.detectorManagement.getDetectorStats();
+      return {
+        success: true,
+        data: stats,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Failed to get detector stats: ${(error as Error).message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Get statistics for a specific detector
+   */
+  @Get("stats/:detector")
+  async getSpecificDetectorStats(@Param("detector") detector: string) {
     try {
       const stats = await this.detectorManagement.getDetectorStats(detector);
       return {

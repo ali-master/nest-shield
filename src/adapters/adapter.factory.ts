@@ -1,5 +1,4 @@
 import type { Type } from "@nestjs/common";
-import { Injectable } from "@nestjs/common";
 import type { HttpAdapterHost } from "@nestjs/core";
 import type { IHttpAdapter, IAdapterConfig } from "../interfaces";
 import { AdapterType } from "../core/constants";
@@ -8,11 +7,8 @@ import { ExpressAdapter } from "./express.adapter";
 import { FastifyAdapter } from "./fastify.adapter";
 import type { BaseHttpAdapter } from "./base-http.adapter";
 
-@Injectable()
 export class AdapterFactory {
-  constructor(private readonly httpAdapterHost: HttpAdapterHost) {}
-
-  create(config: IAdapterConfig): IHttpAdapter {
+  static create(config: IAdapterConfig, httpAdapterHost?: HttpAdapterHost): IHttpAdapter {
     if (config.customAdapter) {
       return config.customAdapter;
     }
@@ -25,7 +21,7 @@ export class AdapterFactory {
         return new FastifyAdapter();
 
       case AdapterType.AUTO:
-        return this.detectAdapter();
+        return AdapterFactory.detectAdapter(httpAdapterHost);
 
       default:
         throw new ConfigurationException(
@@ -34,8 +30,12 @@ export class AdapterFactory {
     }
   }
 
-  private detectAdapter(): IHttpAdapter {
-    const httpAdapter = this.httpAdapterHost.httpAdapter;
+  private static detectAdapter(httpAdapterHost?: HttpAdapterHost): IHttpAdapter {
+    if (!httpAdapterHost) {
+      throw new ConfigurationException("HttpAdapterHost not available. Please specify adapter type explicitly or provide a custom adapter.");
+    }
+
+    const httpAdapter = httpAdapterHost.httpAdapter;
 
     if (!httpAdapter) {
       throw new ConfigurationException("No HTTP adapter found");
@@ -43,11 +43,11 @@ export class AdapterFactory {
 
     const instance = httpAdapter.getInstance();
 
-    if (this.isExpress(instance)) {
+    if (AdapterFactory.isExpress(instance)) {
       return new ExpressAdapter();
     }
 
-    if (this.isFastify(instance)) {
+    if (AdapterFactory.isFastify(instance)) {
       return new FastifyAdapter();
     }
 
@@ -56,7 +56,7 @@ export class AdapterFactory {
     );
   }
 
-  private isExpress(instance: any): boolean {
+  private static isExpress(instance: any): boolean {
     return (
       instance &&
       typeof instance.use === "function" &&
@@ -66,7 +66,7 @@ export class AdapterFactory {
     );
   }
 
-  private isFastify(instance: any): boolean {
+  private static isFastify(instance: any): boolean {
     return (
       instance &&
       typeof instance.register === "function" &&

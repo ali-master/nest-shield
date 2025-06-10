@@ -1,5 +1,5 @@
 import type { OnModuleInit, OnModuleDestroy } from "@nestjs/common";
-import { Injectable, Inject } from "@nestjs/common";
+import { Optional, Injectable, Inject } from "@nestjs/common";
 import type { IMetricsConfig, IMetricsCollector } from "../interfaces/shield-config.interface";
 import { SHIELD_MODULE_OPTIONS } from "../core/constants";
 import type { AnomalyDetectionService } from "./anomaly-detection.service";
@@ -45,7 +45,7 @@ export class MetricsService implements IMetricsCollector, OnModuleInit, OnModule
 
   constructor(
     @Inject(SHIELD_MODULE_OPTIONS) private readonly options: any,
-    private readonly anomalyDetection?: AnomalyDetectionService,
+    @Optional() private readonly anomalyDetection?: AnomalyDetectionService,
   ) {
     this.config = this.options.metrics || { enabled: false };
     this.prefix = this.config.prefix || "nest_shield";

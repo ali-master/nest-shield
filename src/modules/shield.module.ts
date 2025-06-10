@@ -17,7 +17,6 @@ import {
 } from "../services";
 import { ShieldGuard } from "../guards/shield.guard";
 import { OverloadReleaseInterceptor, CircuitBreakerInterceptor } from "../interceptors";
-import { AdapterFactory } from "../adapters";
 import { AnomalyDetectionModule } from "../anomaly-detection/anomaly-detection.module";
 
 export interface ShieldModuleOptions extends IShieldConfig {}
@@ -89,7 +88,6 @@ export class ShieldModule {
 
   private static createProviders(): Provider[] {
     return [
-      AdapterFactory,
       MetricsService,
       CircuitBreakerService,
       RateLimitService,

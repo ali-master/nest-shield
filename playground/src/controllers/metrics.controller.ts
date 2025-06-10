@@ -1,12 +1,11 @@
-import { Controller, Get, Post, Body, Query, Inject } from "@nestjs/common";
-import { MetricsService } from "nest-shield/services";
-import { ShieldMetrics } from "nest-shield/decorators";
+import { Controller, Get, Post, Body, Query } from "@nestjs/common";
+import { MetricsService } from "nest-shield";
+import { ShieldMetrics } from "nest-shield";
 import { CustomMetricsService } from "../services/custom-metrics.service";
 
 @Controller("metrics")
 export class MetricsController {
   constructor(
-    @Inject(MetricsService)
     private readonly metricsService: MetricsService,
     private readonly customMetricsService: CustomMetricsService,
   ) {}

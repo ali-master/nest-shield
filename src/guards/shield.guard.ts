@@ -1,6 +1,6 @@
 import type { ExecutionContext, CanActivate } from "@nestjs/common";
 import { Injectable, Inject } from "@nestjs/common";
-import type { Reflector } from "@nestjs/core";
+import type { Reflector, HttpAdapterHost } from "@nestjs/core";
 import { SHIELD_MODULE_OPTIONS, SHIELD_DECORATORS } from "../core/constants";
 import type {
   IShieldConfig,
@@ -14,7 +14,7 @@ import type {
   MetricsService,
   CircuitBreakerService,
 } from "../services";
-import type { AdapterFactory } from "../adapters";
+import { AdapterFactory } from "../adapters";
 
 @Injectable()
 export class ShieldGuard implements CanActivate {
@@ -28,9 +28,9 @@ export class ShieldGuard implements CanActivate {
     private readonly throttleService: ThrottleService,
     private readonly overloadService: OverloadService,
     private readonly metricsService: MetricsService,
-    private readonly adapterFactory: AdapterFactory,
+    private readonly httpAdapterHost: HttpAdapterHost,
   ) {
-    this.httpAdapter = this.adapterFactory.create(this.options.adapters || { type: "auto" });
+    this.httpAdapter = AdapterFactory.create(this.options.adapters || { type: "auto" }, this.httpAdapterHost);
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

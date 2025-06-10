@@ -4,7 +4,7 @@
   "description": "Comprehensive playground for testing NestShield protection features",
   "scripts": {
     "build": "nest build",
-    "start": "node dist/main.js",
+    "start": "node dist/playground/src/main.js",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "typecheck": "tsc --noEmit",

@@ -1,10 +1,15 @@
 {
-  "$schema": "https://json.schemastore.org/nest-cli",
+  "language": "ts",
   "collection": "@nestjs/schematics",
-  "sourceRoot": "./src",
+  "sourceRoot": "src",
+  "entryFile": "main",
   "compilerOptions": {
+    "builder": "tsc",
+    "typeCheck": true,
     "deleteOutDir": true,
-    "watchAssets": true,
-    "assets": ["**/*.md"]
-  }
+    "tsConfigPath": "./tsconfig.build.json",
+    "assets": ["**/*"],
+    "watchAssets": true
+  },
+  "exec": "node dist/playground/src/main"
 }

@@ -9,7 +9,7 @@ import { MetricsController } from "./controllers/metrics.controller";
 import { AnomalyDetectionController } from "./controllers/anomaly-detection.controller";
 import { ConfigController } from "./controllers/config.controller";
 import { CombinedProtectionController } from "./controllers/combined-protection.controller";
-import { AdvancedController } from "./controllers/advanced.controller";
+// import { AdvancedController } from "./controllers/advanced.controller";
 import { TestService } from "./services/test.service";
 import { MockExternalService } from "./services/mock-external.service";
 import { CustomMetricsService } from "./services/custom-metrics.service";
@@ -90,7 +90,7 @@ import { CustomMetricsService } from "./services/custom-metrics.service";
     AnomalyDetectionController,
     ConfigController,
     CombinedProtectionController,
-    AdvancedController,
+    // AdvancedController,
   ],
   providers: [TestService, MockExternalService, CustomMetricsService],
 })
