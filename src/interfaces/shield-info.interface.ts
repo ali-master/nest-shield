@@ -1,3 +1,9 @@
+/**
+ * Shield Protection Information Interfaces
+ * These interfaces define the structure of protection information objects
+ * that are attached to requests and used in decorators throughout the application.
+ */
+
 export interface IRateLimitInfo {
   limit: number;
   remaining: number;
