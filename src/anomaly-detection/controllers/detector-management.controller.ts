@@ -9,7 +9,7 @@ import {
   Controller,
   Body,
 } from "@nestjs/common";
-import type { DetectorManagementService } from "../services/detector-management.service";
+import type { DetectorManagementService } from "../services";
 import type { IAnomalyData } from "../interfaces";
 
 @Controller("anomaly-detection/detectors")

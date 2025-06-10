@@ -5,11 +5,11 @@ import { ScheduleModule } from "@nestjs/schedule";
 // Import services
 import {
   PerformanceMonitorService,
+  DetectorManagementService,
   DataCollectorService,
   AnomalyDetectionService,
   AlertingService,
 } from "./services";
-import { DetectorManagementService } from "./services/detector-management.service";
 
 // Import controllers
 import { AnomalyManagementController } from "./controllers/anomaly-management.controller";

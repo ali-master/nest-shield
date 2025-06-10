@@ -1,6 +1,6 @@
 import { Put, Post, Param, HttpStatus, HttpException, Get, Controller, Body } from "@nestjs/common";
-import type { DetectorManagementService } from "../services/detector-management.service";
-import type { IAnomalyData } from "../interfaces/anomaly.interface";
+import type { DetectorManagementService } from "../services";
+import type { IAnomalyData } from "../interfaces";
 
 interface IRetrainRequest {
   source: string;

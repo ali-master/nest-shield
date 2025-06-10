@@ -11,3 +11,8 @@ tsconfig.json
 .release-it.json
 .eslintignore
 .eslintrc.js
+playground
+examples
+.claude
+test
+docs

@@ -1,7 +1,7 @@
 import type { Type } from "@nestjs/common";
 import { Injectable } from "@nestjs/common";
 import type { HttpAdapterHost } from "@nestjs/core";
-import type { IHttpAdapter, IAdapterConfig } from "../interfaces/shield-config.interface";
+import type { IHttpAdapter, IAdapterConfig } from "../interfaces";
 import { AdapterType } from "../core/constants";
 import { ConfigurationException } from "../core/exceptions";
 import { ExpressAdapter } from "./express.adapter";
