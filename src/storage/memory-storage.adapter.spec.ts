@@ -315,11 +315,13 @@ describe("MemoryStorageAdapter", () => {
       await limitedAdapter.set("key2", "value2");
       await limitedAdapter.set("key3", "value3");
 
-      // NodeCache will evict least recently used key when max is reached
-      await limitedAdapter.set("key4", "value4");
+      // Should throw when max keys exceeded
+      await expect(limitedAdapter.set("key4", "value4")).rejects.toThrow(
+        "Cache max keys amount exceeded",
+      );
 
       const keys = limitedAdapter.getKeys();
-      expect(keys.length).toBeLessThanOrEqual(3);
+      expect(keys.length).toBe(3);
     });
 
     it("should handle undefined values", async () => {
