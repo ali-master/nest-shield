@@ -1,3 +1,7 @@
+// Re-export DI tokens for backward compatibility
+export { DI_TOKENS } from "./di-tokens";
+
+// Legacy constants - kept for backward compatibility
 export const SHIELD_MODULE_OPTIONS = Symbol("SHIELD_MODULE_OPTIONS");
 export const SHIELD_METADATA = Symbol("SHIELD_METADATA");
 export const SHIELD_INSTANCE = Symbol("SHIELD_INSTANCE");

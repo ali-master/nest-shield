@@ -1,30 +1,18 @@
 import type { Type, Provider, DynamicModule } from "@nestjs/common";
 import { Module, Global } from "@nestjs/common";
-import { APP_INTERCEPTOR, APP_GUARD } from "@nestjs/core";
 import type { IShieldConfig } from "../interfaces";
-import { SHIELD_MODULE_OPTIONS, DEFAULT_CONFIG } from "../core/constants";
-import { StorageFactory } from "../storage";
-import {
-  ThrottleService,
-  RateLimitService,
-  PriorityManagerService,
-  OverloadService,
-  MetricsService,
-  GracefulShutdownService,
-  DistributedSyncService,
-  CircuitBreakerService,
-  AnomalyDetectionService,
-} from "../services";
-import { ShieldGuard } from "../guards/shield.guard";
-import { OverloadReleaseInterceptor, CircuitBreakerInterceptor } from "../interceptors";
+import { DEFAULT_CONFIG } from "../core/constants";
+import { DI_TOKENS } from "../core/di-tokens";
+import { providerFactory, createConfigProvider } from "../core/providers.factory";
 import { AnomalyDetectionModule } from "../anomaly-detection";
+import { MetricsModule } from "../metrics";
 
 export interface ShieldModuleOptions extends IShieldConfig {}
 
 export interface ShieldModuleAsyncOptions {
-  imports?: any[];
-  useFactory?: (...args: any[]) => Promise<ShieldModuleOptions> | ShieldModuleOptions;
-  inject?: any[];
+  imports?: (Type | DynamicModule)[];
+  useFactory?: (...args: unknown[]) => Promise<ShieldModuleOptions> | ShieldModuleOptions;
+  inject?: (string | symbol | Type)[];
   useClass?: Type<ShieldOptionsFactory>;
   useExisting?: Type<ShieldOptionsFactory>;
 }
@@ -41,25 +29,35 @@ export class ShieldModule {
 
     return {
       module: ShieldModule,
-      imports: [AnomalyDetectionModule],
+      imports: [
+        AnomalyDetectionModule,
+        MetricsModule.forRoot(mergedOptions.metrics || DEFAULT_CONFIG.metrics),
+      ],
       providers: [
-        {
-          provide: SHIELD_MODULE_OPTIONS,
-          useValue: mergedOptions,
-        },
-        ...this.createProviders(),
+        createConfigProvider(DI_TOKENS.SHIELD_MODULE_OPTIONS, mergedOptions),
+        ...providerFactory.createCoreProviders(),
       ],
       exports: [
-        SHIELD_MODULE_OPTIONS,
-        CircuitBreakerService,
-        RateLimitService,
-        ThrottleService,
-        OverloadService,
-        MetricsService,
-        GracefulShutdownService,
-        DistributedSyncService,
-        PriorityManagerService,
-        AnomalyDetectionService,
+        DI_TOKENS.SHIELD_MODULE_OPTIONS,
+        DI_TOKENS.CIRCUIT_BREAKER_SERVICE,
+        DI_TOKENS.RATE_LIMIT_SERVICE,
+        DI_TOKENS.THROTTLE_SERVICE,
+        DI_TOKENS.OVERLOAD_SERVICE,
+        DI_TOKENS.METRICS_SERVICE,
+        DI_TOKENS.GRACEFUL_SHUTDOWN_SERVICE,
+        DI_TOKENS.DISTRIBUTED_SYNC_SERVICE,
+        DI_TOKENS.PRIORITY_MANAGER_SERVICE,
+        DI_TOKENS.ANOMALY_DETECTION_SERVICE,
+        // Legacy exports for backward compatibility
+        "CircuitBreakerService",
+        "RateLimitService",
+        "ThrottleService",
+        "OverloadService",
+        "MetricsService",
+        "GracefulShutdownService",
+        "DistributedSyncService",
+        "PriorityManagerService",
+        "AnomalyDetectionService",
         AnomalyDetectionModule,
       ],
     };
@@ -69,71 +67,39 @@ export class ShieldModule {
     return {
       module: ShieldModule,
       imports: [AnomalyDetectionModule, ...(options.imports || [])],
-      providers: [...this.createAsyncProviders(options), ...this.createProviders()],
+      providers: [...this.createAsyncProviders(options), ...providerFactory.createCoreProviders()],
       exports: [
-        SHIELD_MODULE_OPTIONS,
-        CircuitBreakerService,
-        RateLimitService,
-        ThrottleService,
-        OverloadService,
-        MetricsService,
-        GracefulShutdownService,
-        DistributedSyncService,
-        PriorityManagerService,
-        AnomalyDetectionService,
+        DI_TOKENS.SHIELD_MODULE_OPTIONS,
+        DI_TOKENS.CIRCUIT_BREAKER_SERVICE,
+        DI_TOKENS.RATE_LIMIT_SERVICE,
+        DI_TOKENS.THROTTLE_SERVICE,
+        DI_TOKENS.OVERLOAD_SERVICE,
+        DI_TOKENS.METRICS_SERVICE,
+        DI_TOKENS.GRACEFUL_SHUTDOWN_SERVICE,
+        DI_TOKENS.DISTRIBUTED_SYNC_SERVICE,
+        DI_TOKENS.PRIORITY_MANAGER_SERVICE,
+        DI_TOKENS.ANOMALY_DETECTION_SERVICE,
+        // Legacy exports for backward compatibility
+        "CircuitBreakerService",
+        "RateLimitService",
+        "ThrottleService",
+        "OverloadService",
+        "MetricsService",
+        "GracefulShutdownService",
+        "DistributedSyncService",
+        "PriorityManagerService",
+        "AnomalyDetectionService",
         AnomalyDetectionModule,
       ],
     };
-  }
-
-  private static createProviders(): Provider[] {
-    return [
-      // Storage provider must come first
-      {
-        provide: "SHIELD_STORAGE",
-        useFactory: async (options: IShieldConfig) => {
-          return await StorageFactory.createAsync(options.storage || { type: "memory" });
-        },
-        inject: [SHIELD_MODULE_OPTIONS],
-      },
-      // MetricsService comes first as it's a dependency for most other services
-      MetricsService,
-      // Core protection services that depend on MetricsService and Storage
-      CircuitBreakerService,
-      RateLimitService,
-      ThrottleService,
-      OverloadService,
-      // Support services
-      PriorityManagerService,
-      DistributedSyncService,
-      AnomalyDetectionService,
-      // GracefulShutdownService now simplified to avoid circular dependencies
-      GracefulShutdownService,
-      // Guards and interceptors
-      ShieldGuard,
-      CircuitBreakerInterceptor,
-      OverloadReleaseInterceptor,
-      {
-        provide: APP_GUARD,
-        useClass: ShieldGuard,
-      },
-      {
-        provide: APP_INTERCEPTOR,
-        useClass: CircuitBreakerInterceptor,
-      },
-      {
-        provide: APP_INTERCEPTOR,
-        useClass: OverloadReleaseInterceptor,
-      },
-    ];
   }
 
   private static createAsyncProviders(options: ShieldModuleAsyncOptions): Provider[] {
     if (options.useFactory) {
       return [
         {
-          provide: SHIELD_MODULE_OPTIONS,
-          useFactory: async (...args: any[]) => {
+          provide: DI_TOKENS.SHIELD_MODULE_OPTIONS,
+          useFactory: async (...args: unknown[]) => {
             const config = await options.useFactory!(...args);
             return this.mergeWithDefaults(config);
           },
@@ -149,7 +115,7 @@ export class ShieldModule {
 
     return [
       {
-        provide: SHIELD_MODULE_OPTIONS,
+        provide: DI_TOKENS.SHIELD_MODULE_OPTIONS,
         useFactory: async (optionsFactory: ShieldOptionsFactory) => {
           const config = await optionsFactory.createShieldOptions();
           return this.mergeWithDefaults(config);
@@ -177,12 +143,11 @@ export class ShieldModule {
     };
   }
 
-  static getStorageProvider(options: IShieldConfig): Provider {
-    return {
-      provide: "SHIELD_STORAGE",
-      useFactory: async () => {
-        return await StorageFactory.createAsync(options.storage || { type: "memory" });
-      },
-    };
+  /**
+   * Creates a storage provider for external use
+   * @deprecated Use providerFactory.createStorageProvider() instead
+   */
+  static getStorageProvider(_options: IShieldConfig): Provider {
+    return providerFactory.createStorageProvider();
   }
 }
