@@ -92,7 +92,7 @@ describe("MemoryStorageAdapter", () => {
 
       // Check internal keys include prefix
       const keys = adapter.getKeys();
-      expect(keys).toContain("test:mykey");
+      expect(keys).toContain("shield:mykey");
     });
   });
 
@@ -299,9 +299,9 @@ describe("MemoryStorageAdapter", () => {
       const keys = adapter.getKeys();
 
       expect(keys).toHaveLength(3);
-      expect(keys).toContain("test:key1");
-      expect(keys).toContain("test:key2");
-      expect(keys).toContain("test:key3");
+      expect(keys).toContain("shield:key1");
+      expect(keys).toContain("shield:key2");
+      expect(keys).toContain("shield:key3");
     });
   });
 
@@ -325,7 +325,8 @@ describe("MemoryStorageAdapter", () => {
     it("should handle undefined values", async () => {
       await adapter.set("undefined", undefined);
       const value = await adapter.get("undefined");
-      expect(value).toBeUndefined();
+      // node-cache stores undefined as null
+      expect(value).toBeNull();
 
       // But key should exist
       expect(await adapter.exists("undefined")).toBe(true);

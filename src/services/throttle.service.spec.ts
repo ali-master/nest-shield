@@ -76,6 +76,7 @@ describe("ThrottleService", () => {
 
   afterEach(async () => {
     await storage.clear();
+    metricsCollector.clear();
   });
 
   describe("consume", () => {
@@ -91,10 +92,12 @@ describe("ThrottleService", () => {
         expect(result.metadata?.headers).toBeDefined();
       }
 
-      expect(metricsCollector.getMetric("test.throttle_consumed", {
-        path: context.path,
-        method: context.method,
-      })).toBe(5);
+      expect(
+        metricsCollector.getMetric("test.throttle_consumed", {
+          path: context.path,
+          method: context.method,
+        }),
+      ).toBe(5);
     });
 
     it("should reject requests exceeding throttle limit", async () => {
@@ -108,7 +111,12 @@ describe("ThrottleService", () => {
       // Next request should be rejected
       await expect(service.consume(context)).rejects.toThrow(ThrottleException);
 
-      expect(metricsCollector.getMetric("test.throttle_exceeded")).toBe(1);
+      expect(
+        metricsCollector.getMetric("test.throttle_exceeded", {
+          path: context.path,
+          method: context.method,
+        }),
+      ).toBe(1);
     });
 
     it("should reset window after TTL expires", async () => {
@@ -224,7 +232,12 @@ describe("ThrottleService", () => {
       const result = await service.consume(context);
 
       expect(result.allowed).toBe(true);
-      expect(metricsCollector.getMetric("test.throttle_error")).toBe(1);
+      expect(
+        metricsCollector.getMetric("test.throttle_error", {
+          path: context.path,
+          method: context.method,
+        }),
+      ).toBe(1);
     });
 
     it("should include custom headers when provided", async () => {

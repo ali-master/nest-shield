@@ -23,9 +23,31 @@ describe("RateLimitService", () => {
     storage = new MockStorageAdapter();
     metricsCollector = new MockMetricsCollector();
 
+    const mockMetricsService = {
+      increment: (metric: string, value: number = 1, labels?: any) => {
+        metricsCollector.increment(`test.${metric}`, value, labels);
+      },
+      decrement: jest.fn(),
+      gauge: jest.fn(),
+      histogram: jest.fn(),
+      summary: jest.fn(),
+      onModuleInit: jest.fn(),
+      onModuleDestroy: jest.fn(),
+      getCollector: jest.fn().mockReturnValue(metricsCollector),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        RateLimitService,
+        {
+          provide: RateLimitService,
+          useFactory: () => {
+            return new RateLimitService(
+              { rateLimit: TEST_RATE_LIMIT_OPTIONS },
+              storage,
+              mockMetricsService as any,
+            );
+          },
+        },
         {
           provide: SHIELD_MODULE_OPTIONS,
           useValue: {
@@ -38,18 +60,7 @@ describe("RateLimitService", () => {
         },
         {
           provide: MetricsService,
-          useValue: {
-            increment: (metric: string, value: number = 1, labels?: any) => {
-              metricsCollector.increment(`test.${metric}`, value, labels);
-            },
-            decrement: jest.fn(),
-            gauge: jest.fn(),
-            histogram: jest.fn(),
-            summary: jest.fn(),
-            onModuleInit: jest.fn(),
-            onModuleDestroy: jest.fn(),
-            getCollector: jest.fn().mockReturnValue(metricsCollector),
-          },
+          useValue: mockMetricsService,
         },
       ],
     }).compile();
@@ -60,6 +71,7 @@ describe("RateLimitService", () => {
 
   afterEach(async () => {
     await storage.clear();
+    metricsCollector.clear();
   });
 
   describe("consume", () => {
@@ -75,7 +87,12 @@ describe("RateLimitService", () => {
         expect(result.metadata?.headers).toBeDefined();
       }
 
-      expect(metricsCollector.getMetric("test.rate_limit_consumed")).toBe(5);
+      expect(
+        metricsCollector.getMetric("test.rate_limit_consumed", {
+          path: context.path,
+          method: context.method,
+        }),
+      ).toBe(5);
     });
 
     it("should reject requests exceeding rate limit", async () => {
@@ -89,7 +106,12 @@ describe("RateLimitService", () => {
       // Next request should be rejected
       await expect(service.consume(context)).rejects.toThrow(RateLimitException);
 
-      expect(metricsCollector.getMetric("test.rate_limit_exceeded")).toBe(1);
+      expect(
+        metricsCollector.getMetric("test.rate_limit_exceeded", {
+          path: context.path,
+          method: context.method,
+        }),
+      ).toBe(1);
     });
 
     it("should use custom key generator when provided", async () => {
@@ -183,7 +205,12 @@ describe("RateLimitService", () => {
       const result = await service.consume(context);
 
       expect(result.allowed).toBe(true);
-      expect(metricsCollector.getMetric("test.rate_limit_error")).toBe(1);
+      expect(
+        metricsCollector.getMetric("test.rate_limit_error", {
+          path: context.path,
+          method: context.method,
+        }),
+      ).toBe(1);
     });
 
     it("should calculate retry-after correctly", async () => {
@@ -387,7 +414,7 @@ describe("RateLimitService", () => {
       const now = Date.now();
       const windowStart = Math.floor(now / 1000 / 60) * 60 * 1000;
       const key = `rate_limit:${context.ip}:${context.path}:${context.method}:${windowStart}`;
-      await storage.set(key, 15); // More than limit
+      await storage.set(key, 15); // More than limit (default is 10)
 
       const remaining = await service.getRemaining(context);
       expect(remaining).toBe(0); // Should not be negative

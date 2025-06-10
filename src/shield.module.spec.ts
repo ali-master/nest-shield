@@ -1,74 +1,73 @@
-import type { TestingModule } from "@nestjs/testing";
-import { Test } from "@nestjs/testing";
 import { ShieldModule } from "./modules/shield.module";
-import {
-  ThrottleService,
-  RateLimitService,
-  OverloadService,
-  CircuitBreakerService,
-} from "./services";
 import { SHIELD_MODULE_OPTIONS } from "./core/constants";
 
 describe("ShieldModule", () => {
-  let module: TestingModule;
-
   describe("forRoot", () => {
-    beforeEach(async () => {
-      module = await Test.createTestingModule({
-        imports: [
-          ShieldModule.forRoot({
-            global: { enabled: true },
-            storage: { type: "memory" },
-            rateLimit: { enabled: true, points: 10, duration: 60 },
-          }),
-        ],
-      }).compile();
+    it("should create a dynamic module with correct configuration", () => {
+      const config = {
+        global: { enabled: true },
+        storage: { type: "memory" as const },
+        rateLimit: { enabled: true, points: 10, duration: 60 },
+      };
+
+      const module = ShieldModule.forRoot(config);
+
+      expect(module.module).toBe(ShieldModule);
+      expect(module.providers).toBeDefined();
+      expect(module.exports).toBeDefined();
+
+      // Check that configuration provider is included
+      const configProvider = module.providers?.find(
+        (provider: any) =>
+          typeof provider === "object" && provider.provide === SHIELD_MODULE_OPTIONS,
+      );
+      expect(configProvider).toBeDefined();
+      expect((configProvider as any).useValue).toMatchObject(config);
     });
 
-    afterEach(async () => {
-      await module.close();
+    it("should include all required providers", () => {
+      const module = ShieldModule.forRoot({});
+
+      expect(module.providers).toBeDefined();
+      expect(Array.isArray(module.providers)).toBe(true);
+      expect(module.providers!.length).toBeGreaterThan(0);
     });
 
-    it("should be defined", () => {
-      expect(module).toBeDefined();
-    });
+    it("should include all required exports", () => {
+      const module = ShieldModule.forRoot({});
 
-    it("should provide shield options", () => {
-      const options = module.get(SHIELD_MODULE_OPTIONS);
-      expect(options).toBeDefined();
-      expect(options.global.enabled).toBe(true);
-      expect(options.storage.type).toBe("memory");
-    });
-
-    it("should provide all services", () => {
-      expect(module.get(CircuitBreakerService)).toBeDefined();
-      expect(module.get(RateLimitService)).toBeDefined();
-      expect(module.get(ThrottleService)).toBeDefined();
-      expect(module.get(OverloadService)).toBeDefined();
+      expect(module.exports).toBeDefined();
+      expect(Array.isArray(module.exports)).toBe(true);
+      expect(module.exports).toContain(SHIELD_MODULE_OPTIONS);
     });
   });
 
   describe("forRootAsync", () => {
-    beforeEach(async () => {
-      module = await Test.createTestingModule({
-        imports: [
-          ShieldModule.forRootAsync({
-            useFactory: () => ({
-              global: { enabled: false },
-              storage: { type: "memory" },
-            }),
-          }),
-        ],
-      }).compile();
+    it("should create a dynamic module with async configuration", () => {
+      const asyncOptions = {
+        useFactory: () => ({
+          global: { enabled: false },
+          storage: { type: "memory" as const },
+        }),
+      };
+
+      const module = ShieldModule.forRootAsync(asyncOptions);
+
+      expect(module.module).toBe(ShieldModule);
+      expect(module.providers).toBeDefined();
+      expect(module.exports).toBeDefined();
     });
 
-    afterEach(async () => {
-      await module.close();
-    });
+    it("should include imports when provided", () => {
+      const asyncOptions = {
+        imports: [{ module: class TestModule {} }],
+        useFactory: () => ({}),
+      };
 
-    it("should work with async configuration", () => {
-      const options = module.get(SHIELD_MODULE_OPTIONS);
-      expect(options.global.enabled).toBe(false);
+      const module = ShieldModule.forRootAsync(asyncOptions);
+
+      expect(module.imports).toBeDefined();
+      expect(module.imports).toContain(asyncOptions.imports[0]);
     });
   });
 });

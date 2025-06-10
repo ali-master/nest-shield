@@ -1,15 +1,20 @@
-import type { ShieldOptions } from "../interfaces/shield-options.interface";
-import type { RateLimitOptions } from "../interfaces/rate-limit-options.interface";
-import type { CircuitBreakerOptions } from "../interfaces/circuit-breaker-options.interface";
-import type { OverloadOptions } from "../interfaces/overload-options.interface";
-import type { AnomalyDetectionOptions } from "../interfaces/anomaly-detection-options.interface";
-import type { MetricsOptions } from "../interfaces/metrics-options.interface";
+import type {
+  IShieldConfig,
+  IRateLimitConfig,
+  IOverloadConfig,
+  IMetricsConfig,
+  ICircuitBreakerConfig,
+  IAnomalyDetectionConfig,
+} from "../interfaces";
 
-export const DEFAULT_TEST_OPTIONS: ShieldOptions = {
+export const DEFAULT_TEST_OPTIONS: IShieldConfig = {
   global: {
     enabled: true,
-    bypassRoutes: [],
-    errorMessage: "Protection triggered",
+    excludePaths: [],
+    logging: {
+      enabled: true,
+      level: "error",
+    },
   },
   rateLimit: {
     enabled: true,
@@ -24,14 +29,12 @@ export const DEFAULT_TEST_OPTIONS: ShieldOptions = {
   },
   circuitBreaker: {
     enabled: true,
-    failureThreshold: 5,
-    successThreshold: 2,
     timeout: 60000,
-    halfOpenRequestCount: 1,
-    monitoringPeriod: 10000,
-    minimumRequestCount: 10,
     errorThresholdPercentage: 50,
     resetTimeout: 30000,
+    rollingCountTimeout: 10000,
+    rollingCountBuckets: 10,
+    volumeThreshold: 10,
   },
   overload: {
     enabled: true,
@@ -45,53 +48,61 @@ export const DEFAULT_TEST_OPTIONS: ShieldOptions = {
   },
   metrics: {
     enabled: true,
+    type: "prometheus",
     prefix: "shield",
   },
 };
 
-export const TEST_RATE_LIMIT_OPTIONS: RateLimitOptions = {
+export const TEST_RATE_LIMIT_OPTIONS: IRateLimitConfig = {
+  enabled: true,
   points: 10,
   duration: 60,
   blockDuration: 300,
   keyGenerator: (context) => context.ip,
 };
 
-export const TEST_CIRCUIT_BREAKER_OPTIONS: CircuitBreakerOptions = {
-  failureThreshold: 3,
-  successThreshold: 1,
+export const TEST_CIRCUIT_BREAKER_OPTIONS: ICircuitBreakerConfig = {
+  enabled: true,
   timeout: 5000,
-  resetTimeout: 10000,
-  halfOpenRequestCount: 1,
   errorThresholdPercentage: 50,
-  monitoringPeriod: 10000,
-  minimumRequestCount: 5,
-  fallback: async () => ({ fallback: true }),
+  resetTimeout: 10000,
+  rollingCountTimeout: 10000,
+  rollingCountBuckets: 10,
+  volumeThreshold: 5,
 };
 
-export const TEST_OVERLOAD_OPTIONS: OverloadOptions = {
+export const TEST_OVERLOAD_OPTIONS: IOverloadConfig = {
+  enabled: true,
   maxConcurrentRequests: 10,
   maxQueueSize: 50,
   queueTimeout: 5000,
   shedStrategy: "fifo",
-  priorityLevels: [
-    { name: "critical", weight: 10, reserved: 2 },
-    { name: "high", weight: 5, reserved: 1 },
-    { name: "normal", weight: 1, reserved: 0 },
-  ],
-};
-
-export const TEST_ANOMALY_OPTIONS: AnomalyDetectionOptions = {
-  enabled: true,
-  sensitivity: 0.8,
-  windowSize: 100,
-  detectors: ["zscore", "isolation-forest"],
-  alertThresholds: {
-    warning: 0.7,
-    critical: 0.9,
+  priorityFunction: (context) => {
+    // Define priority based on context
+    if (context.user?.role === "admin") return 10;
+    if (context.user?.role === "premium") return 5;
+    return 1;
   },
 };
 
-export const TEST_METRICS_OPTIONS: MetricsOptions = {
+export const TEST_ANOMALY_OPTIONS: IAnomalyDetectionConfig = {
+  enabled: true,
+  sensitivity: 0.8,
+  windowSize: 100,
+  detectorType: "Z-Score Detector",
+  threshold: 0.8,
+  alerting: {
+    enabled: true,
+    channels: ["log"],
+    thresholds: {
+      critical: 0.9,
+      high: 0.7,
+      medium: 0.5,
+    },
+  },
+};
+
+export const TEST_METRICS_OPTIONS: IMetricsConfig = {
   enabled: true,
   type: "prometheus",
   prefix: "test_shield",
@@ -119,7 +130,7 @@ export const generateTimeSeriesData = (
     anomalies = [],
   } = options;
 
-  const data = [];
+  const data: Array<{ timestamp: number; value: number; label?: string }> = [];
   const startTime = Date.now() - count * 60000; // Start from 'count' minutes ago
 
   for (let i = 0; i < count; i++) {
@@ -152,7 +163,12 @@ export const generateMetricsData = (
   metricNames: string[],
   count: number = 100,
 ): Array<{ name: string; value: number; timestamp: number; tags?: Record<string, string> }> => {
-  const data = [];
+  const data: Array<{
+    name: string;
+    value: number;
+    timestamp: number;
+    tags?: Record<string, string>;
+  }> = [];
   const startTime = Date.now() - count * 60000;
 
   for (const metricName of metricNames) {
@@ -203,7 +219,7 @@ export const generateBatchRequests = (
     userIds = ["user-1", "user-2", "user-3"],
   } = options;
 
-  const requests = [];
+  const requests: Array<any> = [];
 
   for (let i = 0; i < count; i++) {
     requests.push({

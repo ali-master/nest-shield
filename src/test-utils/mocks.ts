@@ -72,6 +72,8 @@ export const createMockProtectionContext = (
 
 export class MockStorageAdapter implements IStorageAdapter {
   private storage = new Map<string, any>();
+  private locks = new Map<string, Promise<void>>();
+  private ttls = new Map<string, { expiry: number; timeout: NodeJS.Timeout }>();
 
   async get(key: string): Promise<any> {
     return this.storage.get(key);
@@ -79,13 +81,31 @@ export class MockStorageAdapter implements IStorageAdapter {
 
   async set(key: string, value: any, ttl?: number): Promise<void> {
     this.storage.set(key, value);
-    if (ttl) {
-      setTimeout(() => this.storage.delete(key), ttl * 1000);
+
+    // Clear any existing TTL
+    const existingTtl = this.ttls.get(key);
+    if (existingTtl) {
+      clearTimeout(existingTtl.timeout);
+      this.ttls.delete(key);
+    }
+
+    if (ttl && ttl > 0) {
+      const expiry = Date.now() + ttl * 1000;
+      const timeout = setTimeout(() => {
+        this.storage.delete(key);
+        this.ttls.delete(key);
+      }, ttl * 1000);
+      this.ttls.set(key, { expiry, timeout });
     }
   }
 
   async delete(key: string): Promise<void> {
     this.storage.delete(key);
+    const ttlInfo = this.ttls.get(key);
+    if (ttlInfo) {
+      clearTimeout(ttlInfo.timeout);
+      this.ttls.delete(key);
+    }
   }
 
   async exists(key: string): Promise<boolean> {
@@ -93,17 +113,53 @@ export class MockStorageAdapter implements IStorageAdapter {
   }
 
   async increment(key: string, value: number = 1): Promise<number> {
-    const current = this.storage.get(key) || 0;
-    const newValue = current + value;
-    this.storage.set(key, newValue);
-    return newValue;
+    // Wait for any existing lock on this key
+    const existingLock = this.locks.get(key);
+    if (existingLock) {
+      await existingLock;
+    }
+
+    // Create a new lock for this operation
+    let releaseLock: () => void;
+    const lockPromise = new Promise<void>((resolve) => {
+      releaseLock = resolve;
+    });
+    this.locks.set(key, lockPromise);
+
+    try {
+      const current = this.storage.get(key) || 0;
+      const newValue = current + value;
+      this.storage.set(key, newValue);
+      return newValue;
+    } finally {
+      releaseLock!();
+      this.locks.delete(key);
+    }
   }
 
   async decrement(key: string, value: number = 1): Promise<number> {
-    const current = this.storage.get(key) || 0;
-    const newValue = Math.max(0, current - value);
-    this.storage.set(key, newValue);
-    return newValue;
+    // Wait for any existing lock on this key
+    const existingLock = this.locks.get(key);
+    if (existingLock) {
+      await existingLock;
+    }
+
+    // Create a new lock for this operation
+    let releaseLock: () => void;
+    const lockPromise = new Promise<void>((resolve) => {
+      releaseLock = resolve;
+    });
+    this.locks.set(key, lockPromise);
+
+    try {
+      const current = this.storage.get(key) || 0;
+      const newValue = Math.max(0, current - value);
+      this.storage.set(key, newValue);
+      return newValue;
+    } finally {
+      releaseLock!();
+      this.locks.delete(key);
+    }
   }
 
   async expire(key: string, ttl: number): Promise<void> {
@@ -113,8 +169,13 @@ export class MockStorageAdapter implements IStorageAdapter {
     }
   }
 
-  async ttl(_key: string): Promise<number> {
-    return -1; // Simplified for testing
+  async ttl(key: string): Promise<number> {
+    const ttlInfo = this.ttls.get(key);
+    if (!ttlInfo) {
+      return this.storage.has(key) ? -1 : -2;
+    }
+    const remaining = Math.ceil((ttlInfo.expiry - Date.now()) / 1000);
+    return remaining > 0 ? remaining : -2;
   }
 
   async scan(pattern: string): Promise<string[]> {
