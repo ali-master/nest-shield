@@ -22,4 +22,7 @@ export * from "./di-tokens";
 // Exceptions
 export * from "./exceptions";
 
+// Injection Decorators
+export * from "./injection.decorators";
+
 export * from "./providers.factory";

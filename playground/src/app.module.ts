@@ -1,5 +1,8 @@
 import { Module } from "@nestjs/common";
 import { ShieldModule } from "nest-shield";
+import { DI_TOKENS } from "nest-shield/core";
+
+// Controllers
 import { BasicController } from "./controllers/basic.controller";
 import { RateLimitController } from "./controllers/rate-limit.controller";
 import { ThrottleController } from "./controllers/throttle.controller";
@@ -9,7 +12,12 @@ import { MetricsController } from "./controllers/metrics.controller";
 import { AnomalyDetectionController } from "./controllers/anomaly-detection.controller";
 import { ConfigController } from "./controllers/config.controller";
 import { CombinedProtectionController } from "./controllers/combined-protection.controller";
-// import { AdvancedController } from "./controllers/advanced.controller";
+import { AdvancedController } from "./controllers/advanced.controller";
+import { DIShowcaseController } from "./controllers/di-showcase.controller";
+import { AnomalyShowcaseController } from "./controllers/anomaly-showcase.controller";
+import { MetricsShowcaseController } from "./controllers/metrics-showcase.controller";
+
+// Services
 import { TestService } from "./services/test.service";
 import { MockExternalService } from "./services/mock-external.service";
 import { CustomMetricsService } from "./services/custom-metrics.service";
@@ -26,23 +34,44 @@ import { CustomMetricsService } from "./services/custom-metrics.service";
       },
       storage: {
         type: "memory",
+        options: {
+          maxSize: 10000,
+          ttl: 3600000, // 1 hour
+        },
       },
       metrics: {
         enabled: true,
         type: "prometheus",
+        prefix: "nest_shield_playground",
         exportInterval: 5000,
+        buckets: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
+        percentiles: [0.5, 0.9, 0.95, 0.99],
+        labels: {
+          application: "nest-shield-playground",
+          version: "1.0.0",
+          environment: "development",
+        },
+        flushInterval: 1000,
+        maxBufferSize: 1000,
       },
       circuitBreaker: {
         enabled: true,
         timeout: 3000,
         errorThresholdPercentage: 50,
         resetTimeout: 10000,
+        rollingCountTimeout: 10000,
+        rollingCountBuckets: 10,
+        volumeThreshold: 20,
+        allowWarmUp: true,
+        warmUpCallVolume: 10,
       },
       rateLimit: {
         enabled: true,
         points: 100,
         duration: 60,
         blockDuration: 60,
+        skipSuccessfulRequests: false,
+        skipFailedRequests: false,
       },
       throttle: {
         enabled: true,
@@ -51,31 +80,33 @@ import { CustomMetricsService } from "./services/custom-metrics.service";
       },
       overload: {
         enabled: true,
-        maxConcurrentRequests: 10,
-        maxQueueSize: 5,
-        queueTimeout: 5000,
+        maxConcurrentRequests: 50,
+        maxQueueSize: 100,
+        queueTimeout: 30000,
+        shedStrategy: "priority",
+      },
+      adapters: {
+        type: "auto",
       },
       advanced: {
-        adaptiveProtection: {
-          enabled: true,
-          learningPeriod: 86400000,
-          adjustmentInterval: 30000,
-          sensitivityFactor: 0.8,
-          anomalyDetection: {
-            enabled: true,
-            detectorType: "Z-Score Detector",
-            sensitivity: 0.8,
-            windowSize: 100,
-            minDataPoints: 10,
-          },
-        },
         gracefulShutdown: {
-          enabled: false,
+          enabled: true,
           timeout: 30000,
         },
         requestPriority: {
           enabled: true,
           defaultPriority: 5,
+        },
+        adaptiveProtection: {
+          enabled: true,
+          learningPeriod: 3600000, // 1 hour
+          adjustmentInterval: 60000, // 1 minute
+          sensitivityFactor: 1.5,
+        },
+        distributedSync: {
+          enabled: false, // Disabled for playground as we're using memory storage
+          syncInterval: 5000,
+          channel: "nest-shield:playground:sync",
         },
       },
     }),
@@ -90,8 +121,31 @@ import { CustomMetricsService } from "./services/custom-metrics.service";
     AnomalyDetectionController,
     ConfigController,
     CombinedProtectionController,
-    // AdvancedController,
+    AdvancedController,
+    DIShowcaseController,
+    AnomalyShowcaseController,
+    MetricsShowcaseController,
   ],
-  providers: [TestService, MockExternalService, CustomMetricsService],
+  providers: [
+    TestService,
+    MockExternalService,
+    CustomMetricsService,
+    // Additional providers for demonstrating DI token usage
+    {
+      provide: "PLAYGROUND_CONFIG",
+      useValue: {
+        name: "NestShield Playground",
+        version: "1.0.0",
+        features: {
+          metrics: true,
+          anomalyDetection: true,
+          circuitBreaker: true,
+          rateLimit: true,
+          throttle: true,
+          overload: true,
+        },
+      },
+    },
+  ],
 })
 export class AppModule {}

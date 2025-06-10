@@ -1,10 +1,13 @@
 import { Controller, Get, Post, Body, Query } from "@nestjs/common";
-import { AnomalyDetectionService } from "nest-shield";
-import type { IAnomalyData } from "nest-shield";
+import { InjectAnomalyDetection } from "nest-shield/core";
+import type { AnomalyDetectionService, IAnomalyData } from "nest-shield";
 
 @Controller("anomaly-detection")
 export class AnomalyDetectionController {
-  constructor(private readonly anomalyService: AnomalyDetectionService) {}
+  constructor(
+    @InjectAnomalyDetection()
+    private readonly anomalyService: AnomalyDetectionService,
+  ) {}
 
   @Get("generate-normal-data")
   async generateNormalData(@Query("count") count: string = "100") {
