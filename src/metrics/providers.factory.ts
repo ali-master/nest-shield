@@ -277,16 +277,23 @@ export const createExporterProvider = <T>(
 /**
  * Provider groups for easy exports
  */
+/**
+ * Core metrics exports that are always safe to export
+ */
 export const METRICS_EXPORTS = [
   // Core config token - always provided
   DI_TOKENS.METRICS_CONFIG,
 
-  // Aggregator tokens that are always provided
-  DI_TOKENS.TIME_WINDOW_AGGREGATOR,
-  DI_TOKENS.ROLLING_WINDOW_AGGREGATOR,
-  DI_TOKENS.PERCENTILE_AGGREGATOR,
-
   // Factory tokens that are always provided
   DI_TOKENS.METRICS_COLLECTOR_FACTORY,
   DI_TOKENS.METRICS_EXPORTER_FACTORY,
+];
+
+/**
+ * Aggregator exports - only export when aggregators are actually provided
+ */
+export const AGGREGATOR_EXPORTS = [
+  DI_TOKENS.TIME_WINDOW_AGGREGATOR,
+  DI_TOKENS.ROLLING_WINDOW_AGGREGATOR,
+  DI_TOKENS.PERCENTILE_AGGREGATOR,
 ];

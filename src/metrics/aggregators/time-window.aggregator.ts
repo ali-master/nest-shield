@@ -11,8 +11,8 @@ interface TimeWindow {
 @Injectable()
 export class TimeWindowAggregator {
   private windows: Map<string, TimeWindow[]> = new Map();
-  private windowSize: number;
-  private maxWindows: number;
+  private readonly windowSize: number;
+  private readonly maxWindows: number;
 
   constructor(windowSize: number = 60000, maxWindows: number = 60) {
     this.windowSize = windowSize; // 1 minute default

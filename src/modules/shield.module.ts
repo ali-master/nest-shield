@@ -1,11 +1,11 @@
 import type { Type, Provider, DynamicModule } from "@nestjs/common";
-import { Module, Global } from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import type { IShieldConfig } from "../interfaces";
 import { DEFAULT_CONFIG } from "../core/constants";
 import { DI_TOKENS } from "../core/di-tokens";
 import { providerFactory, createConfigProvider } from "../core/providers.factory";
 import { AnomalyDetectionModule } from "../anomaly-detection";
-// import { MetricsModule } from "../metrics"; // Temporarily removed
+import { MetricsModule } from "../metrics";
 
 export interface ShieldModuleOptions extends IShieldConfig {}
 
@@ -21,18 +21,19 @@ export interface ShieldOptionsFactory {
   createShieldOptions: () => Promise<ShieldModuleOptions> | ShieldModuleOptions;
 }
 
-@Global()
 @Module({})
 export class ShieldModule {
   static forRoot(options: ShieldModuleOptions = {}): DynamicModule {
     const mergedOptions = this.mergeWithDefaults(options);
 
+    console.log("ShieldModule initialized with options:", mergedOptions);
+
     return {
+      global: mergedOptions.global?.enabled ?? true,
       module: ShieldModule,
       imports: [
-        // Temporarily disable both modules to test startup
-        // AnomalyDetectionModule,
-        // MetricsModule.forRoot(mergedOptions.metrics || DEFAULT_CONFIG.metrics),
+        AnomalyDetectionModule,
+        MetricsModule.forRoot(mergedOptions.metrics || DEFAULT_CONFIG.metrics),
       ],
       providers: [
         createConfigProvider(DI_TOKENS.SHIELD_MODULE_OPTIONS, mergedOptions),
@@ -48,9 +49,7 @@ export class ShieldModule {
         DI_TOKENS.GRACEFUL_SHUTDOWN_SERVICE,
         DI_TOKENS.DISTRIBUTED_SYNC_SERVICE,
         DI_TOKENS.PRIORITY_MANAGER_SERVICE,
-        // Temporarily disabled
-        // DI_TOKENS.ANOMALY_DETECTION_SERVICE,
-        // AnomalyDetectionModule,
+        DI_TOKENS.ANOMALY_DETECTION_SERVICE,
       ],
     };
   }
@@ -60,7 +59,13 @@ export class ShieldModule {
       module: ShieldModule,
       imports: [
         AnomalyDetectionModule,
-        // MetricsModule temporarily removed due to export validation issues
+        MetricsModule.forRootAsync({
+          useFactory: async (...args: unknown[]) => {
+            const config = options.useFactory ? await options.useFactory(...args) : {};
+            return this.mergeWithDefaults(config).metrics || DEFAULT_CONFIG.metrics;
+          },
+          inject: options.inject || [],
+        }),
         ...(options.imports || []),
       ],
       providers: [...this.createAsyncProviders(options), ...providerFactory.createCoreProviders()],
@@ -75,9 +80,9 @@ export class ShieldModule {
         DI_TOKENS.DISTRIBUTED_SYNC_SERVICE,
         DI_TOKENS.PRIORITY_MANAGER_SERVICE,
         DI_TOKENS.ANOMALY_DETECTION_SERVICE,
-        // Legacy exports for backward compatibility - re-export the actual providers
         // Re-export modules to make their providers available
         AnomalyDetectionModule,
+        MetricsModule,
       ],
     };
   }

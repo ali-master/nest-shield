@@ -6,7 +6,12 @@ import {
   InjectRollingWindowAggregator,
   InjectPercentileAggregator,
 } from "nest-shield/core";
-import type { MetricsService } from "nest-shield";
+import type { MetricsService } from "nest-shield/services";
+import type {
+  TimeWindowAggregator,
+  RollingWindowAggregator,
+  PercentileAggregator,
+} from "nest-shield/metrics/aggregators";
 import { CustomMetricsService } from "../services/custom-metrics.service";
 
 /**
@@ -22,13 +27,13 @@ export class MetricsShowcaseController {
     private readonly metricsService: MetricsService,
 
     @InjectTimeWindowAggregator()
-    private readonly timeWindowAggregator: any,
+    private readonly timeWindowAggregator: TimeWindowAggregator,
 
     @InjectRollingWindowAggregator()
-    private readonly rollingWindowAggregator: any,
+    private readonly rollingWindowAggregator: RollingWindowAggregator,
 
     @InjectPercentileAggregator()
-    private readonly percentileAggregator: any,
+    private readonly percentileAggregator: PercentileAggregator,
 
     private readonly customMetricsService: CustomMetricsService,
   ) {}
