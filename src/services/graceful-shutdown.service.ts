@@ -1,6 +1,6 @@
 import type { OnApplicationShutdown } from "@nestjs/common";
 import { Logger, Injectable, Inject } from "@nestjs/common";
-import { SHIELD_MODULE_OPTIONS } from "../core/constants";
+import { DI_TOKENS } from "../core/di-tokens";
 import type { IGracefulShutdownConfig } from "../interfaces";
 
 @Injectable()
@@ -10,7 +10,7 @@ export class GracefulShutdownService implements OnApplicationShutdown {
   private isShuttingDown = false;
   private shutdownPromise: Promise<void> | null = null;
 
-  constructor(@Inject(SHIELD_MODULE_OPTIONS) private readonly options: any) {
+  constructor(@Inject(DI_TOKENS.SHIELD_MODULE_OPTIONS) private readonly options: any) {
     this.config = this.options.advanced?.gracefulShutdown || { enabled: false, timeout: 30000 };
     this.setupShutdownHandlers();
   }

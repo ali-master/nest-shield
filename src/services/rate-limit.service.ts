@@ -5,9 +5,10 @@ import type {
   IProtectionResult,
   IProtectionContext,
 } from "../interfaces/shield-config.interface";
-import { SHIELD_MODULE_OPTIONS, HEADER_NAMES } from "../core/constants";
+import { HEADER_NAMES } from "../core/constants";
+import { DI_TOKENS } from "../core/di-tokens";
 import { RateLimitException } from "../core/exceptions";
-import type { MetricsService } from "./metrics.service";
+import type { IMetricsCollector } from "../interfaces";
 
 interface RateLimitInfo {
   points: number;
@@ -19,9 +20,9 @@ export class RateLimitService {
   private globalConfig: IRateLimitConfig;
 
   constructor(
-    @Inject(SHIELD_MODULE_OPTIONS) private readonly options: any,
-    @Inject("SHIELD_STORAGE") private readonly storage: IStorageAdapter,
-    private readonly metricsService: MetricsService,
+    @Inject(DI_TOKENS.SHIELD_MODULE_OPTIONS) private readonly options: any,
+    @Inject(DI_TOKENS.SHIELD_STORAGE) private readonly storage: IStorageAdapter,
+    @Inject(DI_TOKENS.METRICS_SERVICE) private readonly metricsService: IMetricsCollector,
   ) {
     this.globalConfig = this.options.rateLimit || {};
   }

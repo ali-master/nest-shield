@@ -1,6 +1,6 @@
 import type { OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { Logger, Injectable, Inject } from "@nestjs/common";
-import { SHIELD_MODULE_OPTIONS } from "../core/constants";
+import { DI_TOKENS } from "../core/di-tokens";
 import type {
   IStorageAdapter,
   IDistributedSyncConfig,
@@ -31,8 +31,8 @@ export class DistributedSyncService implements OnModuleInit, OnModuleDestroy {
   private pubSubClient?: any;
 
   constructor(
-    @Inject(SHIELD_MODULE_OPTIONS) private readonly options: any,
-    @Inject("SHIELD_STORAGE") private readonly storage: IStorageAdapter,
+    @Inject(DI_TOKENS.SHIELD_MODULE_OPTIONS) private readonly options: any,
+    @Inject(DI_TOKENS.SHIELD_STORAGE) private readonly storage: IStorageAdapter,
   ) {
     this.config = this.options.advanced?.distributedSync || { enabled: false, syncInterval: 5000 };
     this.nodeId = this.config.nodeId || uuidv4();

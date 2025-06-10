@@ -1,7 +1,7 @@
 import type { OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { Injectable, Inject } from "@nestjs/common";
 import type { IMetricsConfig, IMetricsCollector } from "../interfaces";
-import { SHIELD_MODULE_OPTIONS } from "../core/constants";
+import { DI_TOKENS } from "../core/di-tokens";
 
 // Import enhanced collectors if available
 let PrometheusCollector: any;
@@ -40,7 +40,7 @@ export class MetricsService implements IMetricsCollector, OnModuleInit, OnModule
   private anomalyDetectionConfig?: any;
   private enhancedMode = false;
 
-  constructor(@Inject(SHIELD_MODULE_OPTIONS) private readonly options: any) {
+  constructor(@Inject(DI_TOKENS.SHIELD_MODULE_OPTIONS) private readonly options: any) {
     this.config = this.options.metrics || { enabled: false };
     this.prefix = this.config.prefix || "nest_shield";
     this.anomalyDetectionConfig = this.options.advanced?.adaptiveProtection?.anomalyDetection;

@@ -1,11 +1,11 @@
 import { Injectable, Inject } from "@nestjs/common";
-import { SHIELD_MODULE_OPTIONS } from "../core/constants";
+import { DI_TOKENS } from "../core/di-tokens";
 import type {
   IRequestPriorityConfig,
   IProtectionContext,
   IPriorityLevel,
 } from "../interfaces/shield-config.interface";
-import type { MetricsService } from "./metrics.service";
+import type { IMetricsCollector } from "../interfaces";
 
 interface PriorityQueue {
   level: IPriorityLevel;
@@ -23,8 +23,8 @@ export class PriorityManagerService {
   private readonly defaultPriorityLevel: IPriorityLevel;
 
   constructor(
-    @Inject(SHIELD_MODULE_OPTIONS) private readonly options: any,
-    private readonly metricsService: MetricsService,
+    @Inject(DI_TOKENS.SHIELD_MODULE_OPTIONS) private readonly options: any,
+    @Inject(DI_TOKENS.METRICS_SERVICE) private readonly metricsService: IMetricsCollector,
   ) {
     this.config = this.options.advanced?.requestPriority || {
       enabled: false,

@@ -3,14 +3,15 @@ import { Injectable, Inject } from "@nestjs/common";
 import { throwError, Observable, firstValueFrom } from "rxjs";
 import { tap, catchError } from "rxjs/operators";
 import type { Reflector } from "@nestjs/core";
-import { SHIELD_MODULE_OPTIONS, SHIELD_DECORATORS } from "../core/constants";
+import { SHIELD_DECORATORS } from "../core/constants";
+import { DI_TOKENS } from "../core/di-tokens";
 import type { IShieldConfig, ICircuitBreakerConfig } from "../interfaces/shield-config.interface";
 import type { CircuitBreakerService } from "../services";
 
 @Injectable()
 export class CircuitBreakerInterceptor implements NestInterceptor {
   constructor(
-    @Inject(SHIELD_MODULE_OPTIONS) private readonly options: IShieldConfig,
+    @Inject(DI_TOKENS.SHIELD_MODULE_OPTIONS) private readonly options: IShieldConfig,
     private readonly reflector: Reflector,
     private readonly circuitBreakerService: CircuitBreakerService,
   ) {}

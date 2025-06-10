@@ -5,9 +5,10 @@ import type {
   IProtectionResult,
   IProtectionContext,
 } from "../interfaces/shield-config.interface";
-import { SHIELD_MODULE_OPTIONS, HEADER_NAMES } from "../core/constants";
+import { HEADER_NAMES } from "../core/constants";
+import { DI_TOKENS } from "../core/di-tokens";
 import { ThrottleException } from "../core/exceptions";
-import type { MetricsService } from "./metrics.service";
+import type { IMetricsCollector } from "../interfaces";
 
 interface ThrottleRecord {
   count: number;
@@ -19,9 +20,9 @@ export class ThrottleService {
   private globalConfig: IThrottleConfig;
 
   constructor(
-    @Inject(SHIELD_MODULE_OPTIONS) private readonly options: any,
-    @Inject("SHIELD_STORAGE") private readonly storage: IStorageAdapter,
-    private readonly metricsService: MetricsService,
+    @Inject(DI_TOKENS.SHIELD_MODULE_OPTIONS) private readonly options: any,
+    @Inject(DI_TOKENS.SHIELD_STORAGE) private readonly storage: IStorageAdapter,
+    @Inject(DI_TOKENS.METRICS_SERVICE) private readonly metricsService: IMetricsCollector,
   ) {
     this.globalConfig = this.options.throttle || {};
   }

@@ -1,6 +1,7 @@
 import type { Type, DynamicModule } from "@nestjs/common";
 import { Module } from "@nestjs/common";
 import type { IMetricsConfig } from "../interfaces";
+import { DI_TOKENS } from "../core/di-tokens";
 import { metricsProviderFactory, METRICS_EXPORTS } from "./providers.factory";
 
 /**
@@ -47,24 +48,28 @@ export class MetricsModule {
     useFactory?: (...args: unknown[]) => Promise<IMetricsConfig> | IMetricsConfig;
     inject?: (string | symbol | Type)[];
   }): DynamicModule {
+    const asyncConfigProvider = {
+      provide: "ASYNC_METRICS_CONFIG",
+      useFactory: options.useFactory!,
+      inject: options.inject || [],
+    };
+
     return {
       module: MetricsModule,
       imports: options.imports || [],
       providers: [
-        // Config provider
+        asyncConfigProvider,
+        // Create providers dynamically based on async config
         {
-          provide: "ASYNC_METRICS_CONFIG",
-          useFactory: options.useFactory!,
-          inject: options.inject || [],
-        },
-        // Create providers using the async config
-        {
-          provide: "METRICS_PROVIDERS",
-          useFactory: (config: IMetricsConfig) => {
-            return metricsProviderFactory.createAllProviders(config);
-          },
+          provide: DI_TOKENS.METRICS_CONFIG,
+          useFactory: (config: IMetricsConfig) => config,
           inject: ["ASYNC_METRICS_CONFIG"],
         },
+        // Service providers
+        ...metricsProviderFactory.createServiceProviders(),
+        // Aggregator providers
+        ...metricsProviderFactory.createAggregatorProviders(),
+        // Collector and exporter will be created by the service itself
       ],
       exports: [...METRICS_EXPORTS],
       global: true,

@@ -92,10 +92,6 @@ export class ProviderFactory implements IProviderFactory {
     return [
       // Core protection services
       {
-        provide: DI_TOKENS.METRICS_SERVICE,
-        useClass: MetricsService,
-      },
-      {
         provide: DI_TOKENS.CIRCUIT_BREAKER_SERVICE,
         useClass: CircuitBreakerService,
       },
@@ -110,6 +106,10 @@ export class ProviderFactory implements IProviderFactory {
       {
         provide: DI_TOKENS.OVERLOAD_SERVICE,
         useClass: OverloadService,
+      },
+      {
+        provide: DI_TOKENS.METRICS_SERVICE,
+        useClass: MetricsService,
       },
 
       // Support services
@@ -131,11 +131,11 @@ export class ProviderFactory implements IProviderFactory {
       },
 
       // Legacy class-based providers for backward compatibility
-      MetricsService,
       CircuitBreakerService,
       RateLimitService,
       ThrottleService,
       OverloadService,
+      MetricsService,
       PriorityManagerService,
       DistributedSyncService,
       AnomalyDetectionService,

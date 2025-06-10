@@ -48,17 +48,10 @@ export class ShieldModule {
         DI_TOKENS.DISTRIBUTED_SYNC_SERVICE,
         DI_TOKENS.PRIORITY_MANAGER_SERVICE,
         DI_TOKENS.ANOMALY_DETECTION_SERVICE,
-        // Legacy exports for backward compatibility
-        "CircuitBreakerService",
-        "RateLimitService",
-        "ThrottleService",
-        "OverloadService",
-        "MetricsService",
-        "GracefulShutdownService",
-        "DistributedSyncService",
-        "PriorityManagerService",
-        "AnomalyDetectionService",
+        // Legacy exports for backward compatibility - re-export the actual providers
+        // Re-export modules to make their providers available
         AnomalyDetectionModule,
+        MetricsModule,
       ],
     };
   }
@@ -66,7 +59,19 @@ export class ShieldModule {
   static forRootAsync(options: ShieldModuleAsyncOptions): DynamicModule {
     return {
       module: ShieldModule,
-      imports: [AnomalyDetectionModule, ...(options.imports || [])],
+      imports: [
+        AnomalyDetectionModule,
+        {
+          ...MetricsModule.forRootAsync({
+            useFactory: async (...args: unknown[]) => {
+              const config = options.useFactory ? await options.useFactory(...args) : {};
+              return this.mergeWithDefaults(config).metrics || DEFAULT_CONFIG.metrics;
+            },
+            inject: options.inject || [],
+          }),
+        },
+        ...(options.imports || []),
+      ],
       providers: [...this.createAsyncProviders(options), ...providerFactory.createCoreProviders()],
       exports: [
         DI_TOKENS.SHIELD_MODULE_OPTIONS,
@@ -79,17 +84,10 @@ export class ShieldModule {
         DI_TOKENS.DISTRIBUTED_SYNC_SERVICE,
         DI_TOKENS.PRIORITY_MANAGER_SERVICE,
         DI_TOKENS.ANOMALY_DETECTION_SERVICE,
-        // Legacy exports for backward compatibility
-        "CircuitBreakerService",
-        "RateLimitService",
-        "ThrottleService",
-        "OverloadService",
-        "MetricsService",
-        "GracefulShutdownService",
-        "DistributedSyncService",
-        "PriorityManagerService",
-        "AnomalyDetectionService",
+        // Legacy exports for backward compatibility - re-export the actual providers
+        // Re-export modules to make their providers available
         AnomalyDetectionModule,
+        MetricsModule,
       ],
     };
   }

@@ -26,9 +26,6 @@ import {
 // Exporters
 import { PrometheusExporter, OpenMetricsExporter, JsonExporter } from "./exporters";
 
-// Service
-import { MetricsService } from "../services/metrics.service";
-
 /**
  * Factory interface for metrics providers
  */
@@ -168,16 +165,12 @@ export class MetricsProviderFactory implements IMetricsProviderFactory {
 
   /**
    * Creates service providers with proper dependency injection
+   * Note: MetricsService is provided by the core ShieldModule to avoid circular dependencies
    */
   createServiceProviders(): Provider[] {
     return [
-      {
-        provide: DI_TOKENS.METRICS_SERVICE,
-        useClass: MetricsService,
-      },
-
-      // Legacy class-based provider for backward compatibility
-      MetricsService,
+      // MetricsService is provided by ShieldModule core providers
+      // This factory focuses on aggregators, collectors, and exporters only
     ];
   }
 
@@ -285,8 +278,7 @@ export const createExporterProvider = <T>(
  * Provider groups for easy exports
  */
 export const METRICS_EXPORTS = [
-  // Core service tokens
-  DI_TOKENS.METRICS_SERVICE,
+  // Core service tokens (MetricsService is exported by ShieldModule)
   DI_TOKENS.METRICS_CONFIG,
 
   // Aggregator tokens
@@ -303,8 +295,7 @@ export const METRICS_EXPORTS = [
   DI_TOKENS.METRICS_COLLECTOR_FACTORY,
   DI_TOKENS.METRICS_EXPORTER_FACTORY,
 
-  // Legacy exports for backward compatibility
-  "MetricsService",
+  // Legacy exports for backward compatibility (MetricsService is handled by ShieldModule)
   "TimeWindowAggregator",
   "RollingWindowAggregator",
   "PercentileAggregator",

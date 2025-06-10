@@ -4,9 +4,10 @@ import type {
   IProtectionContext,
   IOverloadConfig,
 } from "../interfaces/shield-config.interface";
-import { SHIELD_MODULE_OPTIONS, ShedStrategy } from "../core/constants";
+import { ShedStrategy } from "../core/constants";
+import { DI_TOKENS } from "../core/di-tokens";
 import { OverloadException } from "../core/exceptions";
-import type { MetricsService } from "./metrics.service";
+import type { IMetricsCollector } from "../interfaces";
 
 interface QueueItem {
   context: IProtectionContext;
@@ -27,8 +28,8 @@ export class OverloadService {
   private healthScore = 1;
 
   constructor(
-    @Inject(SHIELD_MODULE_OPTIONS) private readonly options: any,
-    private readonly metricsService: MetricsService,
+    @Inject(DI_TOKENS.SHIELD_MODULE_OPTIONS) private readonly options: any,
+    @Inject(DI_TOKENS.METRICS_SERVICE) private readonly metricsService: IMetricsCollector,
   ) {
     this.globalConfig = this.options.overload || {};
     this.adaptiveThreshold = this.globalConfig.maxConcurrentRequests || 1000;

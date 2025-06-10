@@ -1,7 +1,8 @@
 import type { ExecutionContext, CanActivate } from "@nestjs/common";
 import { Injectable, Inject } from "@nestjs/common";
 import type { Reflector, HttpAdapterHost } from "@nestjs/core";
-import { SHIELD_MODULE_OPTIONS, SHIELD_DECORATORS } from "../core/constants";
+import { SHIELD_DECORATORS } from "../core/constants";
+import { DI_TOKENS } from "../core/di-tokens";
 import type {
   IShieldConfig,
   IProtectionContext,
@@ -21,7 +22,7 @@ export class ShieldGuard implements CanActivate {
   private httpAdapter: IHttpAdapter;
 
   constructor(
-    @Inject(SHIELD_MODULE_OPTIONS) private readonly options: IShieldConfig,
+    @Inject(DI_TOKENS.SHIELD_MODULE_OPTIONS) private readonly options: IShieldConfig,
     private readonly reflector: Reflector,
     private readonly circuitBreakerService: CircuitBreakerService,
     private readonly rateLimitService: RateLimitService,
