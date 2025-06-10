@@ -1,5 +1,5 @@
 import { ShieldModule } from "./modules/shield.module";
-import { SHIELD_MODULE_OPTIONS } from "./core/constants";
+import { DI_TOKENS } from "./core/constants";
 
 describe("ShieldModule", () => {
   describe("forRoot", () => {
@@ -16,10 +16,10 @@ describe("ShieldModule", () => {
       expect(module.providers).toBeDefined();
       expect(module.exports).toBeDefined();
 
-      // Check that configuration provider is included
+      // Check that configuration provider is included (using new DI token)
       const configProvider = module.providers?.find(
         (provider: any) =>
-          typeof provider === "object" && provider.provide === SHIELD_MODULE_OPTIONS,
+          typeof provider === "object" && provider.provide === DI_TOKENS.SHIELD_MODULE_OPTIONS,
       );
       expect(configProvider).toBeDefined();
       expect((configProvider as any).useValue).toMatchObject(config);
@@ -38,7 +38,11 @@ describe("ShieldModule", () => {
 
       expect(module.exports).toBeDefined();
       expect(Array.isArray(module.exports)).toBe(true);
-      expect(module.exports).toContain(SHIELD_MODULE_OPTIONS);
+      // Check for the new DI token
+      expect(module.exports).toContain(DI_TOKENS.SHIELD_MODULE_OPTIONS);
+      // Also check that legacy exports are included for backward compatibility
+      expect(module.exports).toContain("CircuitBreakerService");
+      expect(module.exports).toContain("RateLimitService");
     });
   });
 
