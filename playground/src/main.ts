@@ -48,20 +48,12 @@ async function bootstrap() {
     `,
     )
     .setVersion("1.0")
-    .addTag("Basic", "Simple protected endpoints")
-    .addTag("Rate Limiting", "Request rate control demonstrations")
-    .addTag("Throttling", "Request throttling demonstrations")
-    .addTag("Circuit Breaker", "Circuit breaker protection demonstrations")
-    .addTag("Overload Protection", "System overload management")
-    .addTag("Metrics", "Performance metrics collection and viewing")
-    .addTag("Anomaly Detection", "AI-powered anomaly detection features")
-    .addTag("Configuration", "Dynamic configuration examples")
-    .addTag("Combined Protection", "Multiple protection mechanisms working together")
-    .addTag("Advanced", "Advanced features and custom implementations")
     .addServer("http://localhost:3000", "Development server")
     .build();
 
+  // @ts-expect-error
   const document = SwaggerModule.createDocument(app, config);
+  // @ts-expect-error
   SwaggerModule.setup("docs", app, document, {
     customSiteTitle: "NestShield Playground API",
     customfavIcon: "/favicon.ico",
