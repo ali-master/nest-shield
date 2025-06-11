@@ -1,6 +1,6 @@
 import type { ExecutionContext, CanActivate } from "@nestjs/common";
 import { Injectable, Inject, HttpStatus, HttpException } from "@nestjs/common";
-import type { Reflector } from "@nestjs/core";
+import { Reflector } from "@nestjs/core";
 import type { Response, Request } from "express";
 import { SHIELD_DECORATORS } from "../core/constants";
 import { DI_TOKENS } from "../core/di-tokens";
@@ -129,6 +129,7 @@ export interface IEnhancedShieldOptions {
 export class ShieldGuard implements CanActivate {
   private readonly startTime: number = Date.now();
   private enhancedOptions?: IEnhancedShieldOptions;
+  private reflector!: Reflector;
   private performanceMetrics: {
     requestCount: number;
     errorCount: number;
@@ -149,7 +150,6 @@ export class ShieldGuard implements CanActivate {
   constructor(
     @Inject(DI_TOKENS.SHIELD_MODULE_OPTIONS) private readonly config: IShieldConfig,
     @Inject(DI_TOKENS.SHIELD_LOGGER_SERVICE) private readonly logger: ShieldLoggerService,
-    private readonly reflector: Reflector,
     @Inject(DI_TOKENS.RATE_LIMIT_SERVICE) private readonly rateLimitService: RateLimitService,
     @Inject(DI_TOKENS.THROTTLE_SERVICE) private readonly throttleService: ThrottleService,
     @Inject(DI_TOKENS.OVERLOAD_SERVICE) private readonly overloadService: OverloadService,
@@ -161,6 +161,8 @@ export class ShieldGuard implements CanActivate {
     @Inject(DI_TOKENS.PRIORITY_MANAGER_SERVICE)
     private readonly priorityManagerService: PriorityManagerService,
   ) {
+    // Create reflector instance manually to avoid DI issues
+    this.reflector = new Reflector();
     console.log("ShieldGuard constructor called!");
     this.initializeEnhancedOptions();
 

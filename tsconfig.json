@@ -16,12 +16,6 @@
     "outDir": "./dist",
     "allowSyntheticDefaultImports": true
   },
-  "include": [
-    "src/**/*",
-    "test/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "examples/**/*"
-  ]
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["node_modules", "examples/**/*"]
 }

@@ -28,6 +28,7 @@
     "fastify"
   ],
   "scripts": {
+    "prebuild": "pnpx rimraf dist",
     "build": "tsc -p tsconfig.build.json",
     "test": "jest",
     "test:unit": "jest --config ./test/jest-unit.json",

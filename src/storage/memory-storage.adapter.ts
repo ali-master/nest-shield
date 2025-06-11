@@ -1,6 +1,8 @@
 import { Injectable } from "@nestjs/common";
-import NodeCache from "node-cache";
 import { BaseStorageAdapter } from "./base-storage.adapter";
+
+// eslint-disable-next-line ts/no-require-imports
+const NodeCache = require("node-cache");
 
 export interface MemoryStorageOptions {
   stdTTL?: number;
@@ -12,7 +14,7 @@ export interface MemoryStorageOptions {
 
 @Injectable()
 export class MemoryStorageAdapter extends BaseStorageAdapter {
-  private cache: NodeCache;
+  private cache: any;
 
   constructor(options?: MemoryStorageOptions) {
     super(options);

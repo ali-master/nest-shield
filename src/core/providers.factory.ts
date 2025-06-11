@@ -230,7 +230,7 @@ export class ProviderFactory implements IProviderFactory {
     ProviderRegistry.register(DI_TOKENS.SHIELD_GUARD, shieldGuardProvider);
     providers.push(shieldGuardProvider);
 
-    // Add legacy class-based provider and Reflector
+    // Add legacy class-based provider
     providers.push(ShieldGuard);
 
     return providers;
