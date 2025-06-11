@@ -127,15 +127,6 @@ export class ProviderFactory implements IProviderFactory {
       ...this.createInterceptorProviders(),
     ];
 
-    // Log all registered providers for debugging
-    console.log("Shield Providers Registry:", {
-      totalProviders: providers.length,
-      registeredTokens: ProviderRegistry.getAll().length,
-      hasShieldGuard: ProviderRegistry.has(DI_TOKENS.SHIELD_GUARD),
-      hasStorage: ProviderRegistry.has(DI_TOKENS.SHIELD_STORAGE),
-      hasLogger: ProviderRegistry.has(DI_TOKENS.SHIELD_LOGGER_SERVICE),
-    });
-
     return providers;
   }
 

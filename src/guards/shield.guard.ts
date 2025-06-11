@@ -170,7 +170,6 @@ export class ShieldGuard implements CanActivate, BeforeApplicationShutdown {
   ) {
     // Create reflector instance manually to avoid DI issues
     this.reflector = new Reflector();
-    console.log("ShieldGuard constructor called!");
     this.initializeEnhancedOptions();
 
     this.logger.guard("Shield Guard initialized", {
@@ -210,7 +209,6 @@ export class ShieldGuard implements CanActivate, BeforeApplicationShutdown {
    * Main guard entry point - orchestrates all protection mechanisms
    */
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    console.log("Shield Guard activated");
     // Start performance measurement
     const startTime = performance.now();
     const request = context.switchToHttp().getRequest<Request>();
