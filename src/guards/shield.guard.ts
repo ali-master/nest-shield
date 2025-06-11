@@ -1,4 +1,4 @@
-import type { ExecutionContext, CanActivate } from "@nestjs/common";
+import type { ExecutionContext, CanActivate, BeforeApplicationShutdown } from "@nestjs/common";
 import { Injectable, Inject, HttpStatus, HttpException } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import type { Response, Request } from "express";
@@ -132,7 +132,7 @@ export interface IEnhancedShieldOptions {
  * - Graceful degradation under load
  */
 @Injectable()
-export class ShieldGuard implements CanActivate {
+export class ShieldGuard implements CanActivate, BeforeApplicationShutdown {
   private readonly startTime: number = Date.now();
   private enhancedOptions?: IEnhancedShieldOptions;
   private reflector!: Reflector;
@@ -151,6 +151,7 @@ export class ShieldGuard implements CanActivate {
     lastResponseTime: 0,
     throughput: 0,
   };
+  private healthMonitoringTimer?: NodeJS.Timeout;
   private adaptiveMonitoringTimer?: NodeJS.Timeout;
 
   constructor(
@@ -184,6 +185,25 @@ export class ShieldGuard implements CanActivate {
     if (this.enhancedOptions?.adaptiveProtection.enabled) {
       this.startAdaptiveMonitoring();
     }
+
+    // Initialize health monitoring and management system
+    this.startHealthMonitoring();
+  }
+
+  beforeApplicationShutdown() {
+    if (this.healthMonitoringTimer) {
+      clearInterval(this.healthMonitoringTimer);
+      this.healthMonitoringTimer = undefined;
+    }
+
+    if (this.adaptiveMonitoringTimer) {
+      clearTimeout(this.adaptiveMonitoringTimer);
+      this.adaptiveMonitoringTimer = undefined;
+    }
+
+    this.logger.guardDebug("Shield Guard shutdown complete", {
+      operation: "shutdown",
+    });
   }
 
   /**
@@ -239,8 +259,8 @@ export class ShieldGuard implements CanActivate {
         return true;
       }
 
-      // Extract and validate request priority using PriorityManagerService
-      const priority = this.priorityManagerService.extractPriority(protectionContext);
+      // Extract and validate request priority using enhanced logic
+      const priority = this.determinePriority(metadata, protectionContext);
       protectionContext.priority = priority;
 
       // Check if we can accept this request based on priority constraints
@@ -422,6 +442,7 @@ export class ShieldGuard implements CanActivate {
     const clientIp = this.extractClientIp(request);
     const userAgent = request.get("user-agent") || "unknown";
     const userId = this.extractUserId(request);
+    const sessionId = this.extractSessionId(request);
 
     const protectionContext = {
       request,
@@ -436,6 +457,7 @@ export class ShieldGuard implements CanActivate {
       metadata: {},
       timestamp: Date.now(),
       userId,
+      sessionId,
       // Additional fields for internal use
       requestId,
       clientIp,
@@ -550,6 +572,12 @@ export class ShieldGuard implements CanActivate {
   ): Promise<IProtectionResult> {
     try {
       const config = { ...this.config.overload, ...metadata.overload };
+      const overloadKey = this.generateOverloadKey(context);
+
+      // Store key in context for tracing
+      if (!context.metadata) context.metadata = {};
+      context.metadata.overloadKey = overloadKey;
+
       const result = await this.overloadService.acquire(context, config);
 
       if (!result.allowed) {
@@ -589,6 +617,12 @@ export class ShieldGuard implements CanActivate {
   ): Promise<IProtectionResult> {
     try {
       const config = { ...this.config.rateLimit, ...metadata.rateLimit };
+      const rateLimitKey = this.generateRateLimitKey(context, config);
+
+      // Store key in context for tracing and metrics
+      if (!context.metadata) context.metadata = {};
+      context.metadata.rateLimitKey = rateLimitKey;
+
       const result = await this.rateLimitService.consume(context, config);
 
       if (!result.allowed) {
@@ -632,6 +666,12 @@ export class ShieldGuard implements CanActivate {
   ): Promise<IProtectionResult> {
     try {
       const config = { ...this.config.throttle, ...metadata.throttle };
+      const throttleKey = this.generateThrottleKey(context, config);
+
+      // Store key in context for tracing and session management
+      if (!context.metadata) context.metadata = {};
+      context.metadata.throttleKey = throttleKey;
+
       const result = await this.throttleService.consume(context, config);
 
       if (!result.allowed) {
@@ -902,12 +942,17 @@ export class ShieldGuard implements CanActivate {
 
     // Add protection info header (if enabled)
     if (this.config.global?.logging?.enabled) {
+      const healthInfo = this.getHealthInfo();
       const protectionInfo = {
         protected: true,
         timestamp: context.timestamp,
         nodeId: this.distributedSyncService.getNodeId?.(),
+        status: healthInfo.status,
+        uptime: healthInfo.uptime,
+        load: healthInfo.priorityManager.currentLoad,
       };
       response.setHeader("X-Shield-Info", JSON.stringify(protectionInfo));
+      response.setHeader("X-Shield-Health", healthInfo.status);
     }
   }
 
@@ -1520,6 +1565,83 @@ export class ShieldGuard implements CanActivate {
           ...enhancedConfig.resilience,
         },
       };
+    }
+  }
+
+  /**
+   * Start comprehensive health monitoring system
+   */
+  private startHealthMonitoring(): void {
+    // Set up health check interval
+    const healthCheckInterval = this.enhancedOptions?.resilience.healthCheckInterval || 30000;
+
+    this.healthMonitoringTimer = setInterval(() => {
+      const healthInfo = this.getHealthInfo();
+      const priorityStats = this.getPriorityStats();
+      const configStatus = this.getConfigurationStatus();
+
+      // Log health status periodically
+      this.logger.guard("Shield Health Check", {
+        operation: "health_monitoring",
+        metadata: {
+          healthStatus: healthInfo.status,
+          uptime: healthInfo.uptime,
+          requestsProcessed: healthInfo.requestsProcessed,
+          errors: healthInfo.errors,
+          priorityEnabled: priorityStats.enabled,
+          recommendations: priorityStats.recommendations.length,
+          adaptiveMonitoring: configStatus.adaptiveStatus.monitoringActive,
+        },
+      });
+
+      // Auto-adjust if needed based on health
+      if (healthInfo.status === "unhealthy" || priorityStats.recommendations.length > 0) {
+        this.performAutoAdjustments(healthInfo, priorityStats);
+      }
+
+      // Reset stats periodically to prevent memory buildup
+      if (healthInfo.uptime % 3600000 === 0) {
+        // Every hour
+        this.resetPriorityStats();
+      }
+    }, healthCheckInterval);
+  }
+
+  /**
+   * Perform automatic adjustments based on health metrics
+   */
+  private performAutoAdjustments(healthInfo: any, priorityStats: any): void {
+    const adjustments: {
+      priority: number;
+      maxConcurrent?: number;
+      maxQueueSize?: number;
+      timeout?: number;
+    }[] = [];
+
+    // Auto-adjust based on recommendations
+    priorityStats.recommendations.forEach((recommendation: string) => {
+      if (recommendation.includes("over 90% utilized")) {
+        const priorityMatch = recommendation.match(/Priority (\d+)/);
+        if (priorityMatch) {
+          const priority = parseInt(priorityMatch[1]);
+          adjustments.push({
+            priority,
+            maxConcurrent: Math.ceil(healthInfo.requestsProcessed * 0.1),
+          });
+        }
+      }
+
+      if (recommendation.includes("high rejection rate")) {
+        const priorityMatch = recommendation.match(/Priority (\d+)/);
+        if (priorityMatch) {
+          const priority = parseInt(priorityMatch[1]);
+          adjustments.push({ priority, maxQueueSize: 1500 });
+        }
+      }
+    });
+
+    if (adjustments.length > 0) {
+      this.adjustPriorityLimits(adjustments);
     }
   }
 

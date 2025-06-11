@@ -66,6 +66,7 @@ export class CollectorFactoryService implements ICollectorFactory, OnModuleInit 
   createPrometheusCollector(config: ICollectorConfig): IPrometheusCollector | null {
     if (this.prometheusCollectorClass) {
       try {
+        // eslint-disable-next-line new-cap
         return new this.prometheusCollectorClass(config);
       } catch {
         return null;
@@ -78,6 +79,7 @@ export class CollectorFactoryService implements ICollectorFactory, OnModuleInit 
   createStatsDCollector(config: ICollectorConfig): IStatsDCollector | null {
     if (this.statsDCollectorClass) {
       try {
+        // eslint-disable-next-line new-cap
         return new this.statsDCollectorClass(config);
       } catch {
         return null;
@@ -92,6 +94,7 @@ export class CollectorFactoryService implements ICollectorFactory, OnModuleInit 
       return null;
     }
     try {
+      // eslint-disable-next-line new-cap
       return new this.datadogCollectorClass(config);
     } catch {
       return null;
@@ -103,6 +106,7 @@ export class CollectorFactoryService implements ICollectorFactory, OnModuleInit 
       return null;
     }
     try {
+      // eslint-disable-next-line new-cap
       return new this.cloudWatchCollectorClass(config);
     } catch {
       return null;
@@ -114,6 +118,7 @@ export class CollectorFactoryService implements ICollectorFactory, OnModuleInit 
       return null;
     }
     try {
+      // eslint-disable-next-line new-cap
       return new this.customCollectorClass(config);
     } catch {
       return null;
@@ -181,7 +186,7 @@ export class CollectorFactoryService implements ICollectorFactory, OnModuleInit 
     } as IPrometheusCollector;
   }
 
-  private createBasicStatsDCollector(config: ICollectorConfig): IStatsDCollector | null {
+  private createBasicStatsDCollector(_config: ICollectorConfig): IStatsDCollector | null {
     const buffer: IStatsDMetricStorage[] = [];
 
     return {

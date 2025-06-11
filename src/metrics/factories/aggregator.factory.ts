@@ -46,6 +46,7 @@ export class AggregatorFactoryService implements IAggregatorFactory, OnModuleIni
       return null;
     }
     try {
+      // eslint-disable-next-line new-cap
       return new this.timeWindowAggregatorClass(windowSize, maxWindows);
     } catch {
       return null;
@@ -57,6 +58,7 @@ export class AggregatorFactoryService implements IAggregatorFactory, OnModuleIni
       return null;
     }
     try {
+      // eslint-disable-next-line new-cap
       return new this.rollingWindowAggregatorClass(windowSize);
     } catch {
       return null;
@@ -68,6 +70,7 @@ export class AggregatorFactoryService implements IAggregatorFactory, OnModuleIni
       return null;
     }
     try {
+      // eslint-disable-next-line new-cap
       return new this.percentileAggregatorClass();
     } catch {
       return null;
