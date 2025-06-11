@@ -1,9 +1,11 @@
 import { Controller, Get, Post, Body, Query } from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
 import { ShieldMetrics } from "nest-shield";
 import { InjectMetrics } from "nest-shield/core";
 import type { MetricsService } from "nest-shield";
 import { CustomMetricsService } from "../services/custom-metrics.service";
 
+@ApiTags("Metrics")
 @Controller("metrics")
 export class MetricsController {
   constructor(
@@ -13,6 +15,39 @@ export class MetricsController {
   ) {}
 
   @Get("current")
+  @ApiOperation({
+    summary: "Get current metrics snapshot",
+    description: `
+      Retrieves the current metrics collected by NestShield including protection metrics and system metrics.
+      
+      **Includes:**
+      - Shield protection metrics (rate limits, circuit breakers, etc.)
+      - System metrics (uptime, memory, CPU usage)
+      - Timestamp of the snapshot
+      
+      **Use case:** Monitoring dashboard data, health checks, debugging protection behavior.
+    `,
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Current metrics data",
+    schema: {
+      type: "object",
+      properties: {
+        message: { type: "string" },
+        shieldMetrics: { type: "object", description: "NestShield protection metrics" },
+        systemMetrics: {
+          type: "object",
+          properties: {
+            uptime: { type: "number", description: "Process uptime in seconds" },
+            memoryUsage: { type: "object", description: "Memory usage statistics" },
+            cpuUsage: { type: "object", description: "CPU usage statistics" },
+          },
+        },
+        timestamp: { type: "string", format: "date-time" },
+      },
+    },
+  })
   async getCurrentMetrics(@ShieldMetrics() shieldMetrics: any) {
     return {
       message: "Current metrics snapshot",
@@ -27,6 +62,31 @@ export class MetricsController {
   }
 
   @Get("prometheus")
+  @ApiOperation({
+    summary: "Get Prometheus-formatted metrics",
+    description: `
+      Retrieves metrics in Prometheus exposition format for integration with monitoring systems.
+      
+      **Format:** Prometheus text-based exposition format
+      **Use case:** Integration with Prometheus, Grafana, or other monitoring tools
+      
+      **Note:** In a production setup, this would typically be exposed on a separate port
+      for security reasons (e.g., /metrics endpoint on port 9090).
+    `,
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Prometheus-formatted metrics",
+    schema: {
+      type: "object",
+      properties: {
+        message: { type: "string" },
+        format: { type: "string", example: "prometheus" },
+        metrics: { type: "object", description: "Metrics in Prometheus format" },
+        timestamp: { type: "string", format: "date-time" },
+      },
+    },
+  })
   async getPrometheusMetrics() {
     // This would typically call the metrics service to get Prometheus format
     const metrics = (await this.metricsService.exportMetrics?.()) || {};

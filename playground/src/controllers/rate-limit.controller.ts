@@ -1,11 +1,48 @@
 import { Controller, Get, Post, Body, Query } from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from "@nestjs/swagger";
 import { RateLimit, QuickRateLimit, ShieldContext, RateLimitInfo } from "nest-shield";
 import type { IProtectionContext, IRateLimitInfo } from "nest-shield";
 
+@ApiTags("Rate Limiting")
 @Controller("rate-limit")
 export class RateLimitController {
   @Get("strict")
   @RateLimit({ points: 3, duration: 60, blockDuration: 120 })
+  @ApiOperation({
+    summary: "Strict rate limiting (3 requests/minute)",
+    description: `
+      Demonstrates strict rate limiting with extended block duration.
+      
+      **Configuration:**
+      - Points: 3 requests
+      - Duration: 60 seconds (1 minute window)
+      - Block Duration: 120 seconds (2 minutes penalty)
+      
+      **Testing:**
+      Send 4+ requests rapidly to trigger rate limiting and observe the 2-minute block period.
+    `,
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Request successful with rate limit info",
+    schema: {
+      type: "object",
+      properties: {
+        message: { type: "string" },
+        rateLimitInfo: {
+          type: "object",
+          properties: {
+            limit: { type: "number" },
+            remaining: { type: "number" },
+            reset: { type: "number" },
+            retryAfter: { type: "number" },
+          },
+        },
+        timestamp: { type: "string", format: "date-time" },
+      },
+    },
+  })
+  @ApiResponse({ status: 429, description: "Rate limit exceeded - blocked for 2 minutes" })
   strictRateLimit(@RateLimitInfo() rateLimitInfo: IRateLimitInfo) {
     return {
       message: "Strict rate limiting: 3 requests per minute",
@@ -39,6 +76,41 @@ export class RateLimitController {
     keyGenerator: (context: IProtectionContext) =>
       `user:${context.headers["x-user-id"] || "anonymous"}`,
   })
+  @ApiOperation({
+    summary: "Custom key rate limiting",
+    description: `
+      Demonstrates custom key generation for rate limiting based on user ID.
+      
+      **Configuration:**
+      - Points: 5 requests per user
+      - Duration: 60 seconds
+      - Key: Based on X-User-ID header
+      
+      **Testing:**
+      1. Send requests with different X-User-ID headers
+      2. Each user ID gets its own rate limit bucket
+      3. Test without header (uses "anonymous" key)
+    `,
+  })
+  @ApiHeader({
+    name: "X-User-ID",
+    description: "User identifier for rate limiting",
+    required: false,
+    schema: { type: "string", example: "user123" },
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Request successful",
+    schema: {
+      type: "object",
+      properties: {
+        message: { type: "string" },
+        userId: { type: "string" },
+        timestamp: { type: "string", format: "date-time" },
+      },
+    },
+  })
+  @ApiResponse({ status: 429, description: "Rate limit exceeded for this user ID" })
   customKeyRateLimit(@ShieldContext() context: IProtectionContext) {
     return {
       message: "Custom key rate limiting based on X-User-ID header",
