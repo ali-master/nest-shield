@@ -59,10 +59,8 @@ export class MetricsProviderFactory implements IMetricsProviderFactory {
         useClass: PercentileAggregator,
       },
 
-      // Legacy class-based providers for backward compatibility
-      TimeWindowAggregator,
-      RollingWindowAggregator,
-      PercentileAggregator,
+      // Note: Legacy class-based providers removed to avoid export validation issues
+      // Classes are accessible via Symbol-based DI tokens
     ];
   }
 

@@ -8,11 +8,10 @@ interface DataPoint {
 @Injectable()
 export class RollingWindowAggregator {
   private data: Map<string, DataPoint[]> = new Map();
-  private windowSize: number;
+  private windowSize: number = 300000; // 5 minutes default
 
-  constructor(windowSize: number = 300000) {
-    // 5 minutes default
-    this.windowSize = windowSize;
+  constructor() {
+    // No-arg constructor for proper DI
   }
 
   addValue(key: string, value: number, timestamp: number = Date.now()): void {

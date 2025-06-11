@@ -1,5 +1,5 @@
 import type { OnModuleInit, OnModuleDestroy } from "@nestjs/common";
-import { Logger, Injectable } from "@nestjs/common";
+import { Logger, Injectable, Inject } from "@nestjs/common";
 import type { EventEmitter2 } from "@nestjs/event-emitter";
 import { CronExpression, Cron } from "@nestjs/schedule";
 import type { IAnomalyData, IAnomaly } from "../interfaces/anomaly.interface";
@@ -29,6 +29,9 @@ import type {
   CompositeAnomalyDetector,
   BaseAnomalyDetector,
 } from "../detectors";
+
+// Import DI tokens
+import { DI_TOKENS } from "../../core/di-tokens";
 
 // Local interfaces for service configuration
 interface IAlertingConfig {
@@ -108,17 +111,25 @@ export class AnomalyDetectionService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly eventEmitter: EventEmitter2,
-    private readonly alertingService: AlertingService,
+    @Inject(DI_TOKENS.ALERTING_SERVICE) private readonly alertingService: AlertingService,
+    @Inject(DI_TOKENS.PERFORMANCE_MONITOR_SERVICE)
     private readonly performanceService: PerformanceMonitorService,
+    @Inject(DI_TOKENS.DATA_COLLECTOR_SERVICE)
     private readonly dataCollectorService: DataCollectorService,
+    @Inject(DI_TOKENS.DETECTOR_MANAGEMENT_SERVICE)
     private readonly detectorManagementService: DetectorManagementService,
     // Inject all detectors
-    private readonly zscoreDetector: ZScoreDetector,
+    @Inject(DI_TOKENS.ZSCORE_DETECTOR) private readonly zscoreDetector: ZScoreDetector,
+    @Inject(DI_TOKENS.ISOLATION_FOREST_DETECTOR)
     private readonly isolationForestDetector: IsolationForestDetector,
-    private readonly seasonalDetector: SeasonalAnomalyDetector,
+    @Inject(DI_TOKENS.SEASONAL_DETECTOR) private readonly seasonalDetector: SeasonalAnomalyDetector,
+    @Inject(DI_TOKENS.THRESHOLD_DETECTOR)
     private readonly thresholdDetector: ThresholdAnomalyDetector,
+    @Inject(DI_TOKENS.STATISTICAL_DETECTOR)
     private readonly statisticalDetector: StatisticalAnomalyDetector,
+    @Inject(DI_TOKENS.MACHINE_LEARNING_DETECTOR)
     private readonly mlDetector: MachineLearningDetector,
+    @Inject(DI_TOKENS.COMPOSITE_DETECTOR)
     private readonly compositeDetector: CompositeAnomalyDetector,
   ) {
     // Initialize with default configuration
@@ -705,7 +716,7 @@ export class AnomalyDetectionService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
-    const report: IAnomalyDetectionReport = {
+    return {
       period: { start: startTime, end: endTime },
       summary: {
         totalAnomalies,
@@ -722,8 +733,6 @@ export class AnomalyDetectionService implements OnModuleInit, OnModuleDestroy {
       },
       recommendations: await this.generateSystemRecommendations(),
     };
-
-    return report;
   }
 
   private async generateSystemRecommendations(): Promise<string[]> {

@@ -185,10 +185,9 @@ export class ProviderFactory implements IProviderFactory {
       },
       {
         provide: APP_GUARD,
-        useClass: ShieldGuard,
+        useExisting: DI_TOKENS.SHIELD_GUARD,
       },
-      // Legacy class-based provider
-      ShieldGuard,
+      // Note: Legacy class-based provider removed to avoid DI issues
     ];
   }
 
@@ -213,9 +212,7 @@ export class ProviderFactory implements IProviderFactory {
         provide: APP_INTERCEPTOR,
         useClass: OverloadReleaseInterceptor,
       },
-      // Legacy class-based providers
-      CircuitBreakerInterceptor,
-      OverloadReleaseInterceptor,
+      // Note: Legacy class-based providers removed to avoid DI issues
     ];
   }
 
@@ -236,10 +233,7 @@ export class ProviderFactory implements IProviderFactory {
         provide: DI_TOKENS.PERCENTILE_AGGREGATOR,
         useClass: PercentileAggregator,
       },
-      // Legacy class-based providers
-      TimeWindowAggregator,
-      RollingWindowAggregator,
-      PercentileAggregator,
+      // Note: Legacy class-based providers removed to avoid DI issues
     ];
   }
 

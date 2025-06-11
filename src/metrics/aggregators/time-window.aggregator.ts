@@ -11,12 +11,11 @@ interface TimeWindow {
 @Injectable()
 export class TimeWindowAggregator {
   private windows: Map<string, TimeWindow[]> = new Map();
-  private readonly windowSize: number;
-  private readonly maxWindows: number;
+  private readonly windowSize: number = 60000; // 1 minute default
+  private readonly maxWindows: number = 60; // Keep 60 windows (1 hour) default
 
-  constructor(windowSize: number = 60000, maxWindows: number = 60) {
-    this.windowSize = windowSize; // 1 minute default
-    this.maxWindows = maxWindows; // Keep 60 windows (1 hour) default
+  constructor() {
+    // No-arg constructor for proper DI
   }
 
   addMetric(metric: IMetric): void {

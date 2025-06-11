@@ -41,10 +41,7 @@ describe("CircuitBreakerService", () => {
         {
           provide: CircuitBreakerService,
           useFactory: () => {
-            return new CircuitBreakerService(
-              { circuitBreaker: TEST_CIRCUIT_BREAKER_OPTIONS },
-              mockMetricsService as any,
-            );
+            return new CircuitBreakerService({ circuitBreaker: TEST_CIRCUIT_BREAKER_OPTIONS });
           },
         },
         {

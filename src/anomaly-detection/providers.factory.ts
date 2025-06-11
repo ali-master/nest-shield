@@ -68,13 +68,6 @@ export class AnomalyDetectionProviderFactory implements IAnomalyDetectionProvide
         provide: DI_TOKENS.DETECTOR_MANAGEMENT_SERVICE,
         useClass: DetectorManagementService,
       },
-
-      // Legacy class-based providers for backward compatibility
-      AnomalyDetectionService,
-      AlertingService,
-      PerformanceMonitorService,
-      DataCollectorService,
-      DetectorManagementService,
     ];
   }
 
@@ -112,15 +105,6 @@ export class AnomalyDetectionProviderFactory implements IAnomalyDetectionProvide
         provide: DI_TOKENS.COMPOSITE_DETECTOR,
         useClass: CompositeAnomalyDetector,
       },
-
-      // Legacy class-based providers for backward compatibility
-      ZScoreDetector,
-      IsolationForestDetector,
-      SeasonalAnomalyDetector,
-      ThresholdAnomalyDetector,
-      StatisticalAnomalyDetector,
-      MachineLearningDetector,
-      CompositeAnomalyDetector,
     ];
   }
 

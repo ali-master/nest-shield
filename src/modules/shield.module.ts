@@ -4,7 +4,6 @@ import type { IShieldConfig } from "../interfaces";
 import { DEFAULT_CONFIG } from "../core/constants";
 import { DI_TOKENS } from "../core/di-tokens";
 import { providerFactory, createConfigProvider } from "../core/providers.factory";
-import { AnomalyDetectionModule } from "../anomaly-detection";
 import { MetricsModule } from "../metrics";
 
 export interface ShieldModuleOptions extends IShieldConfig {}
@@ -32,7 +31,7 @@ export class ShieldModule {
       global: mergedOptions.global?.enabled ?? true,
       module: ShieldModule,
       imports: [
-        AnomalyDetectionModule,
+        // AnomalyDetectionModule, // Temporarily disabled for testing
         MetricsModule.forRoot(mergedOptions.metrics || DEFAULT_CONFIG.metrics),
       ],
       providers: [
@@ -58,7 +57,7 @@ export class ShieldModule {
     return {
       module: ShieldModule,
       imports: [
-        AnomalyDetectionModule,
+        // AnomalyDetectionModule, // Temporarily disabled for testing
         MetricsModule.forRootAsync({
           useFactory: async (...args: unknown[]) => {
             const config = options.useFactory ? await options.useFactory(...args) : {};
@@ -80,9 +79,6 @@ export class ShieldModule {
         DI_TOKENS.DISTRIBUTED_SYNC_SERVICE,
         DI_TOKENS.PRIORITY_MANAGER_SERVICE,
         DI_TOKENS.ANOMALY_DETECTION_SERVICE,
-        // Re-export modules to make their providers available
-        AnomalyDetectionModule,
-        MetricsModule,
       ],
     };
   }

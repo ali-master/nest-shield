@@ -13,6 +13,7 @@ export class CircuitBreakerInterceptor implements NestInterceptor {
   constructor(
     @Inject(DI_TOKENS.SHIELD_MODULE_OPTIONS) private readonly options: IShieldConfig,
     private readonly reflector: Reflector,
+    @Inject(DI_TOKENS.CIRCUIT_BREAKER_SERVICE)
     private readonly circuitBreakerService: CircuitBreakerService,
   ) {}
 

@@ -24,11 +24,12 @@ export class ShieldGuard implements CanActivate {
   constructor(
     @Inject(DI_TOKENS.SHIELD_MODULE_OPTIONS) private readonly options: IShieldConfig,
     private readonly reflector: Reflector,
+    @Inject(DI_TOKENS.CIRCUIT_BREAKER_SERVICE)
     private readonly circuitBreakerService: CircuitBreakerService,
-    private readonly rateLimitService: RateLimitService,
-    private readonly throttleService: ThrottleService,
-    private readonly overloadService: OverloadService,
-    private readonly metricsService: MetricsService,
+    @Inject(DI_TOKENS.RATE_LIMIT_SERVICE) private readonly rateLimitService: RateLimitService,
+    @Inject(DI_TOKENS.THROTTLE_SERVICE) private readonly throttleService: ThrottleService,
+    @Inject(DI_TOKENS.OVERLOAD_SERVICE) private readonly overloadService: OverloadService,
+    @Inject(DI_TOKENS.METRICS_SERVICE) private readonly metricsService: MetricsService,
     private readonly httpAdapterHost: HttpAdapterHost,
   ) {
     this.httpAdapter = AdapterFactory.create(
