@@ -1,16 +1,16 @@
 import type { TestingModule } from "@nestjs/testing";
 import { Test } from "@nestjs/testing";
-import { ThrottleService } from "./throttle.service";
-import { MetricsService } from "./metrics.service";
-import { ThrottleException } from "../core/exceptions";
-import { SHIELD_MODULE_OPTIONS, HEADER_NAMES } from "../core/constants";
+import { ThrottleService } from "../../src/services/throttle.service";
+import { MetricsService } from "../../src/services/metrics.service";
+import { ThrottleException } from "../../src/core/exceptions";
+import { SHIELD_MODULE_OPTIONS, HEADER_NAMES } from "../../src/core/constants";
 import {
   waitFor,
   MockStorageAdapter,
   MockMetricsCollector,
   createMockProtectionContext,
-} from "../test-utils/mocks";
-import type { IProtectionContext } from "../interfaces/shield-config.interface";
+} from "../../src/test-utils/mocks";
+import type { IProtectionContext } from "../../src/interfaces/shield-config.interface";
 
 describe("ThrottleService", () => {
   let service: ThrottleService;

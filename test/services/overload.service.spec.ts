@@ -1,11 +1,15 @@
 import type { TestingModule } from "@nestjs/testing";
 import { Test } from "@nestjs/testing";
-import { OverloadService } from "./overload.service";
-import { MetricsService } from "./metrics.service";
-import { OverloadException } from "../core/exceptions";
-import { SHIELD_MODULE_OPTIONS, ShedStrategy } from "../core/constants";
-import { waitFor, MockMetricsCollector, createMockProtectionContext } from "../test-utils/mocks";
-import { TEST_OVERLOAD_OPTIONS } from "../test-utils/fixtures";
+import { OverloadService } from "../../src/services/overload.service";
+import { MetricsService } from "../../src/services/metrics.service";
+import { OverloadException } from "../../src/core/exceptions";
+import { SHIELD_MODULE_OPTIONS, ShedStrategy } from "../../src/core/constants";
+import {
+  waitFor,
+  MockMetricsCollector,
+  createMockProtectionContext,
+} from "../../src/test-utils/mocks";
+import { TEST_OVERLOAD_OPTIONS } from "../../src/test-utils/fixtures";
 
 describe("OverloadService", () => {
   let service: OverloadService;

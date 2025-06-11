@@ -1,5 +1,5 @@
-import { ShieldModule } from "./modules/shield.module";
-import { DI_TOKENS } from "./core/constants";
+import { ShieldModule } from "../../src/modules/shield.module";
+import { DI_TOKENS } from "../../src/core/di-tokens";
 
 describe("ShieldModule", () => {
   describe("forRoot", () => {

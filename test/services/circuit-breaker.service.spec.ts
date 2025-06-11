@@ -1,12 +1,16 @@
 import type { TestingModule } from "@nestjs/testing";
 import { Test } from "@nestjs/testing";
-import { CircuitBreakerService } from "./circuit-breaker.service";
-import { MetricsService } from "./metrics.service";
-import type { ShieldLoggerService } from "./shield-logger.service";
-import { CircuitBreakerException } from "../core/exceptions";
-import { DI_TOKENS } from "../core/di-tokens";
-import { waitFor, MockMetricsCollector, createMockProtectionContext } from "../test-utils/mocks";
-import { TEST_CIRCUIT_BREAKER_OPTIONS } from "../test-utils/fixtures";
+import { CircuitBreakerService } from "../../src/services/circuit-breaker.service";
+import { MetricsService } from "../../src/services/metrics.service";
+import type { ShieldLoggerService } from "../../src/services/shield-logger.service";
+import { CircuitBreakerException } from "../../src/core/exceptions";
+import { DI_TOKENS } from "../../src/core/di-tokens";
+import {
+  waitFor,
+  MockMetricsCollector,
+  createMockProtectionContext,
+} from "../../src/test-utils/mocks";
+import { TEST_CIRCUIT_BREAKER_OPTIONS } from "../../src/test-utils/fixtures";
 
 describe("CircuitBreakerService", () => {
   let service: CircuitBreakerService;
@@ -636,7 +640,7 @@ describe("CircuitBreakerService", () => {
       const handler = jest.fn().mockResolvedValue("success");
 
       const result = await service.execute("long-timeout", handler, context, {
-        timeout: Number.MAX_SAFE_INTEGER,
+        timeout: 2147483647, // Max 32-bit signed integer
       });
 
       expect(result).toBe("success");

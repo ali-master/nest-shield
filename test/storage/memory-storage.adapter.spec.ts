@@ -1,5 +1,5 @@
-import { MemoryStorageAdapter } from "./memory-storage.adapter";
-import { waitFor } from "../test-utils/mocks";
+import { MemoryStorageAdapter } from "../../src/storage/memory-storage.adapter";
+import { waitFor } from "../../src/test-utils/mocks";
 
 describe("MemoryStorageAdapter", () => {
   let adapter: MemoryStorageAdapter;
@@ -16,15 +16,19 @@ describe("MemoryStorageAdapter", () => {
     if (adapter.clear) {
       await adapter.clear();
     }
+    if (adapter.close) {
+      await adapter.close();
+    }
   });
 
   describe("constructor", () => {
-    it("should create with default options", () => {
+    it("should create with default options", async () => {
       const defaultAdapter = new MemoryStorageAdapter();
       expect(defaultAdapter).toBeDefined();
+      await defaultAdapter.close();
     });
 
-    it("should create with custom options", () => {
+    it("should create with custom options", async () => {
       const customAdapter = new MemoryStorageAdapter({
         stdTTL: 3600,
         checkperiod: 120,
@@ -33,6 +37,7 @@ describe("MemoryStorageAdapter", () => {
         useClones: true,
       });
       expect(customAdapter).toBeDefined();
+      await customAdapter.close();
     });
   });
 
@@ -404,6 +409,8 @@ describe("MemoryStorageAdapter", () => {
       // Original should be affected when clones are not used
       const secondRetrieval = await noCloneAdapter.get("obj");
       expect(secondRetrieval.value).toBe("modified");
+
+      await noCloneAdapter.close();
     });
   });
 
