@@ -22,7 +22,13 @@ import type {
   DistributedSyncService,
   CircuitBreakerService,
 } from "../services";
-import { CircuitBreakerException } from "../core/exceptions";
+import {
+  ThrottleException,
+  ShieldException,
+  RateLimitException,
+  OverloadException,
+  CircuitBreakerException,
+} from "../core/exceptions";
 
 /**
  * Protection result interface for internal use
@@ -570,12 +576,7 @@ export class ShieldGuard implements CanActivate {
 
       return { allowed: true };
     } catch (error) {
-      this.logger.guardError("Overload protection check failed", error as Error, {
-        requestId: (context as any).requestId,
-      });
-
-      // Fail open for service availability
-      return { allowed: true };
+      return this.handleProtectionException(error, context, "overload", (context as any).requestId);
     }
   }
 
@@ -613,12 +614,12 @@ export class ShieldGuard implements CanActivate {
 
       return { allowed: true };
     } catch (error) {
-      this.logger.guardError("Rate limit check failed", error as Error, {
-        requestId: (context as any).requestId,
-      });
-
-      // Fail open to maintain service availability
-      return { allowed: true };
+      return this.handleProtectionException(
+        error,
+        context,
+        "rateLimit",
+        (context as any).requestId,
+      );
     }
   }
 
@@ -656,12 +657,7 @@ export class ShieldGuard implements CanActivate {
 
       return { allowed: true };
     } catch (error) {
-      this.logger.guardError("Throttle check failed", error as Error, {
-        requestId: (context as any).requestId,
-      });
-
-      // Fail open
-      return { allowed: true };
+      return this.handleProtectionException(error, context, "throttle", (context as any).requestId);
     }
   }
 
@@ -723,12 +719,12 @@ export class ShieldGuard implements CanActivate {
 
       return { allowed: true };
     } catch (error) {
-      this.logger.guardError("Circuit breaker check failed", error as Error, {
-        requestId: (context as any).requestId,
-      });
-
-      // Fail open
-      return { allowed: true };
+      return this.handleProtectionException(
+        error,
+        context,
+        "circuitBreaker",
+        (context as any).requestId,
+      );
     }
   }
 
@@ -785,15 +781,7 @@ export class ShieldGuard implements CanActivate {
 
       return { allowed: true };
     } catch (error) {
-      this.logger.guardError("Security validation failed", error as Error, {
-        requestId: (context as any).requestId,
-      });
-
-      // Fail secure for security checks
-      return {
-        allowed: false,
-        reason: "Security validation error",
-      };
+      return this.handleProtectionException(error, context, "security", (context as any).requestId);
     }
   }
 
@@ -878,7 +866,13 @@ export class ShieldGuard implements CanActivate {
     });
 
     // Re-throw circuit breaker exceptions
-    if (error instanceof CircuitBreakerException) {
+    if (
+      error instanceof CircuitBreakerException ||
+      error instanceof ThrottleException ||
+      error instanceof RateLimitException ||
+      error instanceof OverloadException ||
+      error instanceof ShieldException
+    ) {
       throw error;
     }
 
@@ -939,6 +933,185 @@ export class ShieldGuard implements CanActivate {
         path: context.path,
       });
     }
+  }
+
+  // ==================== EXCEPTION HANDLING ====================
+
+  /**
+   * 🛡️ Elite Exception Dispatcher - The Guardian's Last Stand
+   *
+   * This sophisticated exception routing system categorizes and handles all Shield protection
+   * exceptions with military precision. Each exception type gets specialized treatment based
+   * on its threat level and operational context.
+   */
+  private handleProtectionException(
+    error: unknown,
+    context: IProtectionContext,
+    operation: "overload" | "rateLimit" | "throttle" | "circuitBreaker" | "security",
+    requestId: string,
+  ): never | IProtectionResult {
+    const errorName = (error as Error).constructor.name;
+
+    // 🚨 CRITICAL THREAT LEVEL - Immediate Action Required
+    const criticalExceptions = [
+      "ThrottleException",
+      "RateLimitException",
+      "OverloadException",
+      "CircuitBreakerException",
+    ];
+
+    // 🔴 HIGH PRIORITY - Shield Protection Exceptions (Re-throw for HTTP response)
+    if (criticalExceptions.includes(errorName)) {
+      this.logger.guardWarn(`🛡️ Shield Protection Activated: ${errorName}`, {
+        operation: `${operation}_exception_thrown`,
+        requestId,
+        metadata: {
+          exceptionType: errorName,
+          threatLevel: "CRITICAL",
+          actionTaken: "HTTP_RESPONSE_GENERATED",
+          path: context.path,
+          method: context.method,
+          ip: context.ip,
+        },
+      });
+
+      // Record specific metrics for each exception type
+      this.recordExceptionMetrics(errorName, context, operation);
+
+      // 🚀 Launch exception to HTTP layer for proper client response
+      throw error;
+    }
+
+    // 🟠 MEDIUM PRIORITY - Generic Shield Exceptions
+    if (errorName === "ShieldException") {
+      this.logger.guardWarn(`🛡️ Generic Shield Protection Triggered`, {
+        operation: `${operation}_shield_exception`,
+        requestId,
+        metadata: {
+          exceptionType: errorName,
+          threatLevel: "MEDIUM",
+          actionTaken: "HTTP_RESPONSE_GENERATED",
+        },
+      });
+
+      this.metricsService.increment(`shield_${operation}_shield_exceptions`, 1, {
+        path: context.path,
+        method: context.method,
+      });
+
+      throw error;
+    }
+
+    // 🟡 LOW PRIORITY - Infrastructure/Internal Errors (Fail Open)
+    const infrastructureExceptions = [
+      "StorageException",
+      "ConfigurationException",
+      "TypeError",
+      "ReferenceError",
+      "NetworkError",
+      "TimeoutError",
+    ];
+
+    if (infrastructureExceptions.includes(errorName)) {
+      this.logger.guardError(`⚙️ Infrastructure Issue Detected in ${operation}`, error as Error, {
+        operation: `${operation}_infrastructure_error`,
+        requestId,
+        metadata: {
+          exceptionType: errorName,
+          threatLevel: "LOW",
+          actionTaken: "FAIL_OPEN_GRACEFUL_DEGRADATION",
+          resilience: "MAINTAINING_SERVICE_AVAILABILITY",
+        },
+      });
+
+      this.metricsService.increment(`shield_${operation}_infrastructure_errors`, 1, {
+        errorType: errorName,
+        path: context.path,
+      });
+
+      // 🟢 Graceful degradation - Allow request to proceed
+      return { allowed: true };
+    }
+
+    // 🔵 DEFAULT HANDLING - Unknown/Unexpected Errors
+    this.logger.guardError(`🔍 Unknown Exception in ${operation} Protection`, error as Error, {
+      operation: `${operation}_unknown_error`,
+      requestId,
+      metadata: {
+        exceptionType: errorName,
+        threatLevel: "UNKNOWN",
+        actionTaken: "FAIL_OPEN_WITH_MONITORING",
+        requiresInvestigation: true,
+      },
+    });
+
+    this.metricsService.increment(`shield_${operation}_unknown_errors`, 1, {
+      errorType: errorName,
+      path: context.path,
+    });
+
+    // 🟢 Conservative approach - Fail open for unknown errors
+    return { allowed: true };
+  }
+
+  /**
+   * 📊 Exception Metrics Recorder - Intelligence Gathering
+   *
+   * Records detailed metrics for each exception type to enable
+   * advanced analytics and threat pattern recognition.
+   */
+  private recordExceptionMetrics(
+    exceptionType: string,
+    context: IProtectionContext,
+    operation: string,
+  ): void {
+    const baseLabels = {
+      path: context.path,
+      method: context.method,
+      ip: this.sanitizeKeyForMetrics(context.ip),
+    };
+
+    // Exception-specific metrics
+    switch (exceptionType) {
+      case "ThrottleException":
+        this.metricsService.increment("shield_throttle_exceptions_thrown", 1, {
+          ...baseLabels,
+          severity: "high",
+          category: "rate_control",
+        });
+        break;
+
+      case "RateLimitException":
+        this.metricsService.increment("shield_rate_limit_exceptions_thrown", 1, {
+          ...baseLabels,
+          severity: "high",
+          category: "rate_control",
+        });
+        break;
+
+      case "OverloadException":
+        this.metricsService.increment("shield_overload_exceptions_thrown", 1, {
+          ...baseLabels,
+          severity: "critical",
+          category: "capacity_management",
+        });
+        break;
+
+      case "CircuitBreakerException":
+        this.metricsService.increment("shield_circuit_breaker_exceptions_thrown", 1, {
+          ...baseLabels,
+          severity: "critical",
+          category: "service_health",
+        });
+        break;
+    }
+
+    // General exception counter
+    this.metricsService.increment("shield_protection_exceptions_total", 1, {
+      ...baseLabels,
+      operation,
+      exceptionType,
+    });
   }
 
   // ==================== UTILITY METHODS ====================
