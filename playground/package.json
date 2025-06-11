@@ -21,7 +21,7 @@
     "@nestjs/platform-express": "^11.1.3",
     "@nestjs/swagger": "^11.2.0",
     "class-validator": "^0.14.2",
-    "nest-shield": "file:../",
+    "@usex/nest-shield": "file:../",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },

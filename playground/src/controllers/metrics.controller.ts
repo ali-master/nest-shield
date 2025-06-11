@@ -1,8 +1,8 @@
 import { Controller, Get, Post, Body, Query } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
-import { ShieldMetrics } from "nest-shield";
-import { InjectMetrics } from "nest-shield/core";
-import type { MetricsService } from "nest-shield";
+import { ShieldMetrics } from "@usex/nest-shield";
+import { InjectMetrics } from "@usex/nest-shield/core";
+import type { MetricsService } from "@usex/nest-shield";
 import { CustomMetricsService } from "../services/custom-metrics.service";
 
 @ApiTags("Metrics")

@@ -1,6 +1,6 @@
 import { Controller, Get } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
-import { Shield, QuickRateLimit, BypassShield } from "nest-shield/decorators";
+import { Shield, QuickRateLimit, BypassShield } from "@usex/nest-shield/decorators";
 
 @ApiTags("Basic")
 @Controller("basic")

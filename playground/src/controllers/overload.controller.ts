@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Query } from "@nestjs/common";
-import { Overload, Priority, ShieldContext, OverloadInfo } from "nest-shield";
-import type { IProtectionContext } from "nest-shield";
+import { Overload, Priority, ShieldContext, OverloadInfo } from "@usex/nest-shield";
+import type { IProtectionContext } from "@usex/nest-shield";
 import { MockExternalService } from "../services/mock-external.service";
 
 @Controller("overload")

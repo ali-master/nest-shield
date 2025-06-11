@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body } from "@nestjs/common";
-import { IShieldConfig } from "nest-shield";
+import { IShieldConfig } from "@usex/nest-shield";
 
 interface ValidationResult {
   valid: boolean;

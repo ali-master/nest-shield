@@ -9,7 +9,7 @@ import {
   ThrottleInfo,
   CircuitBreakerInfo,
   OverloadInfo,
-} from "nest-shield";
+} from "@usex/nest-shield";
 import type {
   IProtectionContext,
   IRateLimitInfo,
@@ -17,7 +17,7 @@ import type {
   ICircuitBreakerInfo,
   IOverloadInfo,
   IShieldMetrics,
-} from "nest-shield";
+} from "@usex/nest-shield";
 import { MockExternalService } from "../services/mock-external.service";
 import { TestService } from "../services/test.service";
 

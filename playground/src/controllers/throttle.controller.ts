@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Headers } from "@nestjs/common";
-import { Throttle, ShieldContext, ThrottleInfo } from "nest-shield";
-import type { IProtectionContext, IThrottleInfo } from "nest-shield";
+import { Throttle, ShieldContext, ThrottleInfo } from "@usex/nest-shield";
+import type { IProtectionContext, IThrottleInfo } from "@usex/nest-shield";
 
 @Controller("throttle")
 export class ThrottleController {

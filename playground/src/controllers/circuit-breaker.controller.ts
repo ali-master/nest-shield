@@ -4,8 +4,8 @@ import {
   QuickCircuitBreaker,
   ShieldContext,
   CircuitBreakerInfo,
-} from "nest-shield";
-import type { IProtectionContext, ICircuitBreakerInfo } from "nest-shield";
+} from "@usex/nest-shield";
+import type { IProtectionContext, ICircuitBreakerInfo } from "@usex/nest-shield";
 import { MockExternalService } from "../services/mock-external.service";
 
 @Controller("circuit-breaker")

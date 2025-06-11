@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Query, Inject } from "@nestjs/common";
-import { Shield, ShieldContext, Priority, BypassShield } from "nest-shield/decorators";
+import { Shield, ShieldContext, Priority, BypassShield } from "@usex/nest-shield/decorators";
 import {
   InjectCircuitBreaker,
   InjectRateLimit,
@@ -10,7 +10,7 @@ import {
   InjectGracefulShutdown,
   InjectDistributedSync,
   InjectPriorityManager,
-} from "nest-shield/core";
+} from "@usex/nest-shield/core";
 import type {
   IProtectionContext,
   CircuitBreakerService,
@@ -22,7 +22,7 @@ import type {
   GracefulShutdownService,
   DistributedSyncService,
   PriorityManagerService,
-} from "nest-shield";
+} from "@usex/nest-shield";
 
 /**
  * DI Showcase Controller

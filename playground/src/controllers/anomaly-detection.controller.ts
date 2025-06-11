@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Query } from "@nestjs/common";
-import { InjectAnomalyDetection } from "nest-shield/core";
-import type { AnomalyDetectionService, IAnomalyData } from "nest-shield";
+import { InjectAnomalyDetection } from "@usex/nest-shield/core";
+import type { AnomalyDetectionService, IAnomalyData } from "@usex/nest-shield";
 
 @Controller("anomaly-detection")
 export class AnomalyDetectionController {

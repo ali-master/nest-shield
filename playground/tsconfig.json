@@ -37,8 +37,8 @@
     "noEmitOnError": false,
     "useDefineForClassFields": true,
     "paths": {
-      "nest-shield": ["../src"],
-      "nest-shield/*": ["../src/*"]
+      "@usex/nest-shield": ["../dist"],
+      "@usex/nest-shield/*": ["../dist/*"]
     }
   },
   "exclude": ["node_modules", "dist", "scripts"]

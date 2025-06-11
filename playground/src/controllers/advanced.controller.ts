@@ -1,18 +1,18 @@
 import { Controller, Get, Post, Body, Query } from "@nestjs/common";
-import { Shield, ShieldContext, Priority, BypassShield } from "nest-shield/decorators";
-import type { IProtectionContext } from "nest-shield/interfaces";
+import { Shield, ShieldContext, Priority, BypassShield } from "@usex/nest-shield/decorators";
+import type { IProtectionContext } from "@usex/nest-shield/interfaces";
 import {
   InjectGracefulShutdown,
   InjectDistributedSync,
   InjectPriorityManager,
   InjectAnomalyDetection,
-} from "nest-shield/core";
+} from "@usex/nest-shield/core";
 import type {
   GracefulShutdownService,
   DistributedSyncService,
   PriorityManagerService,
   AnomalyDetectionService,
-} from "nest-shield/services";
+} from "@usex/nest-shield/services";
 
 @Controller("advanced")
 export class AdvancedController {

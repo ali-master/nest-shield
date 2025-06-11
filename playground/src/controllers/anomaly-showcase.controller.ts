@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body } from "@nestjs/common";
-import { Shield, ShieldContext, Priority } from "nest-shield/decorators";
-import { InjectAnomalyDetection } from "nest-shield/core";
-import type { IProtectionContext, AnomalyDetectionService } from "nest-shield";
+import { Shield, ShieldContext, Priority } from "@usex/nest-shield/decorators";
+import { InjectAnomalyDetection } from "@usex/nest-shield/core";
+import type { IProtectionContext, AnomalyDetectionService } from "@usex/nest-shield";
 
 /**
  * Anomaly Detection Showcase Controller

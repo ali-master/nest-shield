@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Query } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from "@nestjs/swagger";
-import { RateLimit, QuickRateLimit, ShieldContext, RateLimitInfo } from "nest-shield";
-import type { IProtectionContext, IRateLimitInfo } from "nest-shield";
+import { RateLimit, QuickRateLimit, ShieldContext, RateLimitInfo } from "@usex/nest-shield";
+import type { IProtectionContext, IRateLimitInfo } from "@usex/nest-shield";
 
 @ApiTags("Rate Limiting")
 @Controller("rate-limit")

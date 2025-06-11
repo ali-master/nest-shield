@@ -1,17 +1,17 @@
 import { Controller, Get, Post, Body } from "@nestjs/common";
-import { Shield, ShieldMetrics, Priority } from "nest-shield/decorators";
+import { Shield, ShieldMetrics, Priority } from "@usex/nest-shield/decorators";
 import {
   InjectMetrics,
   InjectTimeWindowAggregator,
   InjectRollingWindowAggregator,
   InjectPercentileAggregator,
-} from "nest-shield/core";
-import type { MetricsService } from "nest-shield/services";
+} from "@usex/nest-shield/core";
+import type { MetricsService } from "@usex/nest-shield/services";
 import type {
   TimeWindowAggregator,
   RollingWindowAggregator,
   PercentileAggregator,
-} from "nest-shield/metrics/aggregators";
+} from "@usex/nest-shield/metrics/aggregators";
 import { CustomMetricsService } from "../services/custom-metrics.service";
 
 /**
