@@ -145,4 +145,11 @@ export class MemoryStorageAdapter extends BaseStorageAdapter {
   getKeys(): string[] {
     return this.cache.keys();
   }
+
+  async close(): Promise<void> {
+    // Close the node-cache instance to clean up internal timers
+    if (this.cache && this.cache.close) {
+      this.cache.close();
+    }
+  }
 }
