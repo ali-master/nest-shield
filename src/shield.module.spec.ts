@@ -40,9 +40,12 @@ describe("ShieldModule", () => {
       expect(Array.isArray(module.exports)).toBe(true);
       // Check for the new DI token
       expect(module.exports).toContain(DI_TOKENS.SHIELD_MODULE_OPTIONS);
-      // Also check that legacy exports are included for backward compatibility
-      expect(module.exports).toContain("CircuitBreakerService");
-      expect(module.exports).toContain("RateLimitService");
+      // Check that all required service tokens are exported
+      expect(module.exports).toContain(DI_TOKENS.CIRCUIT_BREAKER_SERVICE);
+      expect(module.exports).toContain(DI_TOKENS.RATE_LIMIT_SERVICE);
+      expect(module.exports).toContain(DI_TOKENS.THROTTLE_SERVICE);
+      expect(module.exports).toContain(DI_TOKENS.OVERLOAD_SERVICE);
+      expect(module.exports).toContain(DI_TOKENS.METRICS_SERVICE);
     });
   });
 

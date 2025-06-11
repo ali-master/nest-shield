@@ -1,20 +1,23 @@
 import type { NestInterceptor, ExecutionContext, CallHandler } from "@nestjs/common";
-import { Injectable, Inject } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { throwError, Observable, firstValueFrom } from "rxjs";
 import { tap, catchError } from "rxjs/operators";
 import type { Reflector } from "@nestjs/core";
 import { SHIELD_DECORATORS } from "../core/constants";
-import { DI_TOKENS } from "../core/di-tokens";
+import {
+  InjectShieldConfig,
+  InjectReflector,
+  InjectCircuitBreaker,
+} from "../core/injection.decorators";
 import type { IShieldConfig, ICircuitBreakerConfig } from "../interfaces/shield-config.interface";
 import type { CircuitBreakerService } from "../services";
 
 @Injectable()
 export class CircuitBreakerInterceptor implements NestInterceptor {
   constructor(
-    @Inject(DI_TOKENS.SHIELD_MODULE_OPTIONS) private readonly options: IShieldConfig,
-    private readonly reflector: Reflector,
-    @Inject(DI_TOKENS.CIRCUIT_BREAKER_SERVICE)
-    private readonly circuitBreakerService: CircuitBreakerService,
+    @InjectShieldConfig() private readonly options: IShieldConfig,
+    @InjectReflector() private readonly reflector: Reflector,
+    @InjectCircuitBreaker() private readonly circuitBreakerService: CircuitBreakerService,
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {

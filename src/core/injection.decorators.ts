@@ -7,6 +7,7 @@
  */
 
 import { Inject } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
 import { DI_TOKENS } from "./di-tokens";
 
 // =============================================================================
@@ -22,6 +23,18 @@ export const InjectShieldConfig = () => Inject(DI_TOKENS.SHIELD_MODULE_OPTIONS);
  * Inject the Shield storage adapter
  */
 export const InjectShieldStorage = () => Inject(DI_TOKENS.SHIELD_STORAGE);
+
+/**
+ * Creative Reflector injection without DI tokens
+ * Usage: constructor(@InjectReflector() private reflector: Reflector) {}
+ */
+export const InjectReflector = () => Inject(Reflector);
+
+/**
+ * Inject the Shield Logger service
+ * Usage: constructor(@InjectShieldLogger() private logger: ShieldLoggerService) {}
+ */
+export const InjectShieldLogger = () => Inject(DI_TOKENS.SHIELD_LOGGER_SERVICE);
 
 // =============================================================================
 // HTTP ADAPTER DECORATORS

@@ -6,4 +6,5 @@ export * from "./metrics.service";
 export * from "./overload.service";
 export * from "./priority-manager.service";
 export * from "./rate-limit.service";
+export * from "./shield-logger.service";
 export * from "./throttle.service";

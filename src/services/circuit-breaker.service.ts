@@ -1,11 +1,16 @@
-import { Injectable, Inject } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import * as CircuitBreaker from "opossum";
 import type {
   IProtectionContext,
   ICircuitBreakerConfig,
 } from "../interfaces/shield-config.interface";
-import { DI_TOKENS } from "../core/di-tokens";
+import {
+  InjectShieldLogger,
+  InjectShieldConfig,
+  InjectMetrics,
+} from "../core/injection.decorators";
 import { CircuitBreakerException } from "../core/exceptions";
+import type { ShieldLoggerService, MetricsService } from "./";
 
 interface CircuitBreakerInstance {
   breaker: CircuitBreaker;
@@ -14,10 +19,14 @@ interface CircuitBreakerInstance {
 
 @Injectable()
 export class CircuitBreakerService {
-  private breakers: Map<string, CircuitBreakerInstance> = new Map();
-  private globalConfig: ICircuitBreakerConfig;
+  private readonly breakers: Map<string, CircuitBreakerInstance> = new Map();
+  private readonly globalConfig: ICircuitBreakerConfig;
 
-  constructor(@Inject(DI_TOKENS.SHIELD_MODULE_OPTIONS) private readonly options: any) {
+  constructor(
+    @InjectShieldConfig() private readonly options: any,
+    @InjectMetrics() private readonly metricsService: MetricsService,
+    @InjectShieldLogger() private readonly logger: ShieldLoggerService,
+  ) {
     this.globalConfig = this.options.circuitBreaker || {};
   }
 
@@ -177,50 +186,77 @@ export class CircuitBreakerService {
     };
   }
 
-  private setupEventHandlers(breaker: CircuitBreaker, _key: string): void {
+  private setupEventHandlers(breaker: CircuitBreaker, key: string): void {
     breaker.on("fire", () => {
-      // TODO: Re-enable metrics after DI issue is resolved
-      // this.metricsService.increment("circuit_breaker_fires", 1, { key });
+      this.metricsService.increment("circuit_breaker_fires", 1, { key });
+      this.logger.circuitBreakerDebug(`Circuit breaker fired`, {
+        operation: "fire",
+        metadata: { key },
+      });
     });
 
     breaker.on("success", (_result: any) => {
-      // TODO: Re-enable metrics after DI issue is resolved
-      // this.metricsService.increment("circuit_breaker_successes", 1, { key });
+      this.metricsService.increment("circuit_breaker_successes", 1, { key });
+      this.logger.circuitBreakerDebug(`Circuit breaker success`, {
+        operation: "success",
+        metadata: { key },
+      });
     });
 
-    breaker.on("failure", (_error: Error) => {
-      // TODO: Re-enable metrics after DI issue is resolved
-      // this.metricsService.increment("circuit_breaker_failures", 1, { key });
+    breaker.on("failure", (error: Error) => {
+      this.metricsService.increment("circuit_breaker_failures", 1, { key });
+      this.logger.circuitBreakerWarn(`Circuit breaker failure`, {
+        operation: "failure",
+        metadata: { key, error: error.message },
+      });
     });
 
     breaker.on("timeout", () => {
-      // TODO: Re-enable metrics after DI issue is resolved
-      // this.metricsService.increment("circuit_breaker_timeouts", 1, { key });
+      this.metricsService.increment("circuit_breaker_timeouts", 1, { key });
+      this.logger.circuitBreakerWarn(`Circuit breaker timeout`, {
+        operation: "timeout",
+        metadata: { key },
+      });
     });
 
     breaker.on("reject", () => {
-      // TODO: Re-enable metrics after DI issue is resolved
-      // this.metricsService.increment("circuit_breaker_rejects", 1, { key });
+      this.metricsService.increment("circuit_breaker_rejects", 1, { key });
+      this.logger.circuitBreakerWarn(`Circuit breaker rejected request`, {
+        operation: "reject",
+        metadata: { key },
+      });
     });
 
     breaker.on("open", () => {
-      // TODO: Re-enable metrics after DI issue is resolved
-      // this.metricsService.gauge("circuit_breaker_state", 1, { key, state: "open" });
+      this.metricsService.gauge("circuit_breaker_state", 1, { key, state: "open" });
+      this.logger.circuitBreaker(`Circuit breaker opened`, {
+        operation: "state_change",
+        metadata: { key, state: "open" },
+      });
     });
 
     breaker.on("halfOpen", () => {
-      // TODO: Re-enable metrics after DI issue is resolved
-      // this.metricsService.gauge("circuit_breaker_state", 0.5, { key, state: "half_open" });
+      this.metricsService.gauge("circuit_breaker_state", 0.5, { key, state: "half_open" });
+      this.logger.circuitBreaker(`Circuit breaker half-opened`, {
+        operation: "state_change",
+        metadata: { key, state: "half_open" },
+      });
     });
 
     breaker.on("close", () => {
-      // TODO: Re-enable metrics after DI issue is resolved
-      // this.metricsService.gauge("circuit_breaker_state", 0, { key, state: "closed" });
+      this.metricsService.gauge("circuit_breaker_state", 0, { key, state: "closed" });
+      this.logger.circuitBreaker(`Circuit breaker closed`, {
+        operation: "state_change",
+        metadata: { key, state: "closed" },
+      });
     });
 
     breaker.on("fallback", (_data: any) => {
-      // TODO: Re-enable metrics after DI issue is resolved
-      // this.metricsService.increment("circuit_breaker_fallbacks", 1, { key });
+      this.metricsService.increment("circuit_breaker_fallbacks", 1, { key });
+      this.logger.circuitBreaker(`Circuit breaker fallback executed`, {
+        operation: "fallback",
+        metadata: { key },
+      });
     });
   }
 

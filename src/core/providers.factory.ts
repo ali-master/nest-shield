@@ -14,6 +14,7 @@ import { StorageFactory } from "../storage";
 // Services
 import {
   ThrottleService,
+  ShieldLoggerService,
   RateLimitService,
   PriorityManagerService,
   OverloadService,
@@ -129,6 +130,10 @@ export class ProviderFactory implements IProviderFactory {
         provide: DI_TOKENS.GRACEFUL_SHUTDOWN_SERVICE,
         useClass: GracefulShutdownService,
       },
+      {
+        provide: DI_TOKENS.SHIELD_LOGGER_SERVICE,
+        useClass: ShieldLoggerService,
+      },
 
       // Legacy class-based providers for backward compatibility
       CircuitBreakerService,
@@ -140,6 +145,7 @@ export class ProviderFactory implements IProviderFactory {
       DistributedSyncService,
       AnomalyDetectionService,
       GracefulShutdownService,
+      ShieldLoggerService,
     ];
   }
 
@@ -179,15 +185,11 @@ export class ProviderFactory implements IProviderFactory {
    */
   createGuardProviders(): Provider[] {
     return [
-      {
-        provide: DI_TOKENS.SHIELD_GUARD,
-        useClass: ShieldGuard,
-      },
+      ShieldGuard,
       {
         provide: APP_GUARD,
-        useExisting: DI_TOKENS.SHIELD_GUARD,
+        useClass: ShieldGuard,
       },
-      // Note: Legacy class-based provider removed to avoid DI issues
     ];
   }
 
@@ -212,7 +214,6 @@ export class ProviderFactory implements IProviderFactory {
         provide: APP_INTERCEPTOR,
         useClass: OverloadReleaseInterceptor,
       },
-      // Note: Legacy class-based providers removed to avoid DI issues
     ];
   }
 

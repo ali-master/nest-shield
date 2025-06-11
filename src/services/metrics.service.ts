@@ -1,7 +1,8 @@
 import type { OnModuleInit, OnModuleDestroy } from "@nestjs/common";
-import { Injectable, Inject } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import type { IMetricsConfig, IMetricsCollector } from "../interfaces";
-import { DI_TOKENS } from "../core/di-tokens";
+import { InjectShieldLogger, InjectShieldConfig } from "../core/injection.decorators";
+import type { ShieldLoggerService } from "./shield-logger.service";
 
 // Import enhanced collectors if available
 let PrometheusCollector: any;
@@ -40,7 +41,10 @@ export class MetricsService implements IMetricsCollector, OnModuleInit, OnModule
   private anomalyDetectionConfig?: any;
   private enhancedMode = false;
 
-  constructor(@Inject(DI_TOKENS.SHIELD_MODULE_OPTIONS) private readonly options: any) {
+  constructor(
+    @InjectShieldConfig() private readonly options: any,
+    @InjectShieldLogger() private readonly logger: ShieldLoggerService,
+  ) {
     this.config = this.options.metrics || { enabled: false };
     this.prefix = this.config.prefix || "nest_shield";
     this.anomalyDetectionConfig = this.options.advanced?.adaptiveProtection?.anomalyDetection;
@@ -410,7 +414,10 @@ export class MetricsService implements IMetricsCollector, OnModuleInit, OnModule
       }
     } catch (error) {
       // Log error but don't fail metric collection
-      console.warn(`Anomaly detection failed for metric ${metricName}:`, error);
+      this.logger.metricsWarn(`Anomaly detection failed for metric ${metricName}`, {
+        operation: "anomaly_detection",
+        metadata: { metricName, error: error.message },
+      });
     }
   }
 
@@ -422,14 +429,17 @@ export class MetricsService implements IMetricsCollector, OnModuleInit, OnModule
       detector: anomaly.detector,
     });
 
-    // Log anomaly (could be enhanced with proper logging service)
-    console.warn("Anomaly detected:", {
-      metric: anomaly.data.metricName,
-      value: anomaly.data.value,
-      severity: anomaly.severity,
-      score: anomaly.score,
-      description: anomaly.description,
-      timestamp: new Date(anomaly.timestamp).toISOString(),
+    // Log anomaly with detailed context
+    this.logger.anomalyWarn("Anomaly detected", {
+      operation: "anomaly_detected",
+      metadata: {
+        metric: anomaly.data.metricName,
+        value: anomaly.data.value,
+        severity: anomaly.severity,
+        score: anomaly.score,
+        description: anomaly.description,
+        timestamp: new Date(anomaly.timestamp).toISOString(),
+      },
     });
   }
 

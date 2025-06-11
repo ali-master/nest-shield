@@ -25,7 +25,7 @@ export class ShieldModule {
   static forRoot(options: ShieldModuleOptions = {}): DynamicModule {
     const mergedOptions = this.mergeWithDefaults(options);
 
-    console.log("ShieldModule initialized with options:", mergedOptions);
+    // ShieldModule initialization will be logged by the logger service itself
 
     return {
       global: mergedOptions.global?.enabled ?? true,

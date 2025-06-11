@@ -1,16 +1,20 @@
 import type { OnApplicationShutdown } from "@nestjs/common";
-import { Logger, Injectable, Inject } from "@nestjs/common";
-import { DI_TOKENS } from "../core/di-tokens";
+import { Injectable } from "@nestjs/common";
+import { InjectShieldLogger, InjectShieldConfig } from "../core/injection.decorators";
 import type { IGracefulShutdownConfig } from "../interfaces";
+import type { ShieldLoggerService } from "./shield-logger.service";
 
 @Injectable()
 export class GracefulShutdownService implements OnApplicationShutdown {
-  private readonly logger = new Logger(GracefulShutdownService.name);
   private readonly config: IGracefulShutdownConfig;
   private isShuttingDown = false;
   private shutdownPromise: Promise<void> | null = null;
+  private metricsFlushCalled = false;
 
-  constructor(@Inject(DI_TOKENS.SHIELD_MODULE_OPTIONS) private readonly options: any) {
+  constructor(
+    @InjectShieldConfig() private readonly options: any,
+    @InjectShieldLogger() private readonly logger: ShieldLoggerService,
+  ) {
     this.config = this.options.advanced?.gracefulShutdown || { enabled: false, timeout: 30000 };
     this.setupShutdownHandlers();
   }
@@ -20,7 +24,7 @@ export class GracefulShutdownService implements OnApplicationShutdown {
       return;
     }
 
-    this.logger.log(`Initiating graceful shutdown... Signal: ${signal}`);
+    this.logger.shutdown(`Initiating graceful shutdown... Signal: ${signal}`);
     this.isShuttingDown = true;
 
     if (!this.shutdownPromise) {
@@ -32,12 +36,12 @@ export class GracefulShutdownService implements OnApplicationShutdown {
 
   private async performShutdown(): Promise<void> {
     const shutdownTimeout = setTimeout(() => {
-      this.logger.error("Graceful shutdown timeout exceeded, forcing shutdown");
+      this.logger.shutdownError("Graceful shutdown timeout exceeded, forcing shutdown");
       process.exit(1);
     }, this.config.timeout);
 
     try {
-      this.logger.log("Graceful shutdown initiated");
+      this.logger.shutdown("Graceful shutdown initiated");
 
       if (this.config.beforeShutdown) {
         await this.config.beforeShutdown();
@@ -52,9 +56,9 @@ export class GracefulShutdownService implements OnApplicationShutdown {
         await this.config.onShutdown();
       }
 
-      this.logger.log("Graceful shutdown completed successfully");
+      this.logger.shutdown("Graceful shutdown completed successfully");
     } catch (error) {
-      this.logger.error("Error during graceful shutdown", error);
+      this.logger.shutdownError("Error during graceful shutdown", error as Error);
       throw error;
     } finally {
       clearTimeout(shutdownTimeout);
@@ -62,7 +66,7 @@ export class GracefulShutdownService implements OnApplicationShutdown {
   }
 
   private async stopAcceptingNewRequests(): Promise<void> {
-    this.logger.log("Stopping acceptance of new requests");
+    this.logger.shutdown("Stopping acceptance of new requests");
 
     // Set global shutdown flag that can be checked by guards and interceptors
     process.env.SHIELD_SHUTDOWN_MODE = "true";
@@ -74,18 +78,18 @@ export class GracefulShutdownService implements OnApplicationShutdown {
   }
 
   private async drainExistingRequests(): Promise<void> {
-    this.logger.log("Draining existing requests");
+    this.logger.shutdown("Draining existing requests");
 
     const maxDrainTime = Math.min(this.config.timeout * 0.8, 60000);
-    this.logger.log(`Waiting up to ${maxDrainTime}ms for requests to drain`);
+    this.logger.shutdown(`Waiting up to ${maxDrainTime}ms for requests to drain`);
 
     // Simple timeout-based drain without service dependencies
     await new Promise((resolve) => setTimeout(resolve, Math.min(maxDrainTime, 5000)));
-    this.logger.log("Request drain completed");
+    this.logger.shutdown("Request drain completed");
   }
 
   private async closeCircuitBreakers(): Promise<void> {
-    this.logger.log("Circuit breakers shutdown signaled");
+    this.logger.shutdown("Circuit breakers shutdown signaled");
 
     // Emit event for circuit breakers to listen to and gracefully close
     if (typeof process.emit === "function") {
@@ -97,7 +101,14 @@ export class GracefulShutdownService implements OnApplicationShutdown {
   }
 
   private async flushMetrics(): Promise<void> {
-    this.logger.log("Metrics flush signaled");
+    // Prevent duplicate flush calls
+    if (this.metricsFlushCalled) {
+      this.logger.shutdownDebug("Metrics flush already called, skipping duplicate");
+      return;
+    }
+
+    this.metricsFlushCalled = true;
+    this.logger.shutdown("Metrics flush signaled");
 
     // Emit event for metrics service to listen to and flush data
     if (typeof process.emit === "function") {
@@ -117,14 +128,14 @@ export class GracefulShutdownService implements OnApplicationShutdown {
 
     signals.forEach((signal) => {
       process.on(signal, async () => {
-        this.logger.log(`Received ${signal} signal`);
+        this.logger.shutdown(`Received ${signal} signal`);
         await this.onApplicationShutdown(signal);
         process.exit(0);
       });
     });
 
     process.on("beforeExit", async (code) => {
-      this.logger.log(`Process beforeExit with code: ${code}`);
+      this.logger.shutdown(`Process beforeExit with code: ${code}`);
       await this.onApplicationShutdown("beforeExit");
     });
   }

@@ -2,8 +2,9 @@ import type { TestingModule } from "@nestjs/testing";
 import { Test } from "@nestjs/testing";
 import { CircuitBreakerService } from "./circuit-breaker.service";
 import { MetricsService } from "./metrics.service";
+import type { ShieldLoggerService } from "./shield-logger.service";
 import { CircuitBreakerException } from "../core/exceptions";
-import { SHIELD_MODULE_OPTIONS } from "../core/constants";
+import { DI_TOKENS } from "../core/di-tokens";
 import { waitFor, MockMetricsCollector, createMockProtectionContext } from "../test-utils/mocks";
 import { TEST_CIRCUIT_BREAKER_OPTIONS } from "../test-utils/fixtures";
 
@@ -36,19 +37,52 @@ describe("CircuitBreakerService", () => {
       getCollector: jest.fn().mockReturnValue(metricsCollector),
     };
 
+    const mockShieldLogger = {
+      circuitBreaker: jest.fn(),
+      circuitBreakerDebug: jest.fn(),
+      circuitBreakerWarn: jest.fn(),
+      circuitBreakerError: jest.fn(),
+      setLogLevel: jest.fn(),
+      enableComponent: jest.fn(),
+      disableComponent: jest.fn(),
+      enableAllComponents: jest.fn(),
+      getLogHistory: jest.fn().mockReturnValue([]),
+      clearHistory: jest.fn(),
+      getStats: jest.fn().mockReturnValue({
+        totalLogs: 0,
+        logsByLevel: {},
+        logsByComponent: {},
+        enabledComponents: [],
+        disabledComponents: [],
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         {
           provide: CircuitBreakerService,
-          useFactory: () => {
-            return new CircuitBreakerService({ circuitBreaker: TEST_CIRCUIT_BREAKER_OPTIONS });
+          useFactory: (options: any, metrics: MetricsService, logger: ShieldLoggerService) => {
+            return new CircuitBreakerService(options, metrics, logger);
           },
+          inject: [
+            DI_TOKENS.SHIELD_MODULE_OPTIONS,
+            DI_TOKENS.METRICS_SERVICE,
+            DI_TOKENS.SHIELD_LOGGER_SERVICE,
+          ],
         },
         {
-          provide: SHIELD_MODULE_OPTIONS,
+          provide: DI_TOKENS.SHIELD_MODULE_OPTIONS,
           useValue: {
             circuitBreaker: TEST_CIRCUIT_BREAKER_OPTIONS,
           },
+        },
+        {
+          provide: DI_TOKENS.METRICS_SERVICE,
+          useValue: mockMetricsService,
+        },
+        {
+          provide: DI_TOKENS.SHIELD_LOGGER_SERVICE,
+          useValue: mockShieldLogger,
         },
         {
           provide: MetricsService,
