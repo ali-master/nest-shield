@@ -1,3 +1,5 @@
+import "reflect-metadata";
+
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { Logger } from "@nestjs/common";
@@ -8,6 +10,7 @@ async function bootstrap() {
 
   // Enable CORS for testing
   app.enableCors();
+  app.enableShutdownHooks();
 
   // Add global prefix
   app.setGlobalPrefix("api");
@@ -62,11 +65,33 @@ async function bootstrap() {
   SwaggerModule.setup("docs", app, document, {
     customSiteTitle: "NestShield Playground API",
     customfavIcon: "/favicon.ico",
-    customJs: [
-      "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-bundle.min.js",
-      "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-standalone-preset.min.js",
-    ],
-    customCssUrl: ["https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.min.css"],
+    explorer: false,
+    jsonDocumentUrl: `api/docs/openapi.json`,
+    yamlDocumentUrl: `api/docs/openapi.yaml`,
+    swaggerOptions: {
+      filter: true,
+      tryItOutEnabled: true,
+      displayOperationId: true,
+      persistAuthorization: true,
+      deepLinking: true,
+      showExtensions: true,
+      showCommonExtensions: true,
+      apisSorter: false,
+      tagsSorter: false,
+      operationsSorter: false,
+      requestSnippetsEnabled: true,
+      requestSnippets: {
+        generators: {
+          curl_bash: {
+            title: "cURL (bash)",
+            syntax: "bash",
+          },
+        },
+        defaultExpanded: false,
+        languages: null,
+      },
+      withCredentials: true,
+    },
   });
 
   const logger = new Logger("PlaygroundApp");

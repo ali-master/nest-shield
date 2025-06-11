@@ -6,10 +6,63 @@
  */
 
 import type { Type, Provider } from "@nestjs/common";
-import { APP_INTERCEPTOR, APP_GUARD } from "@nestjs/core";
+import { APP_INTERCEPTOR } from "@nestjs/core";
 import type { IShieldConfig, IMetricsConfig } from "../interfaces";
 import { DI_TOKENS } from "./di-tokens";
 import { StorageFactory } from "../storage";
+
+// Utility functions for creating providers
+export const createConfigProvider = <T>(token: symbol, config: T): Provider => ({
+  provide: token,
+  useValue: config,
+});
+
+export const createFactoryProvider = <T>(
+  token: symbol,
+  factory: (...args: unknown[]) => T,
+  inject: (string | symbol | Type)[] = [],
+): Provider => ({
+  provide: token,
+  useFactory: factory,
+  inject,
+});
+
+export const createClassProvider = <T>(token: symbol, useClass: Type<T>): Provider => ({
+  provide: token,
+  useClass,
+});
+
+export const createValueProvider = <T>(token: symbol, value: T): Provider => ({
+  provide: token,
+  useValue: value,
+});
+
+/**
+ * Provider registry for tracking all created providers
+ */
+export class ProviderRegistry {
+  private static readonly providers = new Map<symbol, Provider>();
+
+  static register(token: symbol, provider: Provider): void {
+    this.providers.set(token, provider);
+  }
+
+  static get(token: symbol): Provider | undefined {
+    return this.providers.get(token);
+  }
+
+  static getAll(): Provider[] {
+    return Array.from(this.providers.values());
+  }
+
+  static has(token: symbol): boolean {
+    return this.providers.has(token);
+  }
+
+  static clear(): void {
+    this.providers.clear();
+  }
+}
 
 // Services
 import {
@@ -64,89 +117,76 @@ export class ProviderFactory implements IProviderFactory {
    * Creates all core providers required by the Shield module
    */
   createCoreProviders(): Provider[] {
-    return [
+    // Clear registry to start fresh
+    ProviderRegistry.clear();
+
+    const providers = [
       this.createStorageProvider(),
       ...this.createServiceProviders(),
       ...this.createGuardProviders(),
       ...this.createInterceptorProviders(),
-      // Aggregators are now managed by MetricsModule
     ];
+
+    // Log all registered providers for debugging
+    console.log("Shield Providers Registry:", {
+      totalProviders: providers.length,
+      registeredTokens: ProviderRegistry.getAll().length,
+      hasShieldGuard: ProviderRegistry.has(DI_TOKENS.SHIELD_GUARD),
+      hasStorage: ProviderRegistry.has(DI_TOKENS.SHIELD_STORAGE),
+      hasLogger: ProviderRegistry.has(DI_TOKENS.SHIELD_LOGGER_SERVICE),
+    });
+
+    return providers;
   }
 
   /**
    * Creates the storage provider with proper async initialization
    */
   createStorageProvider(): Provider {
-    return {
-      provide: DI_TOKENS.SHIELD_STORAGE,
-      useFactory: async (config: IShieldConfig) => {
+    const provider = createFactoryProvider(
+      DI_TOKENS.SHIELD_STORAGE,
+      async (config: IShieldConfig) => {
         return await StorageFactory.createAsync(config.storage || { type: "memory" });
       },
-      inject: [DI_TOKENS.SHIELD_MODULE_OPTIONS],
-    };
+      [DI_TOKENS.SHIELD_MODULE_OPTIONS],
+    );
+
+    // Register in the provider registry
+    ProviderRegistry.register(DI_TOKENS.SHIELD_STORAGE, provider);
+    return provider;
   }
 
   /**
    * Creates all service providers with proper dependency injection
    */
   createServiceProviders(): Provider[] {
-    return [
-      // Core protection services
-      {
-        provide: DI_TOKENS.CIRCUIT_BREAKER_SERVICE,
-        useClass: CircuitBreakerService,
-      },
-      {
-        provide: DI_TOKENS.RATE_LIMIT_SERVICE,
-        useClass: RateLimitService,
-      },
-      {
-        provide: DI_TOKENS.THROTTLE_SERVICE,
-        useClass: ThrottleService,
-      },
-      {
-        provide: DI_TOKENS.OVERLOAD_SERVICE,
-        useClass: OverloadService,
-      },
-      {
-        provide: DI_TOKENS.METRICS_SERVICE,
-        useClass: MetricsService,
-      },
+    const providers: Provider[] = [];
 
-      // Support services
-      {
-        provide: DI_TOKENS.PRIORITY_MANAGER_SERVICE,
-        useClass: PriorityManagerService,
-      },
-      {
-        provide: DI_TOKENS.DISTRIBUTED_SYNC_SERVICE,
-        useClass: DistributedSyncService,
-      },
-      {
-        provide: DI_TOKENS.ANOMALY_DETECTION_SERVICE,
-        useClass: AnomalyDetectionService,
-      },
-      {
-        provide: DI_TOKENS.GRACEFUL_SHUTDOWN_SERVICE,
-        useClass: GracefulShutdownService,
-      },
-      {
-        provide: DI_TOKENS.SHIELD_LOGGER_SERVICE,
-        useClass: ShieldLoggerService,
-      },
-
-      // Legacy class-based providers for backward compatibility
-      CircuitBreakerService,
-      RateLimitService,
-      ThrottleService,
-      OverloadService,
-      MetricsService,
-      PriorityManagerService,
-      DistributedSyncService,
-      AnomalyDetectionService,
-      GracefulShutdownService,
-      ShieldLoggerService,
+    // Core protection services using utility functions
+    const coreServices = [
+      { token: DI_TOKENS.CIRCUIT_BREAKER_SERVICE, service: CircuitBreakerService },
+      { token: DI_TOKENS.RATE_LIMIT_SERVICE, service: RateLimitService },
+      { token: DI_TOKENS.THROTTLE_SERVICE, service: ThrottleService },
+      { token: DI_TOKENS.OVERLOAD_SERVICE, service: OverloadService },
+      { token: DI_TOKENS.METRICS_SERVICE, service: MetricsService },
+      { token: DI_TOKENS.PRIORITY_MANAGER_SERVICE, service: PriorityManagerService },
+      { token: DI_TOKENS.DISTRIBUTED_SYNC_SERVICE, service: DistributedSyncService },
+      { token: DI_TOKENS.ANOMALY_DETECTION_SERVICE, service: AnomalyDetectionService },
+      { token: DI_TOKENS.GRACEFUL_SHUTDOWN_SERVICE, service: GracefulShutdownService },
+      { token: DI_TOKENS.SHIELD_LOGGER_SERVICE, service: ShieldLoggerService },
     ];
+
+    // Create providers using utility functions and register them
+    for (const { token, service } of coreServices) {
+      const provider = createClassProvider(token, service as Type<any>);
+      ProviderRegistry.register(token, provider);
+      providers.push(provider);
+
+      // Also add legacy class-based provider for backward compatibility
+      providers.push(service);
+    }
+
+    return providers;
   }
 
   /**
@@ -158,7 +198,6 @@ export class ProviderFactory implements IProviderFactory {
         provide: DI_TOKENS.METRICS_CONFIG,
         useValue: config,
       },
-      // Aggregators are now managed by MetricsModule
     ];
 
     if (!config.enabled) {
@@ -184,13 +223,17 @@ export class ProviderFactory implements IProviderFactory {
    * Creates guard providers with proper global registration
    */
   createGuardProviders(): Provider[] {
-    return [
-      ShieldGuard,
-      {
-        provide: APP_GUARD,
-        useClass: ShieldGuard,
-      },
-    ];
+    const providers: Provider[] = [];
+
+    // Create shield guard provider
+    const shieldGuardProvider = createClassProvider(DI_TOKENS.SHIELD_GUARD, ShieldGuard);
+    ProviderRegistry.register(DI_TOKENS.SHIELD_GUARD, shieldGuardProvider);
+    providers.push(shieldGuardProvider);
+
+    // Add legacy class-based provider and Reflector
+    providers.push(ShieldGuard);
+
+    return providers;
   }
 
   /**
@@ -234,7 +277,6 @@ export class ProviderFactory implements IProviderFactory {
         provide: DI_TOKENS.PERCENTILE_AGGREGATOR,
         useClass: PercentileAggregator,
       },
-      // Note: Legacy class-based providers removed to avoid DI issues
     ];
   }
 
@@ -319,58 +361,3 @@ export class ProviderFactory implements IProviderFactory {
  * Singleton instance for provider factory
  */
 export const providerFactory = new ProviderFactory();
-
-/**
- * Utility functions for creating specialized providers
- */
-export const createConfigProvider = <T>(token: symbol, config: T): Provider => ({
-  provide: token,
-  useValue: config,
-});
-
-export const createFactoryProvider = <T>(
-  token: symbol,
-  factory: (...args: unknown[]) => T,
-  inject: (string | symbol | Type)[] = [],
-): Provider => ({
-  provide: token,
-  useFactory: factory,
-  inject,
-});
-
-export const createClassProvider = <T>(token: symbol, useClass: Type<T>): Provider => ({
-  provide: token,
-  useClass,
-});
-
-export const createValueProvider = <T>(token: symbol, value: T): Provider => ({
-  provide: token,
-  useValue: value,
-});
-
-/**
- * Provider registry for tracking all created providers
- */
-export class ProviderRegistry {
-  private static readonly providers = new Map<symbol, Provider>();
-
-  static register(token: symbol, provider: Provider): void {
-    this.providers.set(token, provider);
-  }
-
-  static get(token: symbol): Provider | undefined {
-    return this.providers.get(token);
-  }
-
-  static getAll(): Provider[] {
-    return Array.from(this.providers.values());
-  }
-
-  static has(token: symbol): boolean {
-    return this.providers.has(token);
-  }
-
-  static clear(): void {
-    this.providers.clear();
-  }
-}

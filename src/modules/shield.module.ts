@@ -1,10 +1,12 @@
 import type { Type, Provider, DynamicModule } from "@nestjs/common";
 import { Module } from "@nestjs/common";
+import { APP_GUARD } from "@nestjs/core";
 import type { IShieldConfig } from "../interfaces";
 import { DEFAULT_CONFIG } from "../core/constants";
 import { DI_TOKENS } from "../core/di-tokens";
 import { providerFactory, createConfigProvider } from "../core/providers.factory";
 import { MetricsModule } from "../metrics";
+import { ShieldGuard } from "../guards/shield.guard";
 
 export interface ShieldModuleOptions extends IShieldConfig {}
 
@@ -23,12 +25,14 @@ export interface ShieldOptionsFactory {
 @Module({})
 export class ShieldModule {
   static forRoot(options: ShieldModuleOptions = {}): DynamicModule {
+    console.log("*** SHIELD MODULE forRoot CALLED ***");
     const mergedOptions = this.mergeWithDefaults(options);
 
     // ShieldModule initialization will be logged by the logger service itself
+    console.log("Creating ShieldModule providers...");
 
     return {
-      global: mergedOptions.global?.enabled ?? true,
+      global: true,
       module: ShieldModule,
       imports: [
         // AnomalyDetectionModule, // Temporarily disabled for testing
@@ -36,8 +40,18 @@ export class ShieldModule {
       ],
       providers: [
         createConfigProvider(DI_TOKENS.SHIELD_MODULE_OPTIONS, mergedOptions),
-        ...providerFactory.createCoreProviders(),
-      ],
+        (() => {
+          console.log("Calling providerFactory.createCoreProviders()...");
+          const coreProviders = providerFactory.createCoreProviders();
+          console.log("Core providers created:", coreProviders.length);
+          return coreProviders;
+        })(),
+        // Explicitly register the guard as a global guard
+        {
+          provide: APP_GUARD,
+          useClass: ShieldGuard,
+        },
+      ].flat(),
       exports: [
         DI_TOKENS.SHIELD_MODULE_OPTIONS,
         DI_TOKENS.CIRCUIT_BREAKER_SERVICE,
@@ -55,6 +69,7 @@ export class ShieldModule {
 
   static forRootAsync(options: ShieldModuleAsyncOptions): DynamicModule {
     return {
+      global: true,
       module: ShieldModule,
       imports: [
         // AnomalyDetectionModule, // Temporarily disabled for testing
@@ -67,7 +82,15 @@ export class ShieldModule {
         }),
         ...(options.imports || []),
       ],
-      providers: [...this.createAsyncProviders(options), ...providerFactory.createCoreProviders()],
+      providers: [
+        ...this.createAsyncProviders(options),
+        ...providerFactory.createCoreProviders(),
+        // Explicitly register the guard as a global guard
+        {
+          provide: APP_GUARD,
+          useClass: ShieldGuard,
+        },
+      ],
       exports: [
         DI_TOKENS.SHIELD_MODULE_OPTIONS,
         DI_TOKENS.CIRCUIT_BREAKER_SERVICE,

@@ -1,13 +1,45 @@
 {
-  "extends": "../tsconfig.json",
   "compilerOptions": {
-    "outDir": "./dist",
-    "baseUrl": "./",
+    "target": "ES2024",
+    "moduleResolution": "Node",
+    "module": "CommonJS",
+    "baseUrl": ".",
+    "outDir": "dist",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "allowJs": true,
+    "noEmit": false,
+    "declaration": false,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "inlineSourceMap": false,
+    "sourceMap": true,
+    "incremental": false,
+    "skipLibCheck": true,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "forceConsistentCasingInFileNames": false,
+    "moduleDetection": "force",
+    "allowSyntheticDefaultImports": true, // To provide backwards compatibility, Node.js allows you to import most CommonJS packages with a default import. This flag tells TypeScript that it's okay to use import on CommonJS modules.
+    "pretty": true,
+    "newLine": "lf",
+    "stripInternal": true,
+    "strict": false,
+    "noImplicitReturns": false,
+    "noImplicitOverride": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": false,
+    "noUncheckedIndexedAccess": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "noEmitOnError": false,
+    "useDefineForClassFields": true,
     "paths": {
       "nest-shield": ["../src"],
       "nest-shield/*": ["../src/*"]
     }
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "dist", "**/*.spec.ts"]
+  "exclude": ["node_modules", "dist", "scripts"]
 }

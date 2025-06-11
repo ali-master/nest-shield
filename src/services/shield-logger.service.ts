@@ -42,6 +42,7 @@ export class ShieldLoggerService {
    */
   setLogLevel(level: LogLevel): void {
     this.logLevel = level;
+    this.logger.localInstance?.setLogLevels?.([level]);
   }
 
   /**

@@ -416,7 +416,7 @@ export class MetricsService implements IMetricsCollector, OnModuleInit, OnModule
       // Log error but don't fail metric collection
       this.logger.metricsWarn(`Anomaly detection failed for metric ${metricName}`, {
         operation: "anomaly_detection",
-        metadata: { metricName, error: error.message },
+        metadata: { metricName, error: (error as Error).message },
       });
     }
   }

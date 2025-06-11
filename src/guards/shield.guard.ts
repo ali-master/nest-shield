@@ -1,20 +1,9 @@
 import type { ExecutionContext, CanActivate } from "@nestjs/common";
-import { Injectable, HttpStatus, HttpException } from "@nestjs/common";
+import { Injectable, Inject, HttpStatus, HttpException } from "@nestjs/common";
 import type { Reflector } from "@nestjs/core";
 import type { Response, Request } from "express";
 import { SHIELD_DECORATORS } from "../core/constants";
-import {
-  InjectThrottle,
-  InjectShieldLogger,
-  InjectShieldConfig,
-  InjectReflector,
-  InjectRateLimit,
-  InjectPriorityManager,
-  InjectOverload,
-  InjectMetrics,
-  InjectDistributedSync,
-  InjectCircuitBreaker,
-} from "../core/injection.decorators";
+import { DI_TOKENS } from "../core/di-tokens";
 import type {
   IThrottleConfig,
   IShieldConfig,
@@ -158,17 +147,21 @@ export class ShieldGuard implements CanActivate {
   private adaptiveMonitoringTimer?: NodeJS.Timeout;
 
   constructor(
-    @InjectShieldConfig() private readonly config: IShieldConfig,
-    @InjectShieldLogger() private readonly logger: ShieldLoggerService,
-    @InjectReflector() private readonly reflector: Reflector,
-    @InjectRateLimit() private readonly rateLimitService: RateLimitService,
-    @InjectThrottle() private readonly throttleService: ThrottleService,
-    @InjectOverload() private readonly overloadService: OverloadService,
-    @InjectCircuitBreaker() private readonly circuitBreakerService: CircuitBreakerService,
-    @InjectMetrics() private readonly metricsService: MetricsService,
-    @InjectDistributedSync() private readonly distributedSyncService: DistributedSyncService,
-    @InjectPriorityManager() private readonly priorityManagerService: PriorityManagerService,
+    @Inject(DI_TOKENS.SHIELD_MODULE_OPTIONS) private readonly config: IShieldConfig,
+    @Inject(DI_TOKENS.SHIELD_LOGGER_SERVICE) private readonly logger: ShieldLoggerService,
+    private readonly reflector: Reflector,
+    @Inject(DI_TOKENS.RATE_LIMIT_SERVICE) private readonly rateLimitService: RateLimitService,
+    @Inject(DI_TOKENS.THROTTLE_SERVICE) private readonly throttleService: ThrottleService,
+    @Inject(DI_TOKENS.OVERLOAD_SERVICE) private readonly overloadService: OverloadService,
+    @Inject(DI_TOKENS.CIRCUIT_BREAKER_SERVICE)
+    private readonly circuitBreakerService: CircuitBreakerService,
+    @Inject(DI_TOKENS.METRICS_SERVICE) private readonly metricsService: MetricsService,
+    @Inject(DI_TOKENS.DISTRIBUTED_SYNC_SERVICE)
+    private readonly distributedSyncService: DistributedSyncService,
+    @Inject(DI_TOKENS.PRIORITY_MANAGER_SERVICE)
+    private readonly priorityManagerService: PriorityManagerService,
   ) {
+    console.log("ShieldGuard constructor called!");
     this.initializeEnhancedOptions();
 
     this.logger.guard("Shield Guard initialized", {
@@ -189,6 +182,8 @@ export class ShieldGuard implements CanActivate {
    * Main guard entry point - orchestrates all protection mechanisms
    */
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    console.log("Shield Guard activated");
+    // Start performance measurement
     const startTime = performance.now();
     const request = context.switchToHttp().getRequest<Request>();
     const response = context.switchToHttp().getResponse<Response>();

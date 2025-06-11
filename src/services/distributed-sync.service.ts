@@ -115,7 +115,7 @@ export class DistributedSyncService implements OnModuleInit, OnModuleDestroy {
 
           await this.pubSubClient.subscribe(this.config.channel || "nest-shield:sync");
 
-          this.pubSubClient.on("message", async (channel: string, message: string) => {
+          this.pubSubClient.on("message", async (_channel: string, message: string) => {
             await this.handleSyncMessage(JSON.parse(message));
           });
         }

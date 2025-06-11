@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import * as NodeCache from "node-cache";
+import NodeCache from "node-cache";
 import { BaseStorageAdapter } from "./base-storage.adapter";
 
 export interface MemoryStorageOptions {
