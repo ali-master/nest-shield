@@ -11,5 +11,5 @@
     "assets": ["**/*"],
     "watchAssets": true
   },
-  "exec": "node dist/playground/src/main"
+  "exec": "node dist/main"
 }
