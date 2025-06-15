@@ -558,6 +558,9 @@ export class ShieldGuard implements CanActivate, BeforeApplicationShutdown {
       return securityResult;
     }
 
+    // 6. Transfer protection info to request for parameter decorators
+    this.transferProtectionInfoToRequest(context, request);
+
     return { allowed: true };
   }
 
@@ -1843,5 +1846,30 @@ export class ShieldGuard implements CanActivate, BeforeApplicationShutdown {
         emergencyMode: inEmergencyMode,
       },
     };
+  }
+
+  /**
+   * Transfer protection info from context to request for parameter decorators
+   */
+  private transferProtectionInfoToRequest(
+    context: IProtectionContext,
+    request: Request,
+  ): void {
+    // Transfer all protection info from context.metadata to request object
+    // so that parameter decorators (@ThrottleInfo, @RateLimitInfo, etc.) can access them
+    if (context.metadata) {
+      if (context.metadata.throttleInfo) {
+        (request as any).throttleInfo = context.metadata.throttleInfo.metadata || context.metadata.throttleInfo;
+      }
+      if (context.metadata.rateLimitInfo) {
+        (request as any).rateLimitInfo = context.metadata.rateLimitInfo.metadata || context.metadata.rateLimitInfo;
+      }
+      if (context.metadata.circuitBreakerInfo) {
+        (request as any).circuitBreakerInfo = context.metadata.circuitBreakerInfo;
+      }
+      if (context.metadata.overloadInfo) {
+        (request as any).overloadInfo = context.metadata.overloadInfo.metadata || context.metadata.overloadInfo;
+      }
+    }
   }
 }

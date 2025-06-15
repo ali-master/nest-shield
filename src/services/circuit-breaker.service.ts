@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { OnModuleDestroy, Injectable } from "@nestjs/common";
 import * as CircuitBreaker from "opossum";
 import type {
   IProtectionContext,
@@ -18,9 +18,12 @@ interface CircuitBreakerInstance {
 }
 
 @Injectable()
-export class CircuitBreakerService {
+export class CircuitBreakerService implements OnModuleDestroy {
   private readonly breakers: Map<string, CircuitBreakerInstance> = new Map();
+  private readonly breakerAccessTimes = new Map<string, number>();
   private readonly globalConfig: ICircuitBreakerConfig;
+  private readonly MAX_BREAKERS = 1000; // Prevent memory leaks
+  private cleanupTimer: NodeJS.Timeout | null = null;
 
   constructor(
     @InjectShieldConfig() private readonly options: any,
@@ -28,6 +31,9 @@ export class CircuitBreakerService {
     @InjectShieldLogger() private readonly logger: ShieldLoggerService,
   ) {
     this.globalConfig = this.options.circuitBreaker || {};
+    
+    // Start periodic cleanup to prevent memory leaks
+    this.startCleanupTimer();
   }
 
   createBreaker(
@@ -43,7 +49,14 @@ export class CircuitBreakerService {
 
     const existing = this.breakers.get(key);
     if (existing) {
+      // Update access time for LRU cleanup
+      this.breakerAccessTimes.set(key, Date.now());
       return existing.breaker;
+    }
+
+    // Check if we need to clean up before creating new breaker
+    if (this.breakers.size >= this.MAX_BREAKERS) {
+      this.cleanupOldBreakers();
     }
 
     const breakerOptions: CircuitBreaker.Options = {
@@ -59,7 +72,8 @@ export class CircuitBreakerService {
 
     const breaker = new CircuitBreaker(handler, breakerOptions);
 
-    this.setupEventHandlers(breaker, key);
+    // Use async event handler setup to avoid blocking
+    setImmediate(() => this.setupEventHandlers(breaker, key));
 
     if (mergedConfig.fallback) {
       breaker.fallback(mergedConfig.fallback);
@@ -71,6 +85,7 @@ export class CircuitBreakerService {
     };
 
     this.breakers.set(key, instance);
+    this.breakerAccessTimes.set(key, Date.now());
     return breaker;
   }
 
@@ -187,75 +202,94 @@ export class CircuitBreakerService {
   }
 
   private setupEventHandlers(breaker: CircuitBreaker, key: string): void {
+    // Use async metrics and logging to avoid blocking circuit breaker operations
     breaker.on("fire", () => {
-      this.metricsService.increment("circuit_breaker_fires", 1, { key });
-      this.logger.circuitBreakerDebug(`Circuit breaker fired`, {
-        operation: "fire",
-        metadata: { key },
+      setImmediate(() => {
+        this.metricsService.increment("circuit_breaker_fires", 1, { key });
+        this.logger.circuitBreakerDebug(`Circuit breaker fired`, {
+          operation: "fire",
+          metadata: { key },
+        });
       });
     });
 
     breaker.on("success", (_result: any) => {
-      this.metricsService.increment("circuit_breaker_successes", 1, { key });
-      this.logger.circuitBreakerDebug(`Circuit breaker success`, {
-        operation: "success",
-        metadata: { key },
+      setImmediate(() => {
+        this.metricsService.increment("circuit_breaker_successes", 1, { key });
+        this.logger.circuitBreakerDebug(`Circuit breaker success`, {
+          operation: "success",
+          metadata: { key },
+        });
       });
     });
 
     breaker.on("failure", (error: Error) => {
-      this.metricsService.increment("circuit_breaker_failures", 1, { key });
-      this.logger.circuitBreakerWarn(`Circuit breaker failure`, {
-        operation: "failure",
-        metadata: { key, error: error.message },
+      setImmediate(() => {
+        this.metricsService.increment("circuit_breaker_failures", 1, { key });
+        this.logger.circuitBreakerWarn(`Circuit breaker failure`, {
+          operation: "failure",
+          metadata: { key, error: error.message },
+        });
       });
     });
 
     breaker.on("timeout", () => {
-      this.metricsService.increment("circuit_breaker_timeouts", 1, { key });
-      this.logger.circuitBreakerWarn(`Circuit breaker timeout`, {
-        operation: "timeout",
-        metadata: { key },
+      setImmediate(() => {
+        this.metricsService.increment("circuit_breaker_timeouts", 1, { key });
+        this.logger.circuitBreakerWarn(`Circuit breaker timeout`, {
+          operation: "timeout",
+          metadata: { key },
+        });
       });
     });
 
     breaker.on("reject", () => {
-      this.metricsService.increment("circuit_breaker_rejects", 1, { key });
-      this.logger.circuitBreakerWarn(`Circuit breaker rejected request`, {
-        operation: "reject",
-        metadata: { key },
+      setImmediate(() => {
+        this.metricsService.increment("circuit_breaker_rejects", 1, { key });
+        this.logger.circuitBreakerWarn(`Circuit breaker rejected request`, {
+          operation: "reject",
+          metadata: { key },
+        });
       });
     });
 
     breaker.on("open", () => {
-      this.metricsService.gauge("circuit_breaker_state", 1, { key, state: "open" });
-      this.logger.circuitBreaker(`Circuit breaker opened`, {
-        operation: "state_change",
-        metadata: { key, state: "open" },
+      setImmediate(() => {
+        this.metricsService.gauge("circuit_breaker_state", 1, { key, state: "open" });
+        this.logger.circuitBreaker(`Circuit breaker opened`, {
+          operation: "state_change",
+          metadata: { key, state: "open" },
+        });
       });
     });
 
     breaker.on("halfOpen", () => {
-      this.metricsService.gauge("circuit_breaker_state", 0.5, { key, state: "half_open" });
-      this.logger.circuitBreaker(`Circuit breaker half-opened`, {
-        operation: "state_change",
-        metadata: { key, state: "half_open" },
+      setImmediate(() => {
+        this.metricsService.gauge("circuit_breaker_state", 0.5, { key, state: "half_open" });
+        this.logger.circuitBreaker(`Circuit breaker half-opened`, {
+          operation: "state_change",
+          metadata: { key, state: "half_open" },
+        });
       });
     });
 
     breaker.on("close", () => {
-      this.metricsService.gauge("circuit_breaker_state", 0, { key, state: "closed" });
-      this.logger.circuitBreaker(`Circuit breaker closed`, {
-        operation: "state_change",
-        metadata: { key, state: "closed" },
+      setImmediate(() => {
+        this.metricsService.gauge("circuit_breaker_state", 0, { key, state: "closed" });
+        this.logger.circuitBreaker(`Circuit breaker closed`, {
+          operation: "state_change",
+          metadata: { key, state: "closed" },
+        });
       });
     });
 
     breaker.on("fallback", (_data: any) => {
-      this.metricsService.increment("circuit_breaker_fallbacks", 1, { key });
-      this.logger.circuitBreaker(`Circuit breaker fallback executed`, {
-        operation: "fallback",
-        metadata: { key },
+      setImmediate(() => {
+        this.metricsService.increment("circuit_breaker_fallbacks", 1, { key });
+        this.logger.circuitBreaker(`Circuit breaker fallback executed`, {
+          operation: "fallback",
+          metadata: { key },
+        });
       });
     });
   }
@@ -283,5 +317,87 @@ export class CircuitBreakerService {
         // Ignore warm-up errors
       }
     }
+  }
+
+  /**
+   * Start cleanup timer to prevent memory leaks
+   */
+  private startCleanupTimer(): void {
+    // Clean up every 5 minutes
+    this.cleanupTimer = setInterval(() => {
+      this.cleanupOldBreakers();
+    }, 5 * 60 * 1000);
+  }
+
+  /**
+   * Clean up old, unused circuit breakers to prevent memory leaks
+   */
+  private cleanupOldBreakers(): void {
+    const now = Date.now();
+    const maxAge = 60 * 60 * 1000; // 1 hour
+    const keysToRemove: string[] = [];
+
+    // Find old breakers (LRU based on access time)
+    for (const [key, accessTime] of this.breakerAccessTimes.entries()) {
+      if (now - accessTime > maxAge) {
+        keysToRemove.push(key);
+      }
+    }
+
+    // If still too many, remove oldest ones
+    if (this.breakers.size > this.MAX_BREAKERS) {
+      const sortedByAge = Array.from(this.breakerAccessTimes.entries())
+        .sort(([, a], [, b]) => a - b) // Oldest first
+        .slice(0, Math.floor(this.MAX_BREAKERS * 0.2)) // Remove 20%
+        .map(([key]) => key);
+      
+      keysToRemove.push(...sortedByAge);
+    }
+
+    // Remove breakers and clean up event listeners
+    keysToRemove.forEach(key => {
+      const instance = this.breakers.get(key);
+      if (instance) {
+        try {
+          // Remove all event listeners to prevent memory leaks
+          instance.breaker.removeAllListeners();
+          instance.breaker.disable();
+        } catch {
+          // Ignore errors during cleanup
+        }
+      }
+      this.breakers.delete(key);
+      this.breakerAccessTimes.delete(key);
+    });
+
+    if (keysToRemove.length > 0) {
+      this.logger.circuitBreakerDebug(`Cleaned up ${keysToRemove.length} old circuit breakers`, {
+        operation: "cleanup",
+        metadata: { removedCount: keysToRemove.length, totalRemaining: this.breakers.size },
+      });
+    }
+  }
+
+  /**
+   * Clean up resources on service destruction
+   */
+  onModuleDestroy(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
+
+    // Clean up all breakers
+    for (const [, instance] of this.breakers) {
+      try {
+        instance.breaker.removeAllListeners();
+        instance.breaker.disable();
+      } catch {
+        // Ignore errors during cleanup
+      }
+    }
+
+    this.breakers.clear();
+    this.breakerAccessTimes.clear();
   }
 }

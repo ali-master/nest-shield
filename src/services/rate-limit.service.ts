@@ -10,14 +10,12 @@ import { DI_TOKENS } from "../core/di-tokens";
 import { RateLimitException } from "../core/exceptions";
 import type { IMetricsCollector } from "../interfaces";
 
-interface RateLimitInfo {
-  points: number;
-  resetTime: number;
-}
 
 @Injectable()
 export class RateLimitService {
-  private globalConfig: IRateLimitConfig;
+  private readonly globalConfig: IRateLimitConfig;
+  private readonly keyCache = new Map<string, { key: string; windowStart: number; resetTime: number }>();
+  private readonly CACHE_SIZE_LIMIT = 10000;
 
   constructor(
     @Inject(DI_TOKENS.SHIELD_MODULE_OPTIONS) private readonly options: any,
@@ -37,21 +35,29 @@ export class RateLimitService {
       return { allowed: true };
     }
 
-    const key = this.generateKey(context, mergedConfig);
+    const cacheKey = `${context.ip}:${context.path}:${context.method}`;
     const now = Date.now();
-    const windowStart =
-      Math.floor(now / 1000 / mergedConfig.duration) * mergedConfig.duration * 1000;
-    const windowKey = `${key}:${windowStart}`;
+    const windowInfo = this.getOrCreateWindowInfo(cacheKey, now, mergedConfig);
+    const windowKey = windowInfo.key;
 
     try {
-      const info = await this.getRateLimitInfo(windowKey, windowStart, mergedConfig);
+      // Use atomic increment for better performance
+      const currentPoints = await this.storage.increment(windowKey, 0); // Get current value
+      
+      // Set TTL only if this is a new key
+      if (currentPoints === 0) {
+        await this.storage.expire(windowKey, mergedConfig.duration);
+      }
 
-      if (info.points >= mergedConfig.points) {
-        const retryAfter = Math.ceil((info.resetTime - now) / 1000);
+      if (currentPoints >= mergedConfig.points) {
+        const retryAfter = Math.ceil((windowInfo.resetTime - now) / 1000);
 
-        this.metricsService.increment("rate_limit_exceeded", 1, {
-          path: context.path,
-          method: context.method,
+        // Async metrics to avoid blocking
+        setImmediate(() => {
+          this.metricsService.increment("rate_limit_exceeded", 1, {
+            path: context.path,
+            method: context.method,
+          });
         });
 
         const message =
@@ -62,17 +68,20 @@ export class RateLimitService {
         throw new RateLimitException(message, retryAfter, {
           limit: mergedConfig.points,
           remaining: 0,
-          reset: info.resetTime,
+          reset: windowInfo.resetTime,
         });
       }
 
-      await this.storage.increment(windowKey);
+      // Atomic increment
+      const newPoints = await this.storage.increment(windowKey, 1);
+      const remaining = mergedConfig.points - newPoints;
 
-      const remaining = mergedConfig.points - info.points - 1;
-
-      this.metricsService.increment("rate_limit_consumed", 1, {
-        path: context.path,
-        method: context.method,
+      // Async metrics to avoid blocking
+      setImmediate(() => {
+        this.metricsService.increment("rate_limit_consumed", 1, {
+          path: context.path,
+          method: context.method,
+        });
       });
 
       return {
@@ -80,8 +89,8 @@ export class RateLimitService {
         metadata: {
           limit: mergedConfig.points,
           remaining,
-          reset: info.resetTime,
-          headers: this.generateHeaders(mergedConfig, remaining, info.resetTime),
+          reset: windowInfo.resetTime,
+          headers: this.generateHeaders(mergedConfig, remaining, windowInfo.resetTime),
         },
       };
     } catch (error) {
@@ -89,9 +98,12 @@ export class RateLimitService {
         throw error;
       }
 
-      this.metricsService.increment("rate_limit_error", 1, {
-        path: context.path,
-        method: context.method,
+      // Async metrics to avoid blocking
+      setImmediate(() => {
+        this.metricsService.increment("rate_limit_error", 1, {
+          path: context.path,
+          method: context.method,
+        });
       });
 
       return { allowed: true };
@@ -119,14 +131,12 @@ export class RateLimitService {
       return mergedConfig.points;
     }
 
-    const key = this.generateKey(context, mergedConfig);
+    const cacheKey = `${context.ip}:${context.path}:${context.method}`;
     const now = Date.now();
-    const windowStart =
-      Math.floor(now / 1000 / mergedConfig.duration) * mergedConfig.duration * 1000;
-    const windowKey = `${key}:${windowStart}`;
+    const windowInfo = this.getOrCreateWindowInfo(cacheKey, now, mergedConfig);
 
-    const info = await this.getRateLimitInfo(windowKey, windowStart, mergedConfig);
-    return Math.max(0, mergedConfig.points - info.points);
+    const currentPoints = (await this.storage.get(windowInfo.key)) || 0;
+    return Math.max(0, mergedConfig.points - Number(currentPoints));
   }
 
   async block(context: IProtectionContext, duration: number, reason?: string): Promise<void> {
@@ -147,19 +157,36 @@ export class RateLimitService {
     return `rate_limit:${context.ip}:${context.path}:${context.method}`;
   }
 
-  private async getRateLimitInfo(
-    key: string,
-    windowStart: number,
+  /**
+   * Get or create window info with caching for better performance
+   */
+  private getOrCreateWindowInfo(
+    cacheKey: string,
+    now: number,
     config: IRateLimitConfig,
-  ): Promise<RateLimitInfo> {
-    const points = (await this.storage.get(key)) || 0;
+  ): { key: string; windowStart: number; resetTime: number } {
+    const cached = this.keyCache.get(cacheKey);
+    const windowStart = Math.floor(now / 1000 / config.duration) * config.duration * 1000;
     const resetTime = windowStart + config.duration * 1000;
-
-    if (!(await this.storage.exists(key))) {
-      await this.storage.set(key, 0, config.duration);
+    
+    // Return cached if same window
+    if (cached && cached.windowStart === windowStart) {
+      return cached;
     }
-
-    return { points: Number(points), resetTime };
+    
+    // Create new window info  
+    const windowKey = `rate_limit:${cacheKey}:${windowStart}`;
+    const windowInfo = { key: windowKey, windowStart, resetTime };
+    
+    // Cache with size limit
+    if (this.keyCache.size >= this.CACHE_SIZE_LIMIT) {
+      // Remove oldest 10% of entries
+      const keysToRemove = Array.from(this.keyCache.keys()).slice(0, Math.floor(this.CACHE_SIZE_LIMIT * 0.1));
+      keysToRemove.forEach(k => this.keyCache.delete(k));
+    }
+    
+    this.keyCache.set(cacheKey, windowInfo);
+    return windowInfo;
   }
 
   private generateHeaders(
@@ -181,13 +208,22 @@ export class RateLimitService {
   }
 
   async cleanup(): Promise<void> {
-    const _now = Date.now();
-    const keys = (await this.storage.scan?.("rate_limit:*")) || [];
+    // Clean up expired cache entries
+    const now = Date.now();
+    for (const [key, value] of this.keyCache.entries()) {
+      if (now > value.resetTime) {
+        this.keyCache.delete(key);
+      }
+    }
 
-    for (const key of keys) {
-      const ttl = await this.storage.ttl(key);
-      if (ttl === -2) {
-        await this.storage.delete(key);
+    // Clean up expired storage keys (if supported)
+    if (this.storage.scan) {
+      const keys = await this.storage.scan("rate_limit:*");
+      for (const key of keys) {
+        const ttl = await this.storage.ttl(key);
+        if (ttl === -2) {
+          await this.storage.delete(key);
+        }
       }
     }
   }

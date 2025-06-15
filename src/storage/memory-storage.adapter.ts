@@ -56,10 +56,11 @@ export class MemoryStorageAdapter extends BaseStorageAdapter {
 
   async increment(key: string, value: number = 1): Promise<number> {
     try {
-      const _fullKey = this.getKey(key);
-      const current = (await this.get(key)) || 0;
+      const fullKey = this.getKey(key);
+      // Direct cache access for better performance
+      const current = this.cache.get(fullKey) || 0;
       const newValue = Number(current) + value;
-      await this.set(key, newValue);
+      this.cache.set(fullKey, newValue);
       return newValue;
     } catch (error) {
       this.handleError(error as Error, "increment");
@@ -68,10 +69,11 @@ export class MemoryStorageAdapter extends BaseStorageAdapter {
 
   async decrement(key: string, value: number = 1): Promise<number> {
     try {
-      const _fullKey = this.getKey(key);
-      const current = (await this.get(key)) || 0;
+      const fullKey = this.getKey(key);
+      // Direct cache access for better performance
+      const current = this.cache.get(fullKey) || 0;
       const newValue = Number(current) - value;
-      await this.set(key, newValue);
+      this.cache.set(fullKey, newValue);
       return newValue;
     } catch (error) {
       this.handleError(error as Error, "decrement");
