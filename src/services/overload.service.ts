@@ -93,7 +93,7 @@ export class OverloadService {
   release(): void {
     this.currentRequests = Math.max(0, this.currentRequests - 1);
     this.metricsService.gauge("overload_current_requests", this.currentRequests);
-    
+
     // Process queue immediately to handle waiting requests
     setImmediate(() => this.processQueue());
   }
@@ -128,15 +128,15 @@ export class OverloadService {
 
       // Calculate adaptive timeout based on current queue processing speed
       const adaptiveTimeout = this.calculateAdaptiveTimeout(config);
-      
+
       if (adaptiveTimeout > 0) {
         queueItem.timeoutId = setTimeout(() => {
           this.removeFromQueue(queueItem);
           this.metricsService.increment("overload_queue_timeout");
-          
+
           const waitTime = Date.now() - queueItem.timestamp;
           this.metricsService.histogram("overload_queue_timeout_duration", waitTime);
-          
+
           reject(
             new OverloadException("Request timeout in queue", {
               queueTimeout: adaptiveTimeout,
@@ -171,7 +171,7 @@ export class OverloadService {
       }
 
       const waitTime = Date.now() - item.timestamp;
-      
+
       // Update processing statistics
       this.updateProcessingStats(waitTime);
 
@@ -272,18 +272,26 @@ export class OverloadService {
     } else {
       const utilizationRate = this.currentRequests / (config.maxConcurrentRequests || 1000);
       const queuePressure = this.queue.length / (config.maxQueueSize || 1000);
-      
+
       // Factor in queue processing efficiency
-      const processingEfficiency = this.processingStats.averageProcessingTime > 0 
-        ? Math.max(0, 1 - (this.processingStats.averageProcessingTime / 30000)) // Normalize against 30s
-        : 1;
-      
-      this.healthScore = Math.max(0, (1 - Math.max(utilizationRate, queuePressure)) * processingEfficiency);
+      const processingEfficiency =
+        this.processingStats.averageProcessingTime > 0
+          ? Math.max(0, 1 - this.processingStats.averageProcessingTime / 30000) // Normalize against 30s
+          : 1;
+
+      this.healthScore = Math.max(
+        0,
+        (1 - Math.max(utilizationRate, queuePressure)) * processingEfficiency,
+      );
     }
 
     this.metricsService.gauge("overload_health_score", this.healthScore);
-    this.metricsService.gauge("overload_processing_efficiency", 
-      this.processingStats.averageProcessingTime > 0 ? this.processingStats.averageProcessingTime : 0);
+    this.metricsService.gauge(
+      "overload_processing_efficiency",
+      this.processingStats.averageProcessingTime > 0
+        ? this.processingStats.averageProcessingTime
+        : 0,
+    );
   }
 
   private startAdaptiveThresholdAdjustment(): void {
@@ -312,24 +320,28 @@ export class OverloadService {
 
   private calculateAdaptiveTimeout(config: IOverloadConfig): number {
     const baseTimeout = config.queueTimeout || 30000;
-    
+
     // If no processing history, use base timeout
     if (this.processingStats.totalProcessed === 0) {
       return baseTimeout;
     }
 
     // Calculate current queue processing efficiency
-    const avgWaitTime = this.processingStats.queueWaitTimes.length > 0 
-      ? this.processingStats.queueWaitTimes.reduce((sum, time) => sum + time, 0) / this.processingStats.queueWaitTimes.length
-      : 0;
+    const avgWaitTime =
+      this.processingStats.queueWaitTimes.length > 0
+        ? this.processingStats.queueWaitTimes.reduce((sum, time) => sum + time, 0) /
+          this.processingStats.queueWaitTimes.length
+        : 0;
 
     // If average wait time is very low, we can use shorter timeouts
-    if (avgWaitTime < 1000) { // Less than 1 second average wait
+    if (avgWaitTime < 1000) {
+      // Less than 1 second average wait
       return Math.max(baseTimeout * 0.5, 5000); // At least 5 seconds
     }
-    
+
     // If average wait time is high, increase timeout proportionally
-    if (avgWaitTime > 10000) { // More than 10 seconds average wait
+    if (avgWaitTime > 10000) {
+      // More than 10 seconds average wait
       const multiplier = Math.min(avgWaitTime / 10000, 3); // Cap at 3x multiplier
       return Math.min(baseTimeout * multiplier, 120000); // Cap at 2 minutes
     }
@@ -342,19 +354,19 @@ export class OverloadService {
   private updateProcessingStats(waitTime: number): void {
     this.processingStats.totalProcessed++;
     this.processingStats.lastProcessingTime = waitTime;
-    
+
     // Keep rolling window of last 100 wait times for adaptive calculations
     this.processingStats.queueWaitTimes.push(waitTime);
     if (this.processingStats.queueWaitTimes.length > 100) {
       this.processingStats.queueWaitTimes.shift();
     }
-    
+
     // Update average processing time with exponential smoothing
     const alpha = 0.1; // Smoothing factor
-    this.processingStats.averageProcessingTime = 
-      this.processingStats.averageProcessingTime === 0 
-        ? waitTime 
-        : (alpha * waitTime) + ((1 - alpha) * this.processingStats.averageProcessingTime);
+    this.processingStats.averageProcessingTime =
+      this.processingStats.averageProcessingTime === 0
+        ? waitTime
+        : alpha * waitTime + (1 - alpha) * this.processingStats.averageProcessingTime;
   }
 
   clearQueue(): void {
@@ -373,7 +385,7 @@ export class OverloadService {
   }
 
   private assessQueueHealth(config: IOverloadConfig): {
-    status: 'healthy' | 'degraded' | 'unhealthy';
+    status: "healthy" | "degraded" | "unhealthy";
     metrics: {
       queueUtilization: number;
       avgWaitTime: number;
@@ -383,29 +395,34 @@ export class OverloadService {
   } {
     const maxQueueSize = config.maxQueueSize || 1000;
     const queueUtilization = this.queue.length / maxQueueSize;
-    
-    const avgWaitTime = this.processingStats.queueWaitTimes.length > 0 
-      ? this.processingStats.queueWaitTimes.reduce((sum, time) => sum + time, 0) / this.processingStats.queueWaitTimes.length
-      : 0;
-    
+
+    const avgWaitTime =
+      this.processingStats.queueWaitTimes.length > 0
+        ? this.processingStats.queueWaitTimes.reduce((sum, time) => sum + time, 0) /
+          this.processingStats.queueWaitTimes.length
+        : 0;
+
     // Calculate processing rate (requests per second)
-    const processingRate = this.processingStats.totalProcessed > 0 
-      ? this.processingStats.totalProcessed / ((Date.now() - (this.processingStats.totalProcessed * 1000)) / 1000)
-      : 0;
-    
+    const processingRate =
+      this.processingStats.totalProcessed > 0
+        ? this.processingStats.totalProcessed /
+          ((Date.now() - this.processingStats.totalProcessed * 1000) / 1000)
+        : 0;
+
     // Estimate timeout rate based on current wait times vs timeout threshold
     const timeoutThreshold = this.calculateAdaptiveTimeout(config);
-    const timeoutRate = this.processingStats.queueWaitTimes.filter(time => time > timeoutThreshold).length / 
+    const timeoutRate =
+      this.processingStats.queueWaitTimes.filter((time) => time > timeoutThreshold).length /
       Math.max(this.processingStats.queueWaitTimes.length, 1);
-    
-    let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
-    
+
+    let status: "healthy" | "degraded" | "unhealthy" = "healthy";
+
     if (queueUtilization > 0.9 || avgWaitTime > 20000 || timeoutRate > 0.5) {
-      status = 'unhealthy';
+      status = "unhealthy";
     } else if (queueUtilization > 0.7 || avgWaitTime > 10000 || timeoutRate > 0.2) {
-      status = 'degraded';
+      status = "degraded";
     }
-    
+
     return {
       status,
       metrics: {

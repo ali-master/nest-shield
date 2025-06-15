@@ -10,11 +10,13 @@ import { DI_TOKENS } from "../core/di-tokens";
 import { RateLimitException } from "../core/exceptions";
 import type { IMetricsCollector } from "../interfaces";
 
-
 @Injectable()
 export class RateLimitService {
   private readonly globalConfig: IRateLimitConfig;
-  private readonly keyCache = new Map<string, { key: string; windowStart: number; resetTime: number }>();
+  private readonly keyCache = new Map<
+    string,
+    { key: string; windowStart: number; resetTime: number }
+  >();
   private readonly CACHE_SIZE_LIMIT = 10000;
 
   constructor(
@@ -43,7 +45,7 @@ export class RateLimitService {
     try {
       // Use atomic increment for better performance
       const currentPoints = await this.storage.increment(windowKey, 0); // Get current value
-      
+
       // Set TTL only if this is a new key
       if (currentPoints === 0) {
         await this.storage.expire(windowKey, mergedConfig.duration);
@@ -168,23 +170,26 @@ export class RateLimitService {
     const cached = this.keyCache.get(cacheKey);
     const windowStart = Math.floor(now / 1000 / config.duration) * config.duration * 1000;
     const resetTime = windowStart + config.duration * 1000;
-    
+
     // Return cached if same window
     if (cached && cached.windowStart === windowStart) {
       return cached;
     }
-    
-    // Create new window info  
+
+    // Create new window info
     const windowKey = `rate_limit:${cacheKey}:${windowStart}`;
     const windowInfo = { key: windowKey, windowStart, resetTime };
-    
+
     // Cache with size limit
     if (this.keyCache.size >= this.CACHE_SIZE_LIMIT) {
       // Remove oldest 10% of entries
-      const keysToRemove = Array.from(this.keyCache.keys()).slice(0, Math.floor(this.CACHE_SIZE_LIMIT * 0.1));
-      keysToRemove.forEach(k => this.keyCache.delete(k));
+      const keysToRemove = Array.from(this.keyCache.keys()).slice(
+        0,
+        Math.floor(this.CACHE_SIZE_LIMIT * 0.1),
+      );
+      keysToRemove.forEach((k) => this.keyCache.delete(k));
     }
-    
+
     this.keyCache.set(cacheKey, windowInfo);
     return windowInfo;
   }

@@ -124,11 +124,17 @@ export class AnomalyManagementController {
   }
 
   /**
-   * Retrain a model
+   * Retrain a model with security validation
    */
   @Post("retrain/:detector")
   async retrainModel(@Param("detector") detector: string, @Body() request: IRetrainRequest) {
     try {
+      // Security validation: only allow known detector types
+      await this.validateDetectorAccess(detector);
+
+      // Validate training data to prevent injection
+      await this.validateTrainingData(request.data);
+
       await this.detectorManagement.retrainModel(detector, request.source, request.data);
       return {
         success: true,
@@ -144,6 +150,63 @@ export class AnomalyManagementController {
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+  }
+
+  /**
+   * Validate detector access permissions
+   */
+  private async validateDetectorAccess(detector: string): Promise<void> {
+    // Sanitize detector name to prevent injection
+    const sanitizedDetector = detector.replace(/[^\w-]/g, "");
+
+    // List of allowed detector types
+    const allowedDetectors = [
+      "zscore",
+      "statistical",
+      "isolation-forest",
+      "machine-learning",
+      "seasonal",
+      "threshold",
+      "composite",
+    ];
+
+    if (!allowedDetectors.includes(sanitizedDetector)) {
+      throw new Error(`Invalid or unauthorized detector type: ${sanitizedDetector}`);
+    }
+  }
+
+  /**
+   * Validate training data to prevent malicious data injection
+   */
+  private async validateTrainingData(data: any): Promise<void> {
+    if (!data || typeof data !== "object") {
+      throw new Error("Invalid training data format");
+    }
+
+    // Check for prototype pollution attempts
+    const dangerousKeys = ["__proto__", "constructor", "prototype"];
+    const hasPrototypePollution = (obj: any): boolean => {
+      if (!obj || typeof obj !== "object") return false;
+
+      for (const key of dangerousKeys) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          return true;
+        }
+      }
+
+      return Object.values(obj).some((value) => hasPrototypePollution(value));
+    };
+
+    if (hasPrototypePollution(data)) {
+      throw new Error("Training data contains potentially malicious content");
+    }
+
+    // Limit data size to prevent DoS
+    const jsonString = JSON.stringify(data);
+    if (jsonString.length > 10 * 1024 * 1024) {
+      // 10MB limit
+      throw new Error("Training data exceeds maximum allowed size");
     }
   }
 

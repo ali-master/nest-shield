@@ -50,21 +50,24 @@ export class RedisStorageAdapter extends BaseStorageAdapter {
       const fullKey = this.getKey(key);
       const value = await this.client.get(fullKey);
       if (!value) return null;
-      
+
       // Use cached parsing for frequently accessed data
       if (this.parseCache.has(value)) {
         return this.parseCache.get(value);
       }
-      
-      const parsed = JSON.parse(value);
-      
+
+      const parsed = this.safeJsonParse(value);
+
       // Cache parsed result with size limit
       if (this.parseCache.size >= this.MAX_PARSE_CACHE_SIZE) {
         // Remove oldest 10% of entries
-        const keysToRemove = Array.from(this.parseCache.keys()).slice(0, Math.floor(this.MAX_PARSE_CACHE_SIZE * 0.1));
-        keysToRemove.forEach(k => this.parseCache.delete(k));
+        const keysToRemove = Array.from(this.parseCache.keys()).slice(
+          0,
+          Math.floor(this.MAX_PARSE_CACHE_SIZE * 0.1),
+        );
+        keysToRemove.forEach((k) => this.parseCache.delete(k));
       }
-      
+
       this.parseCache.set(value, parsed);
       return parsed;
     } catch (error) {
@@ -148,13 +151,13 @@ export class RedisStorageAdapter extends BaseStorageAdapter {
       // Use SCAN instead of KEYS to avoid blocking Redis
       const stream = this.client.scanStream({ match: pattern, count: 100 });
       const pipeline = this.client.pipeline();
-      
+
       for await (const keys of stream) {
         if (keys.length > 0) {
           pipeline.del(...keys);
         }
       }
-      
+
       await pipeline.exec();
     } catch (error) {
       this.handleError(error as Error, "clear");
@@ -174,7 +177,7 @@ export class RedisStorageAdapter extends BaseStorageAdapter {
   async mset(entries: Array<[string, any]>, ttl?: number): Promise<void> {
     try {
       if (entries.length === 0) return;
-      
+
       const pipeline = this.client.pipeline();
 
       // Batch operations for better performance
@@ -190,12 +193,12 @@ export class RedisStorageAdapter extends BaseStorageAdapter {
       }
 
       const results = await pipeline.exec();
-      
+
       // Check for errors in batch execution
       if (results) {
         for (const [error] of results) {
           if (error) {
-            console.error('Redis pipeline operation failed:', error);
+            console.error("Redis pipeline operation failed:", error);
           }
         }
       }
@@ -233,5 +236,49 @@ export class RedisStorageAdapter extends BaseStorageAdapter {
       });
       stream.on("error", reject);
     });
+  }
+
+  /**
+   * Safely parse JSON data to prevent deserialization attacks
+   */
+  private safeJsonParse(value: string): any {
+    try {
+      const parsed = JSON.parse(value);
+
+      // Validate the parsed object structure to prevent prototype pollution
+      if (this.isValidDataStructure(parsed)) {
+        return parsed;
+      }
+
+      throw new Error("Invalid or potentially malicious data structure detected");
+    } catch (error) {
+      throw new Error(`Failed to parse JSON data safely: ${error}`);
+    }
+  }
+
+  /**
+   * Validate data structure to prevent prototype pollution attacks
+   */
+  private isValidDataStructure(obj: any): boolean {
+    if (obj === null || typeof obj !== "object") {
+      return true; // Primitive values are safe
+    }
+
+    // Check for prototype pollution attempts
+    const dangerousKeys = ["__proto__", "constructor", "prototype"];
+
+    for (const key of dangerousKeys) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        return false;
+      }
+    }
+
+    // Recursively check nested objects
+    if (Array.isArray(obj)) {
+      return obj.every((item) => this.isValidDataStructure(item));
+    }
+
+    // Check object properties
+    return Object.values(obj).every((value) => this.isValidDataStructure(value));
   }
 }

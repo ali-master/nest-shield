@@ -76,7 +76,11 @@ export class ThrottleService {
             limit: mergedConfig.limit,
             remaining: mergedConfig.limit - 1,
             reset: now + mergedConfig.ttl * 1000,
-            headers: this.generateHeaders(mergedConfig, mergedConfig.limit - 1, now + mergedConfig.ttl * 1000),
+            headers: this.generateHeaders(
+              mergedConfig,
+              mergedConfig.limit - 1,
+              now + mergedConfig.ttl * 1000,
+            ),
           },
         };
       }
@@ -201,7 +205,7 @@ export class ThrottleService {
     const cached = this.cache.get(key);
 
     // Return cached record if it's fresh
-    if (cached && (now - cached.lastUpdate) < this.CACHE_TTL) {
+    if (cached && now - cached.lastUpdate < this.CACHE_TTL) {
       return cached.record;
     }
 
@@ -267,9 +271,9 @@ export class ThrottleService {
           // Calculate TTL based on window end time
           const windowEnd = record.firstRequestTime + this.globalConfig.ttl * 1000;
           const ttlSeconds = Math.max(1, Math.ceil((windowEnd - Date.now()) / 1000));
-          
+
           await this.storage.set(key, record, ttlSeconds);
-          
+
           // Mark as clean
           cached.isDirty = false;
         }
@@ -286,7 +290,6 @@ export class ThrottleService {
     const data = await this.storage.get(key);
     return data as ThrottleRecord | null;
   }
-
 
   private shouldIgnoreUserAgent(userAgent: string, config: IThrottleConfig): boolean {
     if (!config.ignoreUserAgents || config.ignoreUserAgents.length === 0) {

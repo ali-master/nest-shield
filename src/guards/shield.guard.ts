@@ -1,5 +1,6 @@
 import type { ExecutionContext, CanActivate, BeforeApplicationShutdown } from "@nestjs/common";
 import { Injectable, Inject, HttpStatus, HttpException } from "@nestjs/common";
+import { randomBytes } from "crypto";
 import { Reflector } from "@nestjs/core";
 import type { Response, Request } from "express";
 import { SHIELD_DECORATORS } from "../core/constants";
@@ -929,7 +930,7 @@ export class ShieldGuard implements CanActivate, BeforeApplicationShutdown {
   }
 
   /**
-   * Add security headers to response
+   * Add security headers to response with limited information disclosure
    */
   private addSecurityHeaders(
     response: Response,
@@ -938,23 +939,32 @@ export class ShieldGuard implements CanActivate, BeforeApplicationShutdown {
     // Add request ID for tracing
     response.setHeader("X-Request-ID", context.requestId);
 
-    // Add Shield version header
-    response.setHeader("X-Shield-Version", "1.0.0");
-
-    // Add protection info header (if enabled)
-    if (this.config.global?.logging?.enabled) {
+    // Only add detailed info in development mode
+    if (this.config.global?.logging?.enabled && this.isDevelopmentMode()) {
       const healthInfo = this.getHealthInfo();
       const protectionInfo = {
         protected: true,
         timestamp: context.timestamp,
-        nodeId: this.distributedSyncService.getNodeId?.(),
-        status: healthInfo.status,
-        uptime: healthInfo.uptime,
-        load: healthInfo.priorityManager.currentLoad,
+        // Remove sensitive system information
+        status: healthInfo.status === "healthy" ? "ok" : "degraded",
       };
       response.setHeader("X-Shield-Info", JSON.stringify(protectionInfo));
-      response.setHeader("X-Shield-Health", healthInfo.status);
+    } else {
+      // In production, only indicate protection is active
+      response.setHeader("X-Shield-Protected", "true");
     }
+
+    // Add standard security headers
+    response.setHeader("X-Content-Type-Options", "nosniff");
+    response.setHeader("X-Frame-Options", "DENY");
+    response.setHeader("X-XSS-Protection", "1; mode=block");
+  }
+
+  /**
+   * Check if running in development mode
+   */
+  private isDevelopmentMode(): boolean {
+    return process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test";
   }
 
   /**
@@ -1163,21 +1173,57 @@ export class ShieldGuard implements CanActivate, BeforeApplicationShutdown {
   // ==================== UTILITY METHODS ====================
 
   /**
-   * Determine if protection should be bypassed
+   * Determine if protection should be bypassed with secure path validation
    */
   private shouldBypassProtection(request: Request, metadata: IProtectionMetadata): boolean {
-    // Check for health check endpoints
-    if (request.path.includes("/health") || request.path.includes("/metrics")) {
-      return true;
+    // Use exact path matching instead of includes to prevent bypass attacks
+    const trustedBypassPaths = ["/health", "/metrics", "/status"];
+    const exactPathMatch = trustedBypassPaths.includes(request.path);
+
+    if (exactPathMatch) {
+      // Additional security: verify request comes from trusted sources
+      return this.verifyTrustedSource(request);
     }
 
-    // Check for shutdown mode
+    // Check for emergency shutdown mode with additional validation
     if (process.env.SHIELD_SHUTDOWN_MODE === "true") {
+      // Log security event for audit trail
+      this.logger.security("Shield bypass activated due to shutdown mode", {
+        operation: "bypass_protection",
+        metadata: {
+          reason: "shutdown_mode",
+          ip: this.extractClientIp(request),
+          requestPath: request.path,
+        },
+      });
       return true;
     }
 
-    // Check shield decorator settings
+    // Check shield decorator settings (only if explicitly disabled)
     return metadata.shield?.enabled === false;
+  }
+
+  /**
+   * Verify request comes from trusted sources for bypass paths
+   */
+  private verifyTrustedSource(request: Request): boolean {
+    const clientIp = this.extractClientIp(request);
+
+    // Allow localhost and private networks for health checks
+    const trustedNetworks = [
+      "127.0.0.1",
+      "::1",
+      /^10\./, // Private network 10.x.x.x
+      /^192\.168\./, // Private network 192.168.x.x
+      /^172\.(1[6-9]|2\d|3[01])\./, // Private network 172.16-31.x.x
+    ];
+
+    return trustedNetworks.some((network) => {
+      if (typeof network === "string") {
+        return clientIp === network;
+      }
+      return network.test(clientIp);
+    });
   }
 
   /**
@@ -1299,14 +1345,16 @@ export class ShieldGuard implements CanActivate, BeforeApplicationShutdown {
   }
 
   /**
-   * Generate unique request ID
+   * Generate cryptographically secure unique request ID
    */
   private generateRequestId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+    const timestamp = Date.now();
+    const secureRandomBytes = randomBytes(16).toString("hex");
+    return `${timestamp}-${secureRandomBytes}`;
   }
 
   /**
-   * Detect suspicious request patterns
+   * Detect suspicious request patterns with secure input handling
    */
   private detectSuspiciousPatterns(request: Request): boolean {
     const suspiciousPatterns = [
@@ -1314,11 +1362,55 @@ export class ShieldGuard implements CanActivate, BeforeApplicationShutdown {
       /<script/i, // XSS attempts
       /union.*select/i, // SQL injection
       /exec\s*\(/i, // Code injection
+      /__proto__/i, // Prototype pollution
+      /constructor/i, // Constructor pollution
     ];
 
-    const checkString = `${request.path} ${request.get("user-agent")} ${JSON.stringify(request.query)}`;
+    // Safely sanitize inputs before pattern matching
+    const sanitizedPath = this.sanitizeInput(request.path);
+    const sanitizedUA = this.sanitizeInput(request.get("user-agent") || "");
+    const sanitizedQuery = this.sanitizeQueryParams(request.query);
+
+    const checkString = `${sanitizedPath} ${sanitizedUA} ${sanitizedQuery}`;
 
     return suspiciousPatterns.some((pattern) => pattern.test(checkString));
+  }
+
+  /**
+   * Safely sanitize string inputs to prevent injection attacks
+   */
+  private sanitizeInput(input: string): string {
+    if (!input) return "";
+
+    // Remove potentially dangerous characters and limit length
+    return input
+      .replace(/[<>'"]/g, "") // Remove XSS chars
+      .replace(/[{}]/g, "") // Remove object notation
+      .substring(0, 1000); // Limit length to prevent DoS
+  }
+
+  /**
+   * Safely sanitize query parameters to prevent injection
+   */
+  private sanitizeQueryParams(query: any): string {
+    if (!query || typeof query !== "object") return "";
+
+    try {
+      const safeParams: string[] = [];
+      for (const [key, value] of Object.entries(query)) {
+        // Only allow alphanumeric keys and safe values
+        if (/^[\w-]+$/.test(key) && typeof value === "string") {
+          const sanitizedValue = this.sanitizeInput(value);
+          if (sanitizedValue.length < 100) {
+            // Limit param value length
+            safeParams.push(`${key}=${sanitizedValue}`);
+          }
+        }
+      }
+      return safeParams.join("&");
+    } catch {
+      return "";
+    }
   }
 
   /**
@@ -1851,24 +1943,24 @@ export class ShieldGuard implements CanActivate, BeforeApplicationShutdown {
   /**
    * Transfer protection info from context to request for parameter decorators
    */
-  private transferProtectionInfoToRequest(
-    context: IProtectionContext,
-    request: Request,
-  ): void {
+  private transferProtectionInfoToRequest(context: IProtectionContext, request: Request): void {
     // Transfer all protection info from context.metadata to request object
     // so that parameter decorators (@ThrottleInfo, @RateLimitInfo, etc.) can access them
     if (context.metadata) {
       if (context.metadata.throttleInfo) {
-        (request as any).throttleInfo = context.metadata.throttleInfo.metadata || context.metadata.throttleInfo;
+        (request as any).throttleInfo =
+          context.metadata.throttleInfo.metadata || context.metadata.throttleInfo;
       }
       if (context.metadata.rateLimitInfo) {
-        (request as any).rateLimitInfo = context.metadata.rateLimitInfo.metadata || context.metadata.rateLimitInfo;
+        (request as any).rateLimitInfo =
+          context.metadata.rateLimitInfo.metadata || context.metadata.rateLimitInfo;
       }
       if (context.metadata.circuitBreakerInfo) {
         (request as any).circuitBreakerInfo = context.metadata.circuitBreakerInfo;
       }
       if (context.metadata.overloadInfo) {
-        (request as any).overloadInfo = context.metadata.overloadInfo.metadata || context.metadata.overloadInfo;
+        (request as any).overloadInfo =
+          context.metadata.overloadInfo.metadata || context.metadata.overloadInfo;
       }
     }
   }

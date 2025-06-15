@@ -153,12 +153,83 @@ export class MemoryStorageAdapter extends BaseStorageAdapter {
   async scan(pattern: string): Promise<string[]> {
     try {
       const allKeys: string[] = this.cache.keys();
-      const regex = new RegExp(pattern.replace(/\*/g, '.*'));
-      return allKeys
-        .filter((key: string) => regex.test(key))
-        .map((key: string) => key.replace(this.prefix, ''));
+      const sanitizedPattern = this.sanitizePattern(pattern);
+      const regex = new RegExp(sanitizedPattern);
+
+      // Add timeout protection for regex execution to prevent ReDoS
+      return await this.timeoutedRegexFilter(allKeys, regex, 5000); // 5 second timeout
     } catch (error) {
       this.handleError(error as Error, "scan");
+      return [];
+    }
+  }
+
+  /**
+   * Sanitize pattern to prevent ReDoS attacks
+   */
+  private sanitizePattern(pattern: string): string {
+    // Remove potentially dangerous regex constructs
+    let sanitized = pattern
+      .replace(/[|()[\]{}+?^$\\]/g, "\\$&") // Escape special regex chars
+      .replace(/\*/g, ".*") // Convert wildcards to safe regex
+      .substring(0, 100); // Limit pattern length
+
+    // Ensure the pattern doesn't contain excessive quantifiers
+    if (/(\.\*){3,}/.test(sanitized)) {
+      sanitized = sanitized.replace(/(\.\*){3,}/g, ".*");
+    }
+
+    return sanitized;
+  }
+
+  /**
+   * Execute regex filter with timeout protection to prevent ReDoS
+   */
+  private async timeoutedRegexFilter(
+    keys: string[],
+    regex: RegExp,
+    timeoutMs: number,
+  ): Promise<string[]> {
+    try {
+      return await new Promise<string[]>((resolve, reject) => {
+        const results: string[] = [];
+        let index = 0;
+
+        const timeout = setTimeout(() => {
+          reject(new Error("Regex operation timed out - possible ReDoS attack"));
+        }, timeoutMs);
+
+        const processNext = () => {
+          const batchSize = 100; // Process in batches
+          const endIndex = Math.min(index + batchSize, keys.length);
+
+          try {
+            for (let i = index; i < endIndex; i++) {
+              if (regex.test(keys[i])) {
+                results.push(keys[i].replace(this.prefix, ""));
+              }
+            }
+
+            index = endIndex;
+
+            if (index >= keys.length) {
+              clearTimeout(timeout);
+              resolve(results);
+            } else {
+              // Use setImmediate to prevent blocking event loop
+              setImmediate(processNext);
+            }
+          } catch (error) {
+            clearTimeout(timeout);
+            reject(error);
+          }
+        };
+
+        processNext();
+      });
+    } catch {
+      // Return empty array on timeout or error
+      return [];
     }
   }
 

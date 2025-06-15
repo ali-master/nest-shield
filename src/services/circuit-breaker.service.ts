@@ -31,7 +31,7 @@ export class CircuitBreakerService implements OnModuleDestroy {
     @InjectShieldLogger() private readonly logger: ShieldLoggerService,
   ) {
     this.globalConfig = this.options.circuitBreaker || {};
-    
+
     // Start periodic cleanup to prevent memory leaks
     this.startCleanupTimer();
   }
@@ -324,9 +324,12 @@ export class CircuitBreakerService implements OnModuleDestroy {
    */
   private startCleanupTimer(): void {
     // Clean up every 5 minutes
-    this.cleanupTimer = setInterval(() => {
-      this.cleanupOldBreakers();
-    }, 5 * 60 * 1000);
+    this.cleanupTimer = setInterval(
+      () => {
+        this.cleanupOldBreakers();
+      },
+      5 * 60 * 1000,
+    );
   }
 
   /**
@@ -350,12 +353,12 @@ export class CircuitBreakerService implements OnModuleDestroy {
         .sort(([, a], [, b]) => a - b) // Oldest first
         .slice(0, Math.floor(this.MAX_BREAKERS * 0.2)) // Remove 20%
         .map(([key]) => key);
-      
+
       keysToRemove.push(...sortedByAge);
     }
 
     // Remove breakers and clean up event listeners
-    keysToRemove.forEach(key => {
+    keysToRemove.forEach((key) => {
       const instance = this.breakers.get(key);
       if (instance) {
         try {
