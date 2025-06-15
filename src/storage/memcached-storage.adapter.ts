@@ -96,14 +96,15 @@ export class MemcachedStorageAdapter extends BaseStorageAdapter {
     try {
       const fullKey = this.getKey(key);
       const result = await new Promise<number>((resolve, reject) => {
-        this.client.increment(fullKey, value, (err, success, value) => {
+        this.client.increment(fullKey, value, (err, success, resultValue) => {
           if (err) reject(err);
           else if (!success) reject(new Error("Increment failed"));
-          else resolve(value || 0);
+          else resolve(resultValue || 0);
         });
       });
       return result;
     } catch {
+      // Fallback to get-increment-set pattern
       const current = (await this.get(key)) || 0;
       const newValue = Number(current) + value;
       await this.set(key, newValue);
@@ -114,15 +115,15 @@ export class MemcachedStorageAdapter extends BaseStorageAdapter {
   async decrement(key: string, value: number = 1): Promise<number> {
     try {
       const fullKey = this.getKey(key);
-      const result = await new Promise<number>((resolve, reject) => {
-        this.client.decrement(fullKey, value, (err, success, value) => {
+      return await new Promise<number>((resolve, reject) => {
+        this.client.decrement(fullKey, value, (err, success, resultValue) => {
           if (err) reject(err);
           else if (!success) reject(new Error("Decrement failed"));
-          else resolve(value || 0);
+          else resolve(resultValue || 0);
         });
       });
-      return result;
     } catch {
+      // Fallback to get-decrement-set pattern
       const current = (await this.get(key)) || 0;
       const newValue = Math.max(0, Number(current) - value);
       await this.set(key, newValue);
@@ -174,8 +175,8 @@ export class MemcachedStorageAdapter extends BaseStorageAdapter {
   }
 
   async mget(keys: string[]): Promise<any[]> {
-    const results = await Promise.all(keys.map((key) => this.get(key).catch(() => null)));
-    return results;
+    // Use parallel processing for better performance
+    return await Promise.all(keys.map((key) => this.get(key).catch(() => null)));
   }
 
   async mset(entries: Array<[string, any]>, ttl?: number): Promise<void> {

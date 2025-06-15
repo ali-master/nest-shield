@@ -10,6 +10,8 @@ export interface RedisStorageOptions extends RedisOptions {
 @Injectable()
 export class RedisStorageAdapter extends BaseStorageAdapter {
   private client: Redis;
+  private readonly parseCache = new Map<string, any>();
+  private readonly MAX_PARSE_CACHE_SIZE = 1000;
 
   constructor(options?: RedisStorageOptions | Redis) {
     // Pass keyPrefix to base class constructor if provided
@@ -23,6 +25,16 @@ export class RedisStorageAdapter extends BaseStorageAdapter {
       this.client = new Redis({
         host: "localhost",
         port: 6379,
+        // High-performance optimizations
+        maxRetriesPerRequest: 3,
+        enableReadyCheck: true,
+        lazyConnect: true,
+        // Connection optimizations
+        family: 4,
+        keepAlive: 30000,
+        connectTimeout: 10000,
+        commandTimeout: 5000,
+        db: 0,
         ...redisOpts,
         keyPrefix: undefined,
       });
@@ -37,7 +49,24 @@ export class RedisStorageAdapter extends BaseStorageAdapter {
     try {
       const fullKey = this.getKey(key);
       const value = await this.client.get(fullKey);
-      return value ? JSON.parse(value) : null;
+      if (!value) return null;
+      
+      // Use cached parsing for frequently accessed data
+      if (this.parseCache.has(value)) {
+        return this.parseCache.get(value);
+      }
+      
+      const parsed = JSON.parse(value);
+      
+      // Cache parsed result with size limit
+      if (this.parseCache.size >= this.MAX_PARSE_CACHE_SIZE) {
+        // Remove oldest 10% of entries
+        const keysToRemove = Array.from(this.parseCache.keys()).slice(0, Math.floor(this.MAX_PARSE_CACHE_SIZE * 0.1));
+        keysToRemove.forEach(k => this.parseCache.delete(k));
+      }
+      
+      this.parseCache.set(value, parsed);
+      return parsed;
     } catch (error) {
       this.handleError(error as Error, "get");
     }
@@ -116,10 +145,17 @@ export class RedisStorageAdapter extends BaseStorageAdapter {
   async clear(): Promise<void> {
     try {
       const pattern = `${this.prefix}*`;
-      const keys = await this.client.keys(pattern);
-      if (keys.length > 0) {
-        await this.client.del(...keys);
+      // Use SCAN instead of KEYS to avoid blocking Redis
+      const stream = this.client.scanStream({ match: pattern, count: 100 });
+      const pipeline = this.client.pipeline();
+      
+      for await (const keys of stream) {
+        if (keys.length > 0) {
+          pipeline.del(...keys);
+        }
       }
+      
+      await pipeline.exec();
     } catch (error) {
       this.handleError(error as Error, "clear");
     }
@@ -137,8 +173,11 @@ export class RedisStorageAdapter extends BaseStorageAdapter {
 
   async mset(entries: Array<[string, any]>, ttl?: number): Promise<void> {
     try {
+      if (entries.length === 0) return;
+      
       const pipeline = this.client.pipeline();
 
+      // Batch operations for better performance
       for (const [key, value] of entries) {
         const fullKey = this.getKey(key);
         const serialized = JSON.stringify(value);
@@ -150,7 +189,16 @@ export class RedisStorageAdapter extends BaseStorageAdapter {
         }
       }
 
-      await pipeline.exec();
+      const results = await pipeline.exec();
+      
+      // Check for errors in batch execution
+      if (results) {
+        for (const [error] of results) {
+          if (error) {
+            console.error('Redis pipeline operation failed:', error);
+          }
+        }
+      }
     } catch (error) {
       this.handleError(error as Error, "mset");
     }

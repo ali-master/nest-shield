@@ -20,10 +20,12 @@ export class MemoryStorageAdapter extends BaseStorageAdapter {
     super(options);
     this.cache = new NodeCache({
       stdTTL: options?.stdTTL || 0,
-      checkperiod: options?.checkperiod || 600,
-      maxKeys: options?.maxKeys || -1,
+      checkperiod: options?.checkperiod || 120, // Reduced from 600 for better cleanup
+      maxKeys: options?.maxKeys || 50000, // Set reasonable default limit
       deleteOnExpire: options?.deleteOnExpire ?? true,
-      useClones: options?.useClones ?? false,
+      useClones: options?.useClones ?? false, // Disable cloning for better performance
+      errorOnMissing: false, // Don't throw errors on missing keys
+      forceString: false, // Allow any value type
     });
   }
 
@@ -146,6 +148,18 @@ export class MemoryStorageAdapter extends BaseStorageAdapter {
 
   getKeys(): string[] {
     return this.cache.keys();
+  }
+
+  async scan(pattern: string): Promise<string[]> {
+    try {
+      const allKeys: string[] = this.cache.keys();
+      const regex = new RegExp(pattern.replace(/\*/g, '.*'));
+      return allKeys
+        .filter((key: string) => regex.test(key))
+        .map((key: string) => key.replace(this.prefix, ''));
+    } catch (error) {
+      this.handleError(error as Error, "scan");
+    }
   }
 
   async close(): Promise<void> {
