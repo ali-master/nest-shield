@@ -1,6 +1,5 @@
 import { Module } from "@nestjs/common";
-import { ShieldModule } from "nest-shield";
-import { DI_TOKENS } from "nest-shield/core";
+import { ShieldModule } from "@usex/nest-shield";
 
 // Controllers
 import { BasicController } from "./controllers/basic.controller";
@@ -80,10 +79,16 @@ import { CustomMetricsService } from "./services/custom-metrics.service";
       },
       overload: {
         enabled: true,
-        maxConcurrentRequests: 50,
-        maxQueueSize: 100,
-        queueTimeout: 30000,
+        maxConcurrentRequests: 200, // Increased from 50
+        maxQueueSize: 500, // Increased from 100
+        queueTimeout: 60000, // Increased from 30000 (60 seconds)
         shedStrategy: "priority",
+        adaptiveThreshold: {
+          enabled: true,
+          minThreshold: 100,
+          maxThreshold: 500,
+          adjustmentInterval: 5000,
+        },
       },
       adapters: {
         type: "auto",
