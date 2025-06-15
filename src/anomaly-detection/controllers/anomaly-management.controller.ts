@@ -35,7 +35,7 @@ export class AnomalyManagementController {
   @Get("stats")
   async getAllDetectorStats() {
     try {
-      const stats = await this.detectorManagement.getDetectorStats();
+      const stats = this.detectorManagement.getDetectorStats();
       return {
         success: true,
         data: stats,
@@ -55,7 +55,7 @@ export class AnomalyManagementController {
   @Get("stats/:detector")
   async getSpecificDetectorStats(@Param("detector") detector: string) {
     try {
-      const stats = await this.detectorManagement.getDetectorStats(detector);
+      const stats = this.detectorManagement.getDetectorStats(detector);
       return {
         success: true,
         data: stats,
@@ -79,7 +79,7 @@ export class AnomalyManagementController {
   @Post("quality/:detector")
   async analyzeDataQuality(@Param("detector") detector: string, @Body() data: IAnomalyData[]) {
     try {
-      const quality = await this.detectorManagement.analyzeDataQuality(detector, data);
+      const quality = this.detectorManagement.analyzeDataQuality(detector, data);
       return {
         success: true,
         detector,
@@ -331,12 +331,8 @@ export class AnomalyManagementController {
   @Put("baseline/:detector")
   async setBaseline(@Param("detector") detector: string, @Body() request: IBaselineRequest) {
     try {
-      await this.detectorManagement.setBaseline(
-        detector,
-        request.mean,
-        request.stdDev,
-        request.count,
-      );
+      this.detectorManagement.setBaseline(detector, request.mean, request.stdDev, request.count);
+
       return {
         success: true,
         message: `Baseline set for ${detector}`,
