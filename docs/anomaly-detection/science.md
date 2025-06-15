@@ -1,119 +1,87 @@
-# The Science of Anomaly Detection: A Deep Dive
+# The Mathematical Science Behind NestShield's Anomaly Detection
+
+A comprehensive exploration of the algorithms, mathematical foundations, and statistical principles powering NestShield's anomaly detection system.
 
 ## Table of Contents
 
-1. [Introduction to Anomaly Detection](#introduction)
+1. [Introduction and Overview](#introduction)
 2. [Mathematical Foundations](#mathematical-foundations)
-3. [Z-Score Detector: Statistical Fundamentals](#z-score-detector)
-4. [Isolation Forest: Tree-Based Isolation](#isolation-forest)
-5. [Seasonal Decomposition: Time Series Analysis](#seasonal-decomposition)
-6. [Threshold Detection: Boundary-Based Methods](#threshold-detection)
-7. [Statistical Ensemble: Multiple Hypothesis Testing](#statistical-ensemble)
-8. [Machine Learning Approaches](#machine-learning-approaches)
-9. [Composite Detection: Ensemble Methods](#composite-detection)
-10. [Performance Metrics and Evaluation](#performance-metrics)
-11. [Real-World Applications](#real-world-applications)
-12. [Implementation Best Practices](#best-practices)
+3. [Z-Score Detector: Welford's Algorithm and Adaptive Statistics](#z-score-detector)
+4. [Isolation Forest: Tree-Based Feature Engineering](#isolation-forest)
+5. [Seasonal Decomposition: Multi-Scale Time Series Analysis](#seasonal-decomposition)
+6. [Statistical Ensemble: Multiple Hypothesis Testing](#statistical-ensemble)
+7. [Machine Learning: Autoencoders, LSTM, and One-Class SVM](#machine-learning)
+8. [Composite Detection: Intelligent Ensemble Strategies](#composite-detection)
+9. [Performance Analysis and Evaluation](#performance-analysis)
+10. [Implementation Algorithms](#implementation-algorithms)
+11. [Mathematical Complexity Analysis](#complexity-analysis)
 
-## 1. Introduction to Anomaly Detection {#introduction}
+## 1. Introduction and Overview {#introduction}
 
-### What is an Anomaly?
+### Mathematical Definition of Anomalies
 
-An anomaly, also known as an outlier, is a data point that deviates significantly from the expected pattern or behavior. In mathematical terms:
+In NestShield's implementation, an anomaly is defined as a data point that deviates significantly from learned patterns. Formally:
 
 ```
-Given a dataset D = {x₁, x₂, ..., xₙ} following a distribution P(X),
-an anomaly is a point xᵢ where P(xᵢ) < ε for some threshold ε.
+Given a dataset D = {x₁, x₂, ..., xₙ} and a detector function f:
+
+Anomaly Score: s(x) = f(x, D, θ)
+An anomaly exists when: s(x) > τ (threshold)
+
+where θ represents detector-specific parameters and τ is the sensitivity threshold.
 ```
 
-### Types of Anomalies
+### NestShield's Anomaly Types
 
-1. **Point Anomalies**: Individual data points that are far from the rest
-2. **Contextual Anomalies**: Normal in global context but anomalous in specific context
-3. **Collective Anomalies**: Groups of data points that are anomalous together
+Based on the actual implementation, NestShield detects:
 
-### The Fundamental Challenge
+1. **SPIKE**: `dataPoint.value > expectedValue + (threshold * volatility)`
+2. **DROP**: `dataPoint.value < expectedValue - (threshold * volatility)`
+3. **OUTLIER**: Statistical deviation from normal patterns
+4. **TREND_CHANGE**: Significant change in data trend
+5. **PATTERN_ANOMALY**: Contextual anomalies in time series
 
-The core challenge in anomaly detection is distinguishing between:
-- **Signal**: True anomalies that indicate problems
-- **Noise**: Random variations that are expected
+### Detection Framework
 
-This is formalized as a hypothesis testing problem:
-- **H₀** (Null Hypothesis): The data point is normal
-- **H₁** (Alternative Hypothesis): The data point is anomalous
+NestShield uses a multi-layered approach:
+
+```typescript
+// Core detection interface
+interface IAnomalyDetector {
+  detect(data: IAnomalyData[], context?: IDetectorContext): Promise<IAnomaly[]>;
+  train(data: IAnomalyData[]): Promise<void>;
+  isReady(): boolean;
+}
+```
+
+### Business Rules Integration
+
+Unique to NestShield is the integration of business logic:
+
+```typescript
+interface IBusinessRule {
+  id: string;
+  condition: string;  // JavaScript expression
+  action: "suppress" | "escalate" | "adjust_threshold";
+  reason: string;
+}
+```
 
 ## 2. Mathematical Foundations {#mathematical-foundations}
 
-### Probability Theory Basics
+### Core Statistical Concepts
 
-#### Probability Density Function (PDF)
-For continuous random variable X:
-```
-f(x) = dF(x)/dx
-```
-where F(x) is the cumulative distribution function.
-
-#### Expected Value and Variance
-```
-E[X] = μ = ∫ x·f(x)dx
-Var(X) = σ² = E[(X - μ)²] = E[X²] - (E[X])²
-```
-
-### Statistical Distance Measures
-
-#### Euclidean Distance
-```
-d(x, y) = √(Σᵢ(xᵢ - yᵢ)²)
-```
-
-#### Mahalanobis Distance
-Accounts for correlation between variables:
-```
-d(x, μ) = √((x - μ)ᵀ Σ⁻¹ (x - μ))
-```
-where Σ is the covariance matrix.
-
-### Information Theory
-
-#### Entropy
-Measures uncertainty in a random variable:
-```
-H(X) = -Σᵢ p(xᵢ)log₂(p(xᵢ))
-```
-
-#### Kullback-Leibler Divergence
-Measures difference between two probability distributions:
-```
-D_KL(P||Q) = Σᵢ P(i)log(P(i)/Q(i))
-```
-
-## 3. Z-Score Detector: Statistical Fundamentals {#z-score-detector}
-
-### The Mathematics Behind Z-Score
-
-The Z-score, also known as the standard score, measures how many standard deviations a data point is from the mean.
-
-#### Basic Z-Score Formula
-```
-z = (x - μ) / σ
-```
-where:
-- x = observed value
-- μ = population mean
-- σ = population standard deviation
-
-### Implementation Details
-
-#### 1. Online Mean and Variance Calculation
-Using Welford's algorithm for numerical stability:
+#### Online Statistics with Welford's Algorithm
+NestShield implements numerically stable online statistics:
 
 ```typescript
+// Welford's algorithm for online mean and variance
 class OnlineStatistics {
   private n = 0;
   private mean = 0;
   private M2 = 0;
   
-  update(x: number) {
+  update(x: number): void {
     this.n++;
     const delta = x - this.mean;
     this.mean += delta / this.n;
@@ -121,54 +89,209 @@ class OnlineStatistics {
     this.M2 += delta * delta2;
   }
   
-  getMean(): number { return this.mean; }
-  getVariance(): number { return this.M2 / (this.n - 1); }
-  getStdDev(): number { return Math.sqrt(this.getVariance()); }
+  getVariance(): number {
+    return this.n < 2 ? 0 : this.M2 / (this.n - 1);
+  }
 }
 ```
 
-#### 2. Modified Z-Score (Robust to Outliers)
-Uses median absolute deviation (MAD):
+**Mathematical Properties:**
+- **Numerical Stability**: Avoids catastrophic cancellation
+- **Memory Efficiency**: O(1) space complexity
+- **Computational Efficiency**: O(1) time per update
+
+#### Median Absolute Deviation (MAD)
+Used for robust outlier detection:
 
 ```
-Modified Z-score = 0.6745 * (x - median) / MAD
-where MAD = median(|xᵢ - median(X)|)
+MAD = median(|xᵢ - median(X)|)
+Modified Z-Score = 0.6745 × (x - median) / MAD
 ```
 
-The constant 0.6745 makes MAD consistent with standard deviation for normal distributions.
+The constant 0.6745 ensures consistency with standard deviation for normal distributions.
 
-### Adaptive Z-Score with Rolling Windows
+### Severity Calculation Framework
 
-#### Mathematical Framework
-For time series data, we use exponentially weighted moving average (EWMA):
+NestShield uses a standardized severity calculation:
 
-```
-μₜ = α·xₜ + (1-α)·μₜ₋₁
-σₜ² = α·(xₜ - μₜ)² + (1-α)·σₜ₋₁²
-```
-where α is the smoothing factor (0 < α < 1).
-
-#### Anomaly Score Calculation
 ```typescript
-calculateAnomalyScore(value: number, context: IDetectorContext): number {
-  const stats = this.getAdaptiveStats(context);
-  const zScore = Math.abs((value - stats.mean) / stats.stdDev);
+protected calculateSeverity(score: number, confidence: number): 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' {
+  const adjustedScore = score * confidence;
   
-  // Apply sigmoid transformation for bounded score
-  const score = 1 / (1 + Math.exp(-0.5 * (zScore - this.threshold)));
-  
-  return score;
+  if (adjustedScore >= 0.9) return 'CRITICAL';
+  if (adjustedScore >= 0.7) return 'HIGH';
+  if (adjustedScore >= 0.5) return 'MEDIUM';
+  return 'LOW';
 }
 ```
 
-### Why Z-Score Works
+### Distance Metrics in NestShield
 
-1. **Central Limit Theorem**: For large samples, the sampling distribution of the mean approaches normal distribution
-2. **Chebyshev's Inequality**: For any distribution, at most 1/k² of values lie more than k standard deviations from the mean
-3. **68-95-99.7 Rule**: For normal distributions:
-   - 68% of data within ±1σ
-   - 95% within ±2σ
-   - 99.7% within ±3σ
+#### Feature Space Distance (Isolation Forest)
+```typescript
+private calculateDistance(point1: number[], point2: number[]): number {
+  return Math.sqrt(
+    point1.reduce((sum, val, i) => sum + Math.pow(val - point2[i], 2), 0)
+  );
+}
+```
+
+#### Time-Aware Distance (Seasonal)
+```typescript
+private getExpectedVolatility(timestamp: number, pattern: ISeasonalPattern): number {
+  const timeFeatures = this.extractTimeFeatures(timestamp);
+  let volatility = pattern.baselineVolatility || 1;
+  
+  // Time-based volatility adjustments
+  if (pattern.volatilityByHour) {
+    volatility *= pattern.volatilityByHour[timeFeatures.hour] || 1;
+  }
+  
+  return volatility;
+}
+```
+
+## 3. Z-Score Detector: Welford's Algorithm and Adaptive Statistics {#z-score-detector}
+
+### NestShield's Z-Score Implementation
+
+NestShield's Z-Score detector implements sophisticated online learning with adaptive thresholds.
+
+#### Core Algorithm Structure
+
+```typescript
+// From zscore.detector.ts
+private async detectSinglePoint(
+  dataPoint: IAnomalyData,
+  context?: IDetectorContext
+): Promise<IAnomaly | null> {
+  // Update running statistics using Welford's algorithm
+  this.updateRunningStats(dataPoint.value);
+  
+  // Calculate Z-Score with seasonal adjustment
+  let zScore = this.calculateZScore(dataPoint.value);
+  if (this.hasSeasonalAdjustment(dataPoint.timestamp)) {
+    zScore = this.applySeasonalAdjustment(zScore, dataPoint.timestamp);
+  }
+  
+  // Apply Modified Z-Score for robustness
+  const modifiedZScore = this.calculateModifiedZScore(dataPoint.value);
+  const finalScore = Math.max(zScore, modifiedZScore);
+  
+  return finalScore > this.config.threshold ? this.createAnomaly(...) : null;
+}
+```
+
+#### Welford's Algorithm Implementation
+
+**Mathematical Foundation:**
+```
+// Online mean update
+μₙ = μₙ₋₁ + (xₙ - μₙ₋₁)/n
+
+// Online variance update  
+M₂ₙ = M₂ₙ₋₁ + (xₙ - μₙ₋₁)(xₙ - μₙ)
+σ²ₙ = M₂ₙ/(n-1)
+```
+
+**Numerical Advantages:**
+- Avoids loss of precision in floating-point arithmetic
+- Handles large differences between data points and mean
+- Maintains numerical stability even with extreme values
+
+#### Modified Z-Score with MAD
+
+```typescript
+private calculateModifiedZScore(value: number): number {
+  const median = this.rollingWindow.median();
+  const mad = this.calculateMAD();
+  
+  if (mad === 0) return 0;
+  
+  // 0.6745 is the 75th percentile of the standard normal distribution
+  return 0.6745 * Math.abs(value - median) / mad;
+}
+
+private calculateMAD(): number {
+  const median = this.rollingWindow.median();
+  const deviations = this.rollingWindow.values.map(x => Math.abs(x - median));
+  return this.median(deviations);
+}
+```
+
+#### Adaptive Threshold Mechanism
+
+```typescript
+private calculateAdaptiveThreshold(
+  baseThreshold: number,
+  recentVolatility: number,
+  trendStrength: number
+): number {
+  // Adjust threshold based on recent volatility
+  let adaptiveThreshold = baseThreshold * (1 + recentVolatility * 0.5);
+  
+  // Reduce threshold during trend changes (more sensitive)
+  if (trendStrength > 0.7) {
+    adaptiveThreshold *= 0.8;
+  }
+  
+  return Math.max(adaptiveThreshold, baseThreshold * 0.5);
+}
+```
+
+#### Seasonal Adjustment Formula
+
+```typescript
+private applySeasonalAdjustment(zScore: number, timestamp: number): number {
+  const timeFeatures = this.extractTimeFeatures(timestamp);
+  
+  // Get expected variance for this time period
+  const expectedVolatility = this.seasonalVolatility[timeFeatures.hour] || 1.0;
+  
+  // Adjust Z-score by expected volatility
+  return zScore / Math.sqrt(expectedVolatility);
+}
+```
+
+### Statistical Properties
+
+#### Convergence Guarantees
+
+For the online mean and variance:
+```
+lim(n→∞) μₙ = E[X]  (almost surely)
+lim(n→∞) σ²ₙ = Var[X]  (almost surely)
+```
+
+#### Confidence Intervals
+
+For anomaly scores, NestShield calculates confidence based on:
+```typescript
+private calculateConfidence(
+  zScore: number,
+  sampleSize: number,
+  dataAge: number
+): number {
+  let confidence = Math.min(zScore / 5.0, 1.0); // Base confidence from z-score
+  
+  // Increase confidence with more data
+  const sampleFactor = Math.min(sampleSize / 100, 1.0);
+  confidence *= (0.5 + 0.5 * sampleFactor);
+  
+  // Decrease confidence for old data
+  const ageFactor = Math.exp(-dataAge / (24 * 60 * 60 * 1000)); // 24-hour decay
+  confidence *= ageFactor;
+  
+  return confidence;
+}
+```
+
+### Performance Characteristics
+
+- **Time Complexity**: O(1) per data point
+- **Space Complexity**: O(w) where w is window size
+- **Numerical Stability**: High (Welford's algorithm)
+- **Convergence Rate**: O(1/√n) for variance estimation
 
 ## 4. Isolation Forest: Tree-Based Isolation {#isolation-forest}
 

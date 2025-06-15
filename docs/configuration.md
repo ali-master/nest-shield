@@ -860,5 +860,5 @@ const DEFAULT_CONFIG: IShieldConfig = {
 ---
 
 <p align="center">
-  Need help? <a href="https://discord.gg/nestshield">Join our Discord</a> • <a href="https://github.com/ali-master/nest-shield/issues">Report an Issue</a>
+  Made with ❤️ by <a href="https://github.com/ali-master">Ali Torki</a> and the open source community
 </p>

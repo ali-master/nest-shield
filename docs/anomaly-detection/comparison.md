@@ -1,290 +1,370 @@
 # Anomaly Detector Comparison Guide
 
+## Overview
+
+NestShield provides 7 specialized anomaly detectors, each optimized for different use cases and data characteristics. This guide helps you choose the right detector for your specific needs.
+
 ## Quick Decision Matrix
 
-| Use Case | Best Detector | Second Choice | Why |
-|----------|--------------|---------------|-----|
-| Real-time monitoring | Z-Score | Threshold | Low latency, simple computation |
-| High-dimensional data | Isolation Forest | Machine Learning | No distance calculations needed |
-| Time series with patterns | Seasonal | Composite | Handles multiple seasonalities |
-| Network security | Statistical Ensemble | Isolation Forest | Multiple detection methods |
-| Unknown anomaly types | Composite | Machine Learning | Combines multiple approaches |
-| Resource-constrained | Threshold | Z-Score | Minimal computation |
-| Maximum accuracy | Machine Learning | Composite | Advanced pattern recognition |
+| Use Case | Best Detector | Runner-Up | Key Strength |
+|----------|---------------|-----------|--------------|
+| Real-time monitoring | Z-Score | Threshold | Low latency, online learning |
+| High-dimensional data | Isolation Forest | Statistical | No distance calculations |
+| Time series patterns | Seasonal | Composite | Multi-scale seasonality |
+| Known boundaries | Threshold | Statistical | Deterministic, fast |
+| Unknown patterns | Machine Learning | Composite | Adaptive learning |
+| Production systems | Composite | Statistical | Ensemble robustness |
+| Simple anomalies | Threshold | Z-Score | Minimal configuration |
 
 ## Detailed Detector Comparison
 
 ### 1. Z-Score Detector
 
-**Mathematical Complexity**: O(1) per point, O(n) for window
-**Memory Usage**: O(w) where w is window size
-**Training Required**: No (online learning)
-**Best For**: Gaussian-distributed data, real-time systems
+**Implementation**: `src/anomaly-detection/detectors/zscore.detector.ts`
 
-#### Strengths
-- ✅ Very fast computation
-- ✅ No training required
-- ✅ Interpretable results
-- ✅ Works well for normally distributed data
-- ✅ Adapts to changing baselines
+**Key Features**:
+- Online mean and variance calculation using Welford's algorithm
+- Modified Z-Score using MAD (Median Absolute Deviation) for outlier robustness
+- Adaptive threshold based on recent volatility
+- Seasonal adjustment capabilities
+- Rolling window statistics
 
-#### Weaknesses
-- ❌ Assumes normal distribution
-- ❌ Sensitive to outliers in training window
-- ❌ May miss complex patterns
-- ❌ Not suitable for multimodal distributions
+**Performance Characteristics**:
+- **Complexity**: O(1) per data point
+- **Memory**: O(w) where w is window size
+- **Latency**: < 1ms typical
+- **Training**: Not required (online learning)
 
-#### Configuration Example
+**Best For**:
+- Normally distributed data
+- Real-time streaming applications
+- Quick anomaly screening
+- Univariate time series
+
+**Configuration Example**:
 ```typescript
 {
-  detectorType: "Z-Score Detector",
   sensitivity: 0.7,
   threshold: 3.0, // 3 standard deviations
   windowSize: 100,
-  detectorSpecificConfig: {
-    zscore: {
-      enableModifiedZScore: true, // More robust to outliers
-      seasonalAdjustment: false,
-      volatilityBasedThresholds: true
+  minDataPoints: 10,
+  learningPeriod: 86400000, // 24 hours
+  businessRules: [
+    {
+      id: "suppress_maintenance",
+      condition: "hour >= 2 && hour <= 4",
+      action: "suppress",
+      reason: "Scheduled maintenance window"
     }
-  }
+  ]
 }
 ```
+
+**Limitations**:
+- Assumes normal distribution
+- Sensitive to concept drift
+- May miss complex multivariate patterns
 
 ### 2. Isolation Forest Detector
 
-**Mathematical Complexity**: O(n log n) training, O(log n) detection
-**Memory Usage**: O(t × s) where t = trees, s = sample size
-**Training Required**: Yes (batch training)
-**Best For**: High-dimensional data, unknown distributions
+**Implementation**: `src/anomaly-detection/detectors/isolation-forest.detector.ts`
 
-#### Strengths
-- ✅ No assumption about data distribution
-- ✅ Handles high-dimensional data well
-- ✅ Robust to irrelevant features
-- ✅ Good for detecting global anomalies
-- ✅ Fast detection after training
+**Key Features**:
+- Tree-based isolation algorithm
+- Feature extraction with 8 engineered features
+- Subsample-based forest construction
+- Feature importance calculation
+- Path length normalization
 
-#### Weaknesses
-- ❌ Requires training phase
-- ❌ May miss local anomalies
-- ❌ Less interpretable than statistical methods
-- ❌ Requires parameter tuning (trees, samples)
+**Performance Characteristics**:
+- **Complexity**: O(n log n) training, O(log n) detection
+- **Memory**: O(t × s) where t = trees, s = subsample size
+- **Latency**: 5-10ms typical
+- **Training**: Required (batch training)
 
-#### Configuration Example
+**Best For**:
+- High-dimensional data
+- Unknown anomaly types
+- Mixed data distributions
+- Outlier detection without labels
+
+**Configuration Example**:
 ```typescript
 {
-  detectorType: "Isolation Forest Detector",
   sensitivity: 0.8,
   threshold: 0.6, // Anomaly score threshold
-  detectorSpecificConfig: {
-    isolationForest: {
-      numTrees: 100,
-      subsampleSize: 256,
-      maxDepth: 8,
-      enableFeatureImportance: true
-    }
-  }
+  windowSize: 256,
+  minDataPoints: 100,
+  // Auto-configures trees and subsample size
 }
 ```
+
+**Feature Engineering**:
+- Value normalization
+- Rate of change
+- Local variance
+- Z-score
+- Moving average ratio
+- Percentile rank
+- Time since last spike
+
+**Limitations**:
+- Requires training data
+- Not interpretable
+- May struggle with local anomalies
 
 ### 3. Seasonal Anomaly Detector
 
-**Mathematical Complexity**: O(n × p) where p = period length
-**Memory Usage**: O(n) for decomposition
-**Training Required**: Semi-supervised (learns patterns)
-**Best For**: Time series with regular patterns
+**Implementation**: `src/anomaly-detection/detectors/seasonal.detector.ts`
 
-#### Strengths
-- ✅ Excellent for periodic data
-- ✅ Handles multiple seasonalities
-- ✅ Separates trend from seasonal components
-- ✅ Robust to gradual changes
-- ✅ Interpretable components
+**Key Features**:
+- Time series decomposition (trend, seasonal, residual)
+- Multiple seasonality detection (hourly, daily, weekly, monthly)
+- Volatility modeling by time period
+- Pattern strength calculation
+- Seasonal forecasting
 
-#### Weaknesses
-- ❌ Requires sufficient historical data
-- ❌ May struggle with irregular patterns
-- ❌ Computationally intensive for long periods
-- ❌ Sensitive to period misspecification
+**Performance Characteristics**:
+- **Complexity**: O(n × p) where p = period length
+- **Memory**: O(n) for pattern storage
+- **Latency**: 10-20ms typical
+- **Training**: Required (pattern extraction)
 
-#### Configuration Example
+**Best For**:
+- Time series with regular patterns
+- Business metrics with cycles
+- Predictable workloads
+- Capacity planning
+
+**Configuration Example**:
 ```typescript
 {
-  detectorType: "Seasonal Anomaly Detector",
   sensitivity: 0.75,
-  windowSize: 1440, // 24 hours of minute data
-  detectorSpecificConfig: {
-    seasonal: {
-      enableHourlyPattern: true,
-      enableDailyPattern: true,
-      enableWeeklyPattern: true,
-      trendDetection: true,
-      volatilityModeling: true
-    }
-  }
+  threshold: 2.5,
+  windowSize: 1440, // 24 hours at minute granularity
+  minDataPoints: 168, // 1 week of hourly data
 }
 ```
+
+**Seasonal Components**:
+- Hourly patterns (24 values)
+- Daily patterns (7 values)
+- Weekly patterns (4 values)
+- Monthly patterns (12 values)
+- Trend component with slope
+- Time-based volatility adjustments
+
+**Limitations**:
+- Requires sufficient historical data
+- Assumes pattern stability
+- Computationally intensive for long periods
 
 ### 4. Threshold Anomaly Detector
 
-**Mathematical Complexity**: O(1) constant time
-**Memory Usage**: O(1) minimal
-**Training Required**: No
-**Best For**: Known boundaries, SLA monitoring
+**Implementation**: `src/anomaly-detection/detectors/threshold.detector.ts`
 
-#### Strengths
-- ✅ Extremely fast
-- ✅ Zero latency
-- ✅ Perfect for SLA violations
-- ✅ Easy to understand and configure
-- ✅ Deterministic results
+**Key Features**:
+- Static and dynamic thresholds
+- Contextual thresholds by source
+- Business hour adjustments
+- SLA violation detection
+- Rate of change monitoring
 
-#### Weaknesses
-- ❌ Requires domain knowledge
-- ❌ No adaptation to changing patterns
-- ❌ May generate many false positives
-- ❌ Cannot detect complex anomalies
+**Performance Characteristics**:
+- **Complexity**: O(1) constant time
+- **Memory**: O(1) minimal
+- **Latency**: < 0.5ms typical
+- **Training**: Not required
 
-#### Configuration Example
+**Best For**:
+- SLA monitoring
+- Known boundaries (CPU, memory)
+- Simple rule-based detection
+- Low-latency requirements
+
+**Configuration Example**:
 ```typescript
 {
-  detectorType: "Threshold Anomaly Detector",
-  detectorSpecificConfig: {
-    threshold: {
-      staticThresholds: {
-        upper: 100,
-        lower: 0,
-        upperWarning: 80,
-        lowerWarning: 20
-      },
-      enableAdaptiveThresholds: true,
-      contextualAdjustment: true
-    }
+  sensitivity: 0.5,
+  threshold: 1.0, // Not used for static thresholds
+  staticThresholds: {
+    "cpu_usage": { upper: 80, lower: 0 },
+    "memory_usage": { upper: 90, lower: 0 },
+    "response_time": { upper: 1000, lower: 0 }
+  },
+  adaptiveThresholds: {
+    enabled: true,
+    learningRate: 0.1
   }
 }
 ```
+
+**Limitations**:
+- No pattern recognition
+- Requires domain knowledge
+- May generate many false positives
 
 ### 5. Statistical Anomaly Detector
 
-**Mathematical Complexity**: O(n) for most tests
-**Memory Usage**: O(n) for data storage
-**Training Required**: No
-**Best For**: Rigorous statistical validation
+**Implementation**: `src/anomaly-detection/detectors/statistical.detector.ts`
 
-#### Strengths
-- ✅ Multiple statistical tests
-- ✅ Mathematically rigorous
-- ✅ Good for research/compliance
-- ✅ Handles various distributions
-- ✅ Provides confidence intervals
+**Key Features**:
+- Multiple statistical tests ensemble
+- Grubbs' test for outliers
+- Modified Z-Score
+- IQR (Interquartile Range) method
+- Generalized ESD test
+- Weighted voting system
 
-#### Weaknesses
-- ❌ Slower than simple methods
-- ❌ May be overly conservative
-- ❌ Complex parameter tuning
-- ❌ Requires statistical expertise
+**Performance Characteristics**:
+- **Complexity**: O(n) for most tests
+- **Memory**: O(n) for data storage
+- **Latency**: 15-30ms typical
+- **Training**: Not required
 
-#### Configuration Example
+**Best For**:
+- Rigorous statistical validation
+- Research and compliance
+- Multiple distribution types
+- Ensemble accuracy
+
+**Configuration Example**:
 ```typescript
 {
-  detectorType: "Statistical Anomaly Detector",
   sensitivity: 0.9,
-  detectorSpecificConfig: {
-    statistical: {
-      methods: ["zscore", "iqr", "grubbs", "esd"],
-      ensembleWeights: {
-        zscore: 0.3,
-        iqr: 0.2,
-        grubbs: 0.3,
-        esd: 0.2
-      },
-      enableDataQualityAnalysis: true
-    }
+  threshold: 2.0,
+  windowSize: 200,
+  ensembleWeights: {
+    "zscore": 0.3,
+    "iqr": 0.2,
+    "grubbs": 0.3,
+    "modifiedZScore": 0.2
   }
 }
 ```
+
+**Statistical Tests**:
+- Z-Score test
+- Modified Z-Score (MAD-based)
+- Grubbs' test
+- Generalized ESD
+- IQR method
+- Dixon's Q test
+
+**Limitations**:
+- Computationally intensive
+- May be conservative
+- Requires parameter tuning
 
 ### 6. Machine Learning Detector
 
-**Mathematical Complexity**: O(n²) to O(n³) training
-**Memory Usage**: O(n × d) where d = dimensions
-**Training Required**: Yes (extensive)
-**Best For**: Complex patterns, high accuracy needs
+**Implementation**: `src/anomaly-detection/detectors/machine-learning.detector.ts`
 
-#### Strengths
-- ✅ Highest accuracy potential
-- ✅ Learns complex patterns
-- ✅ Handles non-linear relationships
-- ✅ Can improve over time
-- ✅ Multiple algorithms available
+**Key Features**:
+- Multiple ML algorithms (Autoencoder, LSTM, One-Class SVM)
+- Feature engineering pipeline
+- Online learning capabilities
+- Model persistence
+- Ensemble predictions
 
-#### Weaknesses
-- ❌ Requires significant training data
-- ❌ Computationally expensive
-- ❌ "Black box" - less interpretable
-- ❌ Risk of overfitting
-- ❌ Requires ML expertise
+**Performance Characteristics**:
+- **Complexity**: O(n²) to O(n³) training
+- **Memory**: O(n × d) where d = dimensions
+- **Latency**: 50-100ms typical
+- **Training**: Required (extensive)
 
-#### Configuration Example
+**Best For**:
+- Complex patterns
+- Multivariate anomalies
+- High accuracy requirements
+- Non-linear relationships
+
+**Configuration Example**:
 ```typescript
 {
-  detectorType: "Machine Learning Detector",
   sensitivity: 0.95,
-  detectorSpecificConfig: {
-    machineLearning: {
-      algorithms: ["autoencoder", "lstm", "one-svm"],
-      enableOnlineLearning: true,
-      featureEngineering: {
-        enableTimeFeatures: true,
-        enableStatisticalFeatures: true,
-        enableTrendFeatures: true
-      }
-    }
+  threshold: 0.7,
+  algorithms: ["autoencoder", "lstm"],
+  featureEngineering: {
+    enableTimeFeatures: true,
+    enableStatisticalFeatures: true,
+    enableLagFeatures: true
+  },
+  onlineLearning: {
+    enabled: true,
+    updateInterval: 3600000 // 1 hour
   }
 }
 ```
+
+**ML Algorithms**:
+- Autoencoder (reconstruction error)
+- LSTM (sequence prediction)
+- One-Class SVM (boundary learning)
+- Random Forest (feature importance)
+
+**Limitations**:
+- Requires significant training data
+- High computational cost
+- "Black box" predictions
+- Risk of overfitting
 
 ### 7. Composite Anomaly Detector
 
-**Mathematical Complexity**: Sum of component complexities
-**Memory Usage**: Sum of component memory
-**Training Required**: Depends on components
-**Best For**: Production systems, maximum coverage
+**Implementation**: `src/anomaly-detection/detectors/composite.detector.ts`
 
-#### Strengths
-- ✅ Best overall performance
-- ✅ Reduces false positives
-- ✅ Adapts to different anomaly types
-- ✅ Self-improving through feedback
-- ✅ Handles diverse data patterns
+**Key Features**:
+- Ensemble of all 6 detectors
+- Multiple combination strategies
+- Adaptive weight adjustment
+- Context-aware detector selection
+- Performance tracking
+- Conflict resolution
 
-#### Weaknesses
-- ❌ Most resource-intensive
-- ❌ Complex configuration
-- ❌ Harder to debug
-- ❌ Requires tuning multiple components
+**Performance Characteristics**:
+- **Complexity**: Sum of component complexities
+- **Memory**: Sum of component memory
+- **Latency**: 100-200ms typical (parallel execution)
+- **Training**: Trains all component detectors
 
-#### Configuration Example
+**Best For**:
+- Production systems
+- Maximum accuracy
+- Unknown anomaly types
+- Critical applications
+
+**Ensemble Strategies**:
+1. **Majority Vote**: Simple democratic voting
+2. **Weighted Average**: Performance-based weights
+3. **Adaptive Weighted**: Context and performance adaptation
+4. **Stacking**: Meta-learning approach
+5. **Hierarchical**: Multi-stage pipeline
+
+**Configuration Example**:
 ```typescript
 {
-  detectorType: "Composite Anomaly Detector",
   sensitivity: 0.85,
-  detectorSpecificConfig: {
-    composite: {
-      strategy: "adaptive_weighted",
-      enableContextualSelection: true,
-      enablePerformanceTracking: true,
-      detectorWeights: {
-        "Z-Score Detector": 0.2,
-        "Isolation Forest Detector": 0.25,
-        "Seasonal Anomaly Detector": 0.25,
-        "Machine Learning Detector": 0.3
-      }
-    }
-  }
+  threshold: 2.0,
+  ensembleStrategy: "adaptive_weighted",
+  detectorWeights: {
+    "Z-Score Detector": 1.0,
+    "Isolation Forest Detector": 1.2,
+    "Seasonal Anomaly Detector": 1.1,
+    "Threshold Anomaly Detector": 0.8,
+    "Statistical Anomaly Detector": 1.3,
+    "Machine Learning Detector": 1.4
+  },
+  contextualSelection: true,
+  performanceTracking: true
 }
 ```
+
+**Adaptive Features**:
+- Performance-based weight adjustment
+- Context-aware detector selection
+- Automatic conflict resolution
+- Real-time performance tracking
+- Feedback integration
 
 ## Performance Benchmarks
 
@@ -294,244 +374,233 @@
 |----------|-----------|------------|-------------|-----------|
 | Threshold | 0.1 | 0.5 | 5 | 50 |
 | Z-Score | 0.5 | 2 | 20 | 200 |
-| Isolation Forest | 5 | 10 | 50 | 300 |
+| Isolation Forest | 5 | 15 | 100 | 800 |
 | Seasonal | 10 | 50 | 500 | 5000 |
 | Statistical | 15 | 100 | 1000 | 10000 |
 | Machine Learning | 50 | 200 | 2000 | 20000 |
-| Composite | 100 | 500 | 5000 | 50000 |
+| Composite | 100 | 300 | 2000 | 15000 |
 
 ### Memory Usage (MB)
 
-| Detector | Base | Per 10K points | Scalability |
-|----------|------|----------------|-------------|
-| Threshold | 1 | 0.1 | Linear |
-| Z-Score | 5 | 0.5 | Linear |
-| Isolation Forest | 50 | 2 | Sublinear |
-| Seasonal | 20 | 5 | Linear |
-| Statistical | 10 | 3 | Linear |
-| Machine Learning | 100 | 10 | Linear |
-| Composite | 200 | 20 | Linear |
+| Detector | Base | Per 10K points | Growth Pattern |
+|----------|------|----------------|----------------|
+| Threshold | 1 | 0.1 | Constant |
+| Z-Score | 5 | 0.8 | Linear (window) |
+| Isolation Forest | 50 | 5 | Sublinear |
+| Seasonal | 20 | 10 | Linear |
+| Statistical | 10 | 5 | Linear |
+| Machine Learning | 100 | 20 | Linear |
+| Composite | 200 | 40 | Linear |
 
 ### Accuracy Comparison
 
-| Scenario | Z-Score | Isolation | Seasonal | Threshold | Statistical | ML | Composite |
-|----------|---------|-----------|----------|-----------|------------|-----|-----------|
-| Point anomalies | 85% | 90% | 70% | 95% | 88% | 93% | 95% |
-| Contextual anomalies | 60% | 75% | 90% | 40% | 70% | 85% | 88% |
-| Collective anomalies | 50% | 80% | 85% | 30% | 75% | 90% | 92% |
-| Seasonal patterns | 65% | 60% | 95% | 50% | 70% | 88% | 93% |
-| Trend changes | 70% | 65% | 85% | 60% | 75% | 82% | 87% |
-| Multimodal data | 40% | 85% | 60% | 70% | 80% | 90% | 91% |
+| Anomaly Type | Z-Score | Isolation | Seasonal | Threshold | Statistical | ML | Composite |
+|--------------|---------|-----------|----------|-----------|------------|-----|-----------|
+| Point anomalies | 85% | 92% | 75% | 95% | 90% | 94% | 96% |
+| Contextual | 65% | 78% | 92% | 45% | 75% | 88% | 91% |
+| Collective | 55% | 85% | 88% | 35% | 80% | 92% | 94% |
+| Seasonal | 70% | 65% | 96% | 55% | 75% | 90% | 94% |
+| Trend changes | 75% | 70% | 90% | 65% | 80% | 85% | 90% |
+| Noise robustness | 70% | 88% | 82% | 60% | 85% | 91% | 93% |
 
 ## Selection Guidelines
 
 ### By Data Characteristics
 
-#### Stationary Data
+#### For Stationary Data:
 1. **First Choice**: Z-Score Detector
 2. **Alternative**: Statistical Anomaly Detector
-3. **If high-dimensional**: Isolation Forest
+3. **High accuracy**: Composite Detector
 
-#### Non-Stationary Data
+#### For Time Series:
 1. **First Choice**: Seasonal Anomaly Detector
-2. **Alternative**: Machine Learning Detector
-3. **For simple trends**: Adaptive Threshold
+2. **Alternative**: Machine Learning Detector (LSTM)
+3. **Simple patterns**: Z-Score with adaptive thresholds
 
-#### Unknown Distribution
-1. **First Choice**: Isolation Forest
+#### For High-Dimensional Data:
+1. **First Choice**: Isolation Forest Detector
 2. **Alternative**: Machine Learning Detector
-3. **For production**: Composite Detector
+3. **Maximum accuracy**: Composite Detector
+
+#### For Known Boundaries:
+1. **First Choice**: Threshold Anomaly Detector
+2. **Alternative**: Statistical Anomaly Detector
+3. **With patterns**: Seasonal + Threshold combination
 
 ### By System Requirements
 
-#### Low Latency (< 10ms)
-1. Threshold Detector
-2. Z-Score Detector
-3. Pre-trained Isolation Forest
+#### Low Latency (< 10ms):
+- Threshold Detector
+- Z-Score Detector
+- Pre-trained Isolation Forest
 
-#### High Accuracy (> 90%)
-1. Composite Detector
-2. Machine Learning Detector
-3. Statistical Ensemble
+#### High Accuracy (> 90%):
+- Composite Detector
+- Machine Learning Detector
+- Statistical Ensemble
 
-#### Limited Resources
-1. Threshold Detector
-2. Z-Score Detector
-3. Simple Statistical Tests
+#### Limited Resources:
+- Threshold Detector
+- Z-Score Detector
+- Single Statistical Test
 
-### By Anomaly Types
+#### Real-time Streaming:
+- Z-Score Detector (online learning)
+- Threshold Detector
+- Adaptive Statistical Methods
 
-#### Spike Detection
-- **Best**: Threshold Detector
-- **Good**: Z-Score Detector
-- **Alternative**: Statistical Tests
+## Detector Combination Patterns
 
-#### Pattern Anomalies
-- **Best**: Machine Learning Detector
-- **Good**: Seasonal Detector
-- **Alternative**: Composite Detector
-
-#### Gradual Degradation
-- **Best**: Seasonal Detector with trend
-- **Good**: Machine Learning (LSTM)
-- **Alternative**: Statistical with time windows
-
-#### Multivariate Anomalies
-- **Best**: Isolation Forest
-- **Good**: Machine Learning
-- **Alternative**: Mahalanobis distance in Statistical
-
-## Combining Detectors
-
-### Layered Approach
+### Layered Detection
 ```
-Layer 1: Threshold (fast filter)
-    ↓
-Layer 2: Z-Score (statistical validation)
-    ↓
-Layer 3: Machine Learning (complex patterns)
+Input → Threshold (fast filter)
+      ↓ (if anomaly)
+      → Z-Score (statistical validation)
+      ↓ (if confirmed)
+      → Machine Learning (pattern analysis)
+      ↓
+      → Alert with confidence score
 ```
 
 ### Parallel Ensemble
 ```
-Input → Z-Score      → 
-      → Isolation    → Voting → Output
-      → Seasonal     →
+Input → Z-Score ─────┐
+      → Isolation ───┼→ Weighted → Decision
+      → Seasonal ────┤  Voting
+      → Statistical ─┘
 ```
 
-### Contextual Selection
+### Context-Aware Selection
 ```typescript
-function selectDetector(context: DataContext): string {
-  if (context.dataRate > 10000) {
-    return "Z-Score Detector"; // Fast
+function selectDetector(context: IDetectorContext): string {
+  const analysis = analyzeData(context);
+  
+  if (analysis.isRealTime && analysis.lowLatency) {
+    return "Z-Score Detector";
   }
-  if (context.dimensionality > 50) {
-    return "Isolation Forest Detector"; // High-dim
+  if (analysis.hasSeasonality) {
+    return "Seasonal Anomaly Detector";
   }
-  if (context.hasSeasonality) {
-    return "Seasonal Anomaly Detector"; // Patterns
+  if (analysis.isHighDimensional) {
+    return "Isolation Forest Detector";
   }
-  if (context.requiresExplanation) {
-    return "Statistical Anomaly Detector"; // Interpretable
+  if (analysis.hasKnownBounds) {
+    return "Threshold Anomaly Detector";
   }
+  
   return "Composite Anomaly Detector"; // Default
 }
 ```
 
 ## Tuning Recommendations
 
-### Sensitivity Tuning
+### Sensitivity Settings
 
-| Goal | Sensitivity | Trade-off |
-|------|-------------|-----------|
-| Catch all anomalies | 0.9 - 1.0 | More false positives |
-| Balanced detection | 0.7 - 0.8 | Good compromise |
-| Only major anomalies | 0.5 - 0.6 | May miss subtle issues |
-| Critical only | 0.3 - 0.4 | Very few alerts |
+| Goal | Sensitivity | Expected Behavior |
+|------|-------------|-------------------|
+| Catch all anomalies | 0.9-1.0 | More alerts, possible false positives |
+| Balanced detection | 0.7-0.8 | Good accuracy/alert ratio |
+| Critical only | 0.5-0.6 | Fewer alerts, may miss subtle issues |
+| Minimal alerts | 0.3-0.4 | Only major anomalies |
 
 ### Window Size Selection
 
-| Data Frequency | Recommended Window | Covers |
-|----------------|-------------------|---------|
-| Per second | 300 (5 min) | Recent behavior |
-| Per minute | 60 (1 hour) | Hourly patterns |
-| Per hour | 168 (1 week) | Weekly patterns |
-| Per day | 30 (1 month) | Monthly patterns |
+| Data Frequency | Window Size | Coverage |
+|----------------|-------------|----------|
+| Per second | 300 | 5 minutes |
+| Per minute | 60-120 | 1-2 hours |
+| Per hour | 24-168 | 1 day - 1 week |
+| Per day | 30-90 | 1-3 months |
 
-### Performance vs Accuracy Trade-offs
+### Threshold Configuration
 
 ```typescript
-// High Performance Configuration
+// Conservative (fewer alerts)
 {
-  detectorType: "Z-Score Detector",
-  windowSize: 50,
-  sensitivity: 0.7
+  threshold: 3.5,  // Z-Score
+  threshold: 0.7,  // Isolation Forest
+  threshold: 3.0   // Seasonal multiplier
 }
 
-// Balanced Configuration  
+// Balanced
 {
-  detectorType: "Isolation Forest Detector",
-  numTrees: 50,
-  subsampleSize: 128,
-  sensitivity: 0.8
+  threshold: 3.0,  // Z-Score
+  threshold: 0.6,  // Isolation Forest  
+  threshold: 2.5   // Seasonal multiplier
 }
 
-// High Accuracy Configuration
+// Sensitive (more alerts)
 {
-  detectorType: "Composite Anomaly Detector",
-  strategy: "adaptive_weighted",
-  sensitivity: 0.9
+  threshold: 2.5,  // Z-Score
+  threshold: 0.5,  // Isolation Forest
+  threshold: 2.0   // Seasonal multiplier
 }
 ```
 
-## Common Pitfalls and Solutions
+## Common Issues and Solutions
 
-### 1. Too Many False Positives
+### Too Many False Positives
 
-**Problem**: Alert fatigue from excessive alerts
+**Problem**: Alert fatigue from excessive anomaly detection
+
 **Solutions**:
-- Decrease sensitivity (e.g., 0.8 → 0.6)
-- Increase threshold values
-- Add business rules for suppression
-- Use ensemble voting with majority rule
+1. Decrease sensitivity (e.g., 0.8 → 0.6)
+2. Increase threshold values
+3. Add business rules for suppression
+4. Use Composite detector with voting
+5. Enable adaptive thresholds
 
-### 2. Missing Important Anomalies
+### Missing Important Anomalies
 
 **Problem**: Critical issues go undetected
+
 **Solutions**:
-- Increase sensitivity (e.g., 0.6 → 0.8)
-- Use multiple detectors in parallel
-- Add specific rules for critical metrics
-- Implement escalation for sustained anomalies
+1. Increase sensitivity (e.g., 0.6 → 0.8)
+2. Decrease threshold values
+3. Add specific detectors for known patterns
+4. Use multiple detectors in parallel
+5. Implement custom business rules
 
-### 3. Slow Detection
+### Slow Detection Performance
 
-**Problem**: Anomalies detected too late
+**Problem**: High latency in anomaly detection
+
 **Solutions**:
-- Switch to faster detector (Threshold/Z-Score)
-- Reduce window size
-- Implement streaming algorithms
-- Use pre-filtering with simple methods
+1. Use faster detectors (Threshold, Z-Score)
+2. Reduce window sizes
+3. Enable detector caching
+4. Use hierarchical detection strategy
+5. Parallelize detector execution
 
-### 4. Resource Exhaustion
+### Adapting to Changing Patterns
 
-**Problem**: System runs out of memory/CPU
+**Problem**: Detector accuracy degrades over time
+
 **Solutions**:
-- Limit window sizes
-- Use sampling for large datasets
-- Implement data retention policies
-- Choose lighter algorithms
+1. Enable online learning (Z-Score, ML detectors)
+2. Implement periodic retraining
+3. Use adaptive thresholds
+4. Monitor detector performance metrics
+5. Implement feedback loops
 
-## Future Considerations
+## Best Practices
 
-### Emerging Techniques
-
-1. **Deep Learning**: Transformers for time series
-2. **Graph Analytics**: For network anomalies
-3. **Federated Learning**: Privacy-preserving detection
-4. **Quantum Algorithms**: For complex optimization
-
-### Integration Patterns
-
-1. **MLOps Pipeline**: Automated retraining
-2. **Edge Computing**: Local detection
-3. **Stream Processing**: Real-time at scale
-4. **Explainable AI**: Interpretable results
-
-### Industry Trends
-
-1. **AutoML**: Automated algorithm selection
-2. **Adaptive Systems**: Self-tuning parameters
-3. **Cross-Domain**: Transfer learning
-4. **Hybrid Approaches**: Classical + ML
+1. **Start Simple**: Begin with Threshold or Z-Score, then add complexity
+2. **Monitor Performance**: Track accuracy, latency, and resource usage
+3. **Use Business Rules**: Suppress known false positives
+4. **Implement Feedback**: Update models based on validation
+5. **Test Thoroughly**: Validate with historical data and known anomalies
+6. **Document Choices**: Record why specific detectors were selected
+7. **Plan for Growth**: Consider scalability from the start
 
 ## Conclusion
 
-Choosing the right anomaly detector depends on:
+Choosing the right anomaly detector depends on your specific use case:
 
-1. **Data characteristics**: Distribution, dimensionality, patterns
-2. **System requirements**: Latency, accuracy, resources
-3. **Business needs**: Interpretability, compliance, cost
-4. **Operational maturity**: Expertise, monitoring, feedback
+- **For simplicity**: Start with Threshold or Z-Score
+- **For accuracy**: Use Statistical or Machine Learning
+- **For patterns**: Choose Seasonal detector
+- **For production**: Deploy Composite detector
+- **For exploration**: Try Isolation Forest
 
-Start simple (Threshold/Z-Score), measure performance, and gradually adopt more sophisticated methods as needed. The Composite Detector provides the best overall solution for production systems that can afford the computational cost.
+Remember that you can always combine multiple detectors or switch between them as your needs evolve. The Composite detector provides the best overall performance by intelligently combining all available methods.

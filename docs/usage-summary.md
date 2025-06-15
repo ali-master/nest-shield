@@ -126,3 +126,9 @@ Used for graceful degradation during outages
 7. **Testing**: Mock services and bypass decorators
 
 Every method serves a specific purpose in the complete protection ecosystem.
+
+---
+
+<p align="center">
+  Made with ❤️ by <a href="https://github.com/ali-master">Ali Torki</a> and the open source community
+</p>

@@ -349,3 +349,9 @@ ShieldModule.forRoot({
 ```
 
 This comprehensive metrics system provides everything needed for production monitoring, alerting, and analytics!
+
+---
+
+<p align="center">
+  Made with ❤️ by <a href="https://github.com/ali-master">Ali Torki</a> and the open source community
+</p>
