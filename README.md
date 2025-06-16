@@ -499,16 +499,9 @@ ShieldModule.forRoot({
 ## 🤝 Community & Support
 
 ### 💬 **Get Help**
-- [**Discord Community**](https://discord.gg/nestshield) - Chat with other developers
 - [**GitHub Discussions**](https://github.com/ali-master/nest-shield/discussions) - Ask questions and share ideas
 - [**Stack Overflow**](https://stackoverflow.com/questions/tagged/nest-shield) - Technical Q&A
 - [**Email Support**](mailto:ali_4286@live.com) - Direct technical support
-
-### 📰 **Stay Updated**
-- [**Blog**](https://blog.nestshield.dev) - Latest updates and tutorials
-- [**Twitter**](https://twitter.com/nestshield) - News and announcements  
-- [**YouTube**](https://youtube.com/@nestshield) - Video tutorials and demos
-- [**Newsletter**](https://nestshield.dev/newsletter) - Monthly updates
 
 ### 🐛 **Contributing**
 We welcome contributions! Whether it's:
@@ -565,9 +558,9 @@ See our [**Contributing Guide**](./CONTRIBUTING.md) to get started.
 
 | 🚀 **Quick Start** | 📚 **Learn** | 🛠️ **Deploy** | 💬 **Community** |
 |:---:|:---:|:---:|:---:|
-| [Install & Setup](./docs/getting-started.md) | [Documentation](./docs/index.md) | [Production Guide](./docs/deployment/production.md) | [Discord](https://discord.gg/nestshield) |
-| [Basic Examples](./docs/examples/basic.md) | [API Reference](./docs/api/index.md) | [Kubernetes](./docs/deployment/kubernetes.md) | [GitHub](https://github.com/ali-master/nest-shield) |
-| [Configuration](./docs/configuration.md) | [Best Practices](./docs/best-practices.md) | [Monitoring](./docs/features/metrics.md) | [Stack Overflow](https://stackoverflow.com/questions/tagged/nest-shield) |
+| [Install & Setup](./docs/getting-started.md) | [Documentation](./docs/index.md) | [Production Guide](./docs/deployment/production.md) | [GitHub](https://github.com/ali-master/nest-shield) |
+| [Basic Examples](./docs/examples/basic.md) | [API Reference](./docs/api/index.md) | [Kubernetes](./docs/deployment/kubernetes.md) | [Stack Overflow](https://stackoverflow.com/questions/tagged/nest-shield) | 
+| [Configuration](./docs/configuration.md) | [Best Practices](./docs/best-practices.md) | [Monitoring](./docs/features/metrics.md) |
 
 </div>
 
