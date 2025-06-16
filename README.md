@@ -535,23 +535,6 @@ See our [**Contributing Guide**](./CONTRIBUTING.md) to get started.
 - Chaos engineering tools
 - Multi-cloud deployment
 
-## 🏆 Recognition
-
-<p align="center">
-  <img src="https://img.shields.io/badge/GitHub%20Stars-⭐%201.2K+-blue?style=for-the-badge" alt="GitHub Stars">
-  <img src="https://img.shields.io/badge/Weekly%20Downloads-📦%2050K+-green?style=for-the-badge" alt="Weekly Downloads">
-  <img src="https://img.shields.io/badge/Production%20Users-🏢%20500+-purple?style=for-the-badge" alt="Production Users">
-</p>
-
-> *"NestShield saved our startup during a viral TikTok moment. We went from 100 to 100K users overnight without a single outage."*  
-> — **Sarah Chen**, CTO at TechStartup
-
-> *"The circuit breaker functionality prevented what could have been a $2M outage during Black Friday."*  
-> — **Mike Rodriguez**, Senior Engineer at E-commerce Giant
-
-> *"Best developer experience I've seen for API protection. Setup took 5 minutes, saved us months of custom development."*  
-> — **Alex Kumar**, Lead Developer at FinTech Corp
-
 ## 🎯 Quick Links
 
 <div align="center">
