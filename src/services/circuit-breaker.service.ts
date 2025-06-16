@@ -244,52 +244,42 @@ export class CircuitBreakerService implements OnModuleDestroy {
     });
 
     breaker.on("reject", () => {
-      setImmediate(() => {
-        this.metricsService.increment("circuit_breaker_rejects", 1, { key });
-        this.logger.circuitBreakerWarn(`Circuit breaker rejected request`, {
-          operation: "reject",
-          metadata: { key },
-        });
+      this.metricsService.increment("circuit_breaker_rejects", 1, { key });
+      this.logger.circuitBreakerWarn(`Circuit breaker rejected request`, {
+        operation: "reject",
+        metadata: { key },
       });
     });
 
     breaker.on("open", () => {
-      setImmediate(() => {
-        this.metricsService.gauge("circuit_breaker_state", 1, { key, state: "open" });
-        this.logger.circuitBreaker(`Circuit breaker opened`, {
-          operation: "state_change",
-          metadata: { key, state: "open" },
-        });
+      this.metricsService.gauge("circuit_breaker_state", 1, { key, state: "open" });
+      this.logger.circuitBreaker(`Circuit breaker opened`, {
+        operation: "state_change",
+        metadata: { key, state: "open" },
       });
     });
 
     breaker.on("halfOpen", () => {
-      setImmediate(() => {
-        this.metricsService.gauge("circuit_breaker_state", 0.5, { key, state: "half_open" });
-        this.logger.circuitBreaker(`Circuit breaker half-opened`, {
-          operation: "state_change",
-          metadata: { key, state: "half_open" },
-        });
+      this.metricsService.gauge("circuit_breaker_state", 0.5, { key, state: "half_open" });
+      this.logger.circuitBreaker(`Circuit breaker half-opened`, {
+        operation: "state_change",
+        metadata: { key, state: "half_open" },
       });
     });
 
     breaker.on("close", () => {
-      setImmediate(() => {
-        this.metricsService.gauge("circuit_breaker_state", 0, { key, state: "closed" });
-        this.logger.circuitBreaker(`Circuit breaker closed`, {
-          operation: "state_change",
-          metadata: { key, state: "closed" },
-        });
+      this.metricsService.gauge("circuit_breaker_state", 0, { key, state: "closed" });
+      this.logger.circuitBreaker(`Circuit breaker closed`, {
+        operation: "state_change",
+        metadata: { key, state: "closed" },
       });
     });
 
     breaker.on("fallback", (_data: any) => {
-      setImmediate(() => {
-        this.metricsService.increment("circuit_breaker_fallbacks", 1, { key });
-        this.logger.circuitBreaker(`Circuit breaker fallback executed`, {
-          operation: "fallback",
-          metadata: { key },
-        });
+      this.metricsService.increment("circuit_breaker_fallbacks", 1, { key });
+      this.logger.circuitBreaker(`Circuit breaker fallback executed`, {
+        operation: "fallback",
+        metadata: { key },
       });
     });
   }

@@ -16,7 +16,7 @@ export class RedisStorageAdapter extends BaseStorageAdapter {
   constructor(options?: RedisStorageOptions | Redis) {
     // Pass keyPrefix to base class constructor if provided
     const redisOptions = options && !("get" in options) ? options : undefined;
-    super({ ...redisOptions, prefix: redisOptions?.keyPrefix });
+    super("RedisStorageAdapter", redisOptions?.keyPrefix || "redis");
 
     if (options && "get" in options && "set" in options) {
       this.client = options;
@@ -72,6 +72,7 @@ export class RedisStorageAdapter extends BaseStorageAdapter {
       return parsed;
     } catch (error) {
       this.handleError(error as Error, "get");
+      return null;
     }
   }
 
@@ -105,6 +106,7 @@ export class RedisStorageAdapter extends BaseStorageAdapter {
       return await this.client.incrby(fullKey, value);
     } catch (error) {
       this.handleError(error as Error, "increment");
+      return 0;
     }
   }
 
@@ -114,6 +116,7 @@ export class RedisStorageAdapter extends BaseStorageAdapter {
       return await this.client.decrby(fullKey, value);
     } catch (error) {
       this.handleError(error as Error, "decrement");
+      return 0;
     }
   }
 
@@ -124,6 +127,7 @@ export class RedisStorageAdapter extends BaseStorageAdapter {
       return exists === 1;
     } catch (error) {
       this.handleError(error as Error, "exists");
+      return false;
     }
   }
 
@@ -142,12 +146,13 @@ export class RedisStorageAdapter extends BaseStorageAdapter {
       return await this.client.ttl(fullKey);
     } catch (error) {
       this.handleError(error as Error, "ttl");
+      return -1;
     }
   }
 
   async clear(): Promise<void> {
     try {
-      const pattern = `${this.prefix}*`;
+      const pattern = `${this.keyPrefix}*`;
       // Use SCAN instead of KEYS to avoid blocking Redis
       const stream = this.client.scanStream({ match: pattern, count: 100 });
       const pipeline = this.client.pipeline();
@@ -171,6 +176,7 @@ export class RedisStorageAdapter extends BaseStorageAdapter {
       return values.map((value) => (value ? JSON.parse(value) : null));
     } catch (error) {
       this.handleError(error as Error, "mget");
+      return [];
     }
   }
 
@@ -232,7 +238,7 @@ export class RedisStorageAdapter extends BaseStorageAdapter {
         keys.push(...resultKeys);
       });
       stream.on("end", () => {
-        resolve(keys.map((key) => key.replace(this.prefix, "")));
+        resolve(keys.map((key) => key.replace(this.keyPrefix, "")));
       });
       stream.on("error", reject);
     });
@@ -280,5 +286,14 @@ export class RedisStorageAdapter extends BaseStorageAdapter {
 
     // Check object properties
     return Object.values(obj).every((value) => this.isValidDataStructure(value));
+  }
+
+  async isConnected(): Promise<boolean> {
+    try {
+      await this.client.ping();
+      return true;
+    } catch {
+      return false;
+    }
   }
 }

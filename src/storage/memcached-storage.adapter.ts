@@ -20,7 +20,7 @@ export class MemcachedStorageAdapter extends BaseStorageAdapter {
   private defaultTTL: number;
 
   constructor(options?: MemcachedStorageOptions) {
-    super(options);
+    super("MemcachedStorageAdapter", options?.servers?.toString() || "localhost:11211");
 
     const servers = options?.servers || "localhost:11211";
     const serverString = Array.isArray(servers) ? servers.join(",") : servers;
@@ -188,6 +188,17 @@ export class MemcachedStorageAdapter extends BaseStorageAdapter {
       this.client.close();
       resolve();
     });
+  }
+
+  async isConnected(): Promise<boolean> {
+    try {
+      await this.client.stats((err) => {
+        if (err) throw err;
+      });
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async stats(): Promise<Record<string, any>> {

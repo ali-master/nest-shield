@@ -17,7 +17,7 @@ export class MemoryStorageAdapter extends BaseStorageAdapter {
   private cache: any;
 
   constructor(options?: MemoryStorageOptions) {
-    super(options);
+    super("MemoryStorageAdapter", options?.stdTTL?.toString() || "0");
     this.cache = new NodeCache({
       stdTTL: options?.stdTTL || 0,
       checkperiod: options?.checkperiod || 120, // Reduced from 600 for better cleanup
@@ -35,6 +35,7 @@ export class MemoryStorageAdapter extends BaseStorageAdapter {
       return this.cache.get(fullKey);
     } catch (error) {
       this.handleError(error as Error, "get");
+      return null;
     }
   }
 
@@ -66,6 +67,7 @@ export class MemoryStorageAdapter extends BaseStorageAdapter {
       return newValue;
     } catch (error) {
       this.handleError(error as Error, "increment");
+      return 0;
     }
   }
 
@@ -79,6 +81,7 @@ export class MemoryStorageAdapter extends BaseStorageAdapter {
       return newValue;
     } catch (error) {
       this.handleError(error as Error, "decrement");
+      return 0;
     }
   }
 
@@ -88,6 +91,7 @@ export class MemoryStorageAdapter extends BaseStorageAdapter {
       return this.cache.has(fullKey);
     } catch (error) {
       this.handleError(error as Error, "exists");
+      return false;
     }
   }
 
@@ -108,6 +112,7 @@ export class MemoryStorageAdapter extends BaseStorageAdapter {
       return Math.floor((ttl - Date.now()) / 1000);
     } catch (error) {
       this.handleError(error as Error, "ttl");
+      return -1;
     }
   }
 
@@ -126,6 +131,7 @@ export class MemoryStorageAdapter extends BaseStorageAdapter {
       return keys.map((key) => values[this.getKey(key)]);
     } catch (error) {
       this.handleError(error as Error, "mget");
+      return [];
     }
   }
 
@@ -206,7 +212,7 @@ export class MemoryStorageAdapter extends BaseStorageAdapter {
           try {
             for (let i = index; i < endIndex; i++) {
               if (regex.test(keys[i])) {
-                results.push(keys[i].replace(this.prefix, ""));
+                results.push(keys[i].replace(this.keyPrefix, ""));
               }
             }
 
@@ -230,6 +236,28 @@ export class MemoryStorageAdapter extends BaseStorageAdapter {
     } catch {
       // Return empty array on timeout or error
       return [];
+    }
+  }
+
+  async isConnected(): Promise<boolean> {
+    return this.cache !== null && this.cache !== undefined;
+  }
+
+  // Additional methods for test compatibility
+  async getMultiple(keys: string[]): Promise<any[]> {
+    return this.mget(keys);
+  }
+
+  async setMultiple(entries: Array<[string, any]>, ttl?: number): Promise<void> {
+    return this.mset(entries, ttl);
+  }
+
+  async deleteMultiple(keys: string[]): Promise<void> {
+    try {
+      const fullKeys = keys.map((key) => this.getKey(key));
+      this.cache.del(fullKeys);
+    } catch (error) {
+      this.handleError(error as Error, "deleteMultiple");
     }
   }
 

@@ -37,15 +37,16 @@ export class RateLimitService {
       return { allowed: true };
     }
 
-    const cacheKey = `${context.ip}:${context.path}:${context.method}`;
+    const baseKey = this.generateKey(context, mergedConfig);
     const now = Date.now();
-    const windowInfo = this.getOrCreateWindowInfo(cacheKey, now, mergedConfig);
+    const windowInfo = this.getOrCreateWindowInfo(baseKey, now, mergedConfig);
     const windowKey = windowInfo.key;
 
     try {
-      // Use atomic increment for better performance
-      const currentPoints = await this.storage.increment(windowKey, 0); // Get current value
-
+      // Get current value and check if key exists
+      let currentPoints = (await this.storage.get(windowKey)) || 0;
+      currentPoints = Number(currentPoints);
+      
       // Set TTL only if this is a new key
       if (currentPoints === 0) {
         await this.storage.expire(windowKey, mergedConfig.duration);
@@ -54,12 +55,10 @@ export class RateLimitService {
       if (currentPoints >= mergedConfig.points) {
         const retryAfter = Math.ceil((windowInfo.resetTime - now) / 1000);
 
-        // Async metrics to avoid blocking
-        setImmediate(() => {
-          this.metricsService.increment("rate_limit_exceeded", 1, {
-            path: context.path,
-            method: context.method,
-          });
+        // Record metrics
+        this.metricsService.increment("rate_limit_exceeded", 1, {
+          path: context.path,
+          method: context.method,
         });
 
         const message =
@@ -78,12 +77,10 @@ export class RateLimitService {
       const newPoints = await this.storage.increment(windowKey, 1);
       const remaining = mergedConfig.points - newPoints;
 
-      // Async metrics to avoid blocking
-      setImmediate(() => {
-        this.metricsService.increment("rate_limit_consumed", 1, {
-          path: context.path,
-          method: context.method,
-        });
+      // Record metrics
+      this.metricsService.increment("rate_limit_consumed", 1, {
+        path: context.path,
+        method: context.method,
       });
 
       return {
@@ -100,12 +97,10 @@ export class RateLimitService {
         throw error;
       }
 
-      // Async metrics to avoid blocking
-      setImmediate(() => {
-        this.metricsService.increment("rate_limit_error", 1, {
-          path: context.path,
-          method: context.method,
-        });
+      // Record metrics
+      this.metricsService.increment("rate_limit_error", 1, {
+        path: context.path,
+        method: context.method,
       });
 
       return { allowed: true };
@@ -114,13 +109,13 @@ export class RateLimitService {
 
   async reset(context: IProtectionContext, config?: Partial<IRateLimitConfig>): Promise<void> {
     const mergedConfig = { ...this.globalConfig, ...config };
-    const key = this.generateKey(context, mergedConfig);
+    const baseKey = this.generateKey(context, mergedConfig);
     const now = Date.now();
-    const windowStart =
-      Math.floor(now / 1000 / mergedConfig.duration) * mergedConfig.duration * 1000;
-    const windowKey = `${key}:${windowStart}`;
-
-    await this.storage.delete(windowKey);
+    const windowInfo = this.getOrCreateWindowInfo(baseKey, now, mergedConfig);
+    
+    // Delete from storage and clear cache
+    await this.storage.delete(windowInfo.key);
+    this.keyCache.delete(baseKey);
   }
 
   async getRemaining(
@@ -133,9 +128,9 @@ export class RateLimitService {
       return mergedConfig.points;
     }
 
-    const cacheKey = `${context.ip}:${context.path}:${context.method}`;
+    const baseKey = this.generateKey(context, mergedConfig);
     const now = Date.now();
-    const windowInfo = this.getOrCreateWindowInfo(cacheKey, now, mergedConfig);
+    const windowInfo = this.getOrCreateWindowInfo(baseKey, now, mergedConfig);
 
     const currentPoints = (await this.storage.get(windowInfo.key)) || 0;
     return Math.max(0, mergedConfig.points - Number(currentPoints));
@@ -153,10 +148,11 @@ export class RateLimitService {
   }
 
   private generateKey(context: IProtectionContext, config: IRateLimitConfig): string {
-    const baseKey = KeyGeneratorUtil.generateKey(context, config, "rate_limit");
+    // Generate base key without prefix (will be added in window info)
+    const baseKey = KeyGeneratorUtil.generateKey(context, config, "");
     return typeof baseKey === "string"
       ? baseKey
-      : `rate_limit:${context.ip}:${context.path}:${context.method}`;
+      : `${context.ip}:${context.path}:${context.method}`;
   }
 
   /**

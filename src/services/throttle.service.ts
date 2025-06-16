@@ -68,6 +68,8 @@ export class ThrottleService {
       // Check if current window has expired
       if (now > windowEnd) {
         record = { count: 1, firstRequestTime: now };
+        // For new windows, update storage immediately for better consistency
+        await this.storage.set(key, record, mergedConfig.ttl);
         this.updateThrottleRecordAsync(key, record, mergedConfig.ttl);
 
         return {
@@ -110,6 +112,10 @@ export class ThrottleService {
       // Increment count and update
       record.count++;
       const ttlSeconds = Math.ceil((windowEnd - now) / 1000);
+      // For the first request, update storage immediately for better consistency
+      if (record.count === 1) {
+        await this.storage.set(key, record, ttlSeconds);
+      }
       this.updateThrottleRecordAsync(key, record, ttlSeconds);
 
       this.metricsService.increment("throttle_consumed", 1, {
@@ -144,6 +150,9 @@ export class ThrottleService {
   async reset(context: IProtectionContext, config?: Partial<IThrottleConfig>): Promise<void> {
     const mergedConfig = { ...this.globalConfig, ...config };
     const key = this.generateKey(context, mergedConfig);
+    // Clear both cache and storage
+    this.cache.delete(key);
+    this.batchUpdateQueue.delete(key);
     await this.storage.delete(key);
   }
 
@@ -162,7 +171,11 @@ export class ThrottleService {
     }
 
     const key = this.generateKey(context, mergedConfig);
-    const record = await this.getThrottleRecord(key);
+    // Check cache first, then storage
+    let record = await this.getCachedThrottleRecord(key);
+    if (!record) {
+      record = await this.getThrottleRecord(key);
+    }
 
     if (!record) {
       return {
@@ -302,9 +315,8 @@ export class ThrottleService {
     remaining: number,
     resetTime: number,
   ): Record<string, string> {
-    const headers = HeaderGeneratorUtil.generateThrottleHeaders({
+    const headers = HeaderGeneratorUtil.generateRateLimitHeaders({
       limit: config.limit,
-      ttl: config.ttl,
       remaining,
       reset: new Date(resetTime),
     });
