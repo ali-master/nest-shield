@@ -1,19 +1,19 @@
 import {
-  WebSocketGateway,
   WebSocketServer,
+  WebSocketGateway,
   SubscribeMessage,
-  OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayConnection,
   MessageBody,
   ConnectedSocket,
 } from "@nestjs/websockets";
-import { Server, Socket } from "socket.io";
-import { Injectable, Logger } from "@nestjs/common";
+import { Socket, Server } from "socket.io";
+import { Logger, Injectable } from "@nestjs/common";
 import { OnEvent } from "@nestjs/event-emitter";
 import {
-  MonitoringService,
   SystemMetrics,
   ServiceHealth,
+  MonitoringService,
   Alert,
 } from "../services/monitoring.service";
 import { ConfigurationService, ConfigurationChangeEvent } from "../services/configuration.service";
@@ -52,7 +52,7 @@ export class MonitoringGateway implements OnGatewayConnection, OnGatewayDisconne
     private readonly metricsService: MetricsService,
   ) {}
 
-  afterInit(server: Server) {
+  afterInit(_server: Server) {
     this.logger.log("WebSocket Gateway initialized");
     this.startMetricsBroadcast();
   }

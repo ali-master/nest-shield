@@ -1,4 +1,4 @@
-import { Module, DynamicModule, Logger } from "@nestjs/common";
+import { Module, Logger, DynamicModule } from "@nestjs/common";
 
 /**
  * Optional Monitoring Module that loads monitoring features on demand
@@ -109,10 +109,13 @@ export class OptionalMonitoringModule {
 
     if (options.enableScheduler) {
       try {
-        const { EventEmitterModule } = require("@nestjs/event-emitter");
-        const { ScheduleModule } = require("@nestjs/schedule");
-        imports.push(EventEmitterModule.forRoot(), ScheduleModule.forRoot());
-      } catch (error) {
+        // Use dynamic imports instead of require
+        Promise.resolve().then(() => import("@nestjs/event-emitter")).then(({ EventEmitterModule }) => {
+          Promise.resolve().then(() => import("@nestjs/schedule")).then(({ ScheduleModule }) => {
+            imports.push(EventEmitterModule.forRoot(), ScheduleModule.forRoot());
+          });
+        });
+      } catch {
         this.logger.warn("Scheduler dependencies not available, disabling scheduling features");
       }
     }
@@ -120,14 +123,17 @@ export class OptionalMonitoringModule {
     return imports;
   }
 
-  private static getConditionalControllers(options: { enableSwagger: boolean }): any[] {
+  private static getConditionalControllers(_options: { enableSwagger: boolean }): any[] {
     const controllers: any[] = [];
 
     try {
-      const { MonitoringController } = require("../controllers/monitoring.controller");
-      const { ConfigurationController } = require("../controllers/configuration.controller");
-      controllers.push(MonitoringController, ConfigurationController);
-    } catch (error) {
+      // Use dynamic imports
+      Promise.resolve().then(() => import("../controllers/monitoring.controller")).then(({ MonitoringController }) => {
+        Promise.resolve().then(() => import("../controllers/configuration.controller")).then(({ ConfigurationController }) => {
+          controllers.push(MonitoringController, ConfigurationController);
+        });
+      });
+    } catch {
       this.logger.warn("Controller dependencies not available, controllers will not be registered");
     }
 
@@ -142,22 +148,27 @@ export class OptionalMonitoringModule {
 
     // Always try to include core monitoring services
     try {
-      const { MonitoringService } = require("../services/monitoring.service");
-      const { ConfigurationService } = require("../services/configuration.service");
-      const { MetricsService } = require("../services/metrics.service");
-      const { ShieldLoggerService } = require("../services/shield-logger.service");
-
-      providers.push(MonitoringService, ConfigurationService, MetricsService, ShieldLoggerService);
-    } catch (error) {
+      // Use dynamic imports
+      Promise.resolve().then(() => import("../services/monitoring.service")).then(({ MonitoringService }) => {
+        Promise.resolve().then(() => import("../services/configuration.service")).then(({ ConfigurationService }) => {
+          Promise.resolve().then(() => import("../services/metrics.service")).then(({ MetricsService }) => {
+            Promise.resolve().then(() => import("../services/shield-logger.service")).then(({ ShieldLoggerService }) => {
+              providers.push(MonitoringService, ConfigurationService, MetricsService, ShieldLoggerService);
+            });
+          });
+        });
+      });
+    } catch {
       this.logger.warn("Core monitoring service dependencies not available");
     }
 
     // Add WebSocket gateway if enabled and available
     if (options.enableWebSocket) {
       try {
-        const { MonitoringGateway } = require("../gateways/monitoring.gateway");
-        providers.push(MonitoringGateway);
-      } catch (error) {
+        Promise.resolve().then(() => import("../gateways/monitoring.gateway")).then(({ MonitoringGateway }) => {
+          providers.push(MonitoringGateway);
+        });
+      } catch {
         this.logger.warn("WebSocket dependencies not available, real-time features disabled");
       }
     }
@@ -169,17 +180,20 @@ export class OptionalMonitoringModule {
     const exports: any[] = [];
 
     try {
-      const { MonitoringService } = require("../services/monitoring.service");
-      const { ConfigurationService } = require("../services/configuration.service");
-      exports.push(MonitoringService, ConfigurationService);
-    } catch (error) {
+      Promise.resolve().then(() => import("../services/monitoring.service")).then(({ MonitoringService }) => {
+        Promise.resolve().then(() => import("../services/configuration.service")).then(({ ConfigurationService }) => {
+          exports.push(MonitoringService, ConfigurationService);
+        });
+      });
+    } catch {
       this.logger.warn("Core monitoring services not available for export");
     }
 
     try {
-      const { MonitoringGateway } = require("../gateways/monitoring.gateway");
-      exports.push(MonitoringGateway);
-    } catch (error) {
+      Promise.resolve().then(() => import("../gateways/monitoring.gateway")).then(({ MonitoringGateway }) => {
+        exports.push(MonitoringGateway);
+      });
+    } catch {
       // WebSocket gateway is optional
     }
 
@@ -202,8 +216,8 @@ export class OptionalMonitoringModule {
 
     // Check for WebSocket dependencies
     try {
-      require("@nestjs/websockets");
-      require("socket.io");
+      await import("@nestjs/websockets");
+      await import("socket.io");
       capabilities.hasWebSocket = true;
     } catch {
       // WebSocket not available
@@ -211,8 +225,8 @@ export class OptionalMonitoringModule {
 
     // Check for Scheduler dependencies
     try {
-      require("@nestjs/event-emitter");
-      require("@nestjs/schedule");
+      await import("@nestjs/event-emitter");
+      await import("@nestjs/schedule");
       capabilities.hasScheduler = true;
     } catch {
       // Scheduler not available
@@ -220,7 +234,7 @@ export class OptionalMonitoringModule {
 
     // Check for Swagger dependencies
     try {
-      require("@nestjs/swagger");
+      await import("@nestjs/swagger");
       capabilities.hasSwagger = true;
     } catch {
       // Swagger not available

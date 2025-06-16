@@ -1,25 +1,24 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Body,
-  Param,
-  Query,
-  HttpStatus,
-  HttpCode,
   ValidationPipe,
   UsePipes,
+  Put,
+  Post,
+  Param,
+  HttpStatus,
+  HttpCode,
+  Get,
+  Delete,
+  Controller,
+  Body,
 } from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBody } from "@nestjs/swagger";
+import { ApiTags, ApiResponse, ApiParam, ApiOperation, ApiBody } from "@nestjs/swagger";
 import {
-  ConfigurationService,
-  RateLimitConfig,
-  CircuitBreakerConfig,
   ThrottleConfig,
-  AnomalyDetectionConfig,
   ShieldGlobalConfig,
+  RateLimitConfig,
+  ConfigurationService,
+  CircuitBreakerConfig,
+  AnomalyDetectionConfig,
 } from "../services/configuration.service";
 
 // DTOs for validation

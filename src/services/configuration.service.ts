@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException } from "@nestjs/common";
+import { Logger, Injectable, BadRequestException } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { IStorageAdapter } from "../storage/base-storage.adapter";
 import { Inject } from "@nestjs/common";
@@ -129,7 +129,7 @@ export class ConfigurationService {
 
     this.shieldLogger.info("Rate limit configuration created", {
       configId: id,
-      config: rateLimitConfig,
+      metadata: { config: rateLimitConfig },
     });
 
     return rateLimitConfig;
@@ -156,7 +156,10 @@ export class ConfigurationService {
     this.eventEmitter.emit("config.rateLimit.updated", updated);
     this.emitConfigChangeEvent("update", "rateLimit", id, updates);
 
-    this.shieldLogger.info("Rate limit configuration updated", { configId: id, updates });
+    this.shieldLogger.info("Rate limit configuration updated", {
+      configId: id,
+      metadata: { updates }
+    });
 
     return updated;
   }
@@ -197,7 +200,7 @@ export class ConfigurationService {
 
     this.shieldLogger.info("Circuit breaker configuration created", {
       configId: id,
-      config: circuitBreakerConfig,
+      metadata: { config: circuitBreakerConfig },
     });
 
     return circuitBreakerConfig;
@@ -378,7 +381,7 @@ export class ConfigurationService {
   }
 
   async getGlobalConfig(): Promise<ShieldGlobalConfig> {
-    const config = await this.getConfig("global", "main");
+    const config = await this.getConfig<ShieldGlobalConfig>("global", "main");
 
     if (!config) {
       // Return default configuration
@@ -523,7 +526,7 @@ export class ConfigurationService {
 
   private async getAllConfigs<T>(type: string): Promise<T[]> {
     const pattern = `${this.cachePrefix}:${type}:*`;
-    const keys = await this.storage.keys(pattern);
+    const keys = await this.storage.scan?.(pattern) || [];
     const configs: T[] = [];
 
     for (const key of keys) {

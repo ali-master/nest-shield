@@ -1,2 +1,2 @@
-export * from "./monitoring.controller";
 export * from "./configuration.controller";
+export * from "./monitoring.controller";

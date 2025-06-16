@@ -1,6 +1,6 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Logger, Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { Interval, SchedulerRegistry } from "@nestjs/schedule";
+import { SchedulerRegistry, Interval } from "@nestjs/schedule";
 import { MetricsService } from "./metrics.service";
 import { ShieldLoggerService } from "./shield-logger.service";
 import { IStorageAdapter } from "../storage/base-storage.adapter";
@@ -84,11 +84,12 @@ export class MonitoringService {
 
     // CPU metrics
     const cpuUsage = process.cpuUsage();
-    const loadAverage = require("os").loadavg();
+    const os = await import("os");
+    const loadAverage = os.loadavg();
 
     // Memory metrics
-    const totalMemory = require("os").totalmem();
-    const freeMemory = require("os").freemem();
+    const totalMemory = os.totalmem();
+    const freeMemory = os.freemem();
     const usedMemory = totalMemory - freeMemory;
     const memoryUsage = (usedMemory / totalMemory) * 100;
 
@@ -246,9 +247,11 @@ export class MonitoringService {
     // Log the alert
     this.shieldLogger.warn(`Alert created: ${fullAlert.title}`, {
       alertId: fullAlert.id,
-      severity: fullAlert.severity,
-      type: fullAlert.type,
-      metadata: fullAlert.metadata,
+      metadata: {
+        severity: fullAlert.severity,
+        type: fullAlert.type,
+        alertMetadata: fullAlert.metadata,
+      },
     });
 
     this.eventEmitter.emit("alert.created", fullAlert);
@@ -273,7 +276,9 @@ export class MonitoringService {
 
       this.shieldLogger.info(`Alert resolved: ${alert.title}`, {
         alertId,
-        resolvedAt: alert.resolvedAt,
+        metadata: {
+          resolvedAt: alert.resolvedAt,
+        },
       });
 
       this.eventEmitter.emit("alert.resolved", alert);
@@ -453,11 +458,11 @@ export class MonitoringService {
     const metricsData = await this.metricsService.getMetrics();
 
     return {
-      requestsTotal: metricsData.requests_total || 0,
-      requestsBlocked: metricsData.requests_blocked || 0,
-      averageResponseTime: metricsData.response_time_avg || 0,
-      errorRate: metricsData.error_rate || 0,
-      activeConnections: metricsData.active_connections || 0,
+      requestsTotal: (metricsData.requests_total as number) || 0,
+      requestsBlocked: (metricsData.requests_blocked as number) || 0,
+      averageResponseTime: (metricsData.response_time_avg as number) || 0,
+      errorRate: (metricsData.error_rate as number) || 0,
+      activeConnections: (metricsData.active_connections as number) || 0,
     };
   }
 
@@ -477,6 +482,6 @@ export class MonitoringService {
   }
 
   private generateAlertId(): string {
-    return `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `alert_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }
 }

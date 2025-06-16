@@ -51,9 +51,9 @@ async function bootstrap() {
     .addServer("http://localhost:3000", "Development server")
     .build();
 
-  // @ts-expect-error
+  // @ts-ignore
   const document = SwaggerModule.createDocument(app, config);
-  // @ts-expect-error
+  // @ts-ignore
   SwaggerModule.setup("docs", app, document, {
     customSiteTitle: "NestShield Playground API",
     customfavIcon: "/favicon.ico",

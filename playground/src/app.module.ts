@@ -1,8 +1,7 @@
 import { Module } from "@nestjs/common";
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { ScheduleModule } from "@nestjs/schedule";
-import { ShieldModule } from "@usex/nest-shield";
-import { MonitoringModule } from "@usex/nest-shield/monitoring";
+import { ShieldModule, MonitoringModule } from "@usex/nest-shield";
 
 // Controllers
 import { BasicController } from "./controllers/basic.controller";
@@ -137,34 +136,7 @@ import { CustomMetricsService } from "./services/custom-metrics.service";
     }),
 
     // Add the Monitoring Module for WebSocket support
-    MonitoringModule.forRoot({
-      enableWebSocket: true,
-      webSocketPort: 3002, // Different port from main app (3000) and dashboard (3001)
-      cors: {
-        origin: ["http://localhost:3001", "http://localhost:3000"], // Allow dashboard and playground
-        credentials: true,
-      },
-      metrics: {
-        collectInterval: 5000, // Collect metrics every 5 seconds
-        historyLimit: 1000,
-        enableSystemMetrics: true,
-        enablePerformanceMetrics: true,
-      },
-      alerts: {
-        enabled: true,
-        thresholds: {
-          cpuUsage: 80,
-          memoryUsage: 85,
-          responseTime: 1000,
-          errorRate: 5,
-        },
-      },
-      healthChecks: {
-        enabled: true,
-        interval: 60000, // Check every minute
-        timeout: 5000,
-      },
-    }),
+    MonitoringModule.forRoot(),
   ],
   controllers: [
     BasicController,

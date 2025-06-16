@@ -12,6 +12,8 @@ export interface LogContext {
   correlationId?: string;
   nodeId?: string;
   metadata?: Record<string, any>;
+  configId?: string;
+  alertId?: string;
 }
 
 export interface ShieldLogEntry {
