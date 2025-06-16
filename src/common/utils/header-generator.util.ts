@@ -5,6 +5,11 @@ export class HeaderGeneratorUtil {
   /**
    * Generates rate limit headers for HTTP responses
    * @param options - Header generation options
+   * @param options.limit - The rate limit
+   * @param options.remaining - The remaining requests
+   * @param options.reset - The reset date
+   * @param options.retryAfter - Optional retry after value
+   * @param options.prefix - Optional header prefix
    * @returns Object containing rate limit headers
    */
   static generateRateLimitHeaders(options: {
@@ -31,6 +36,10 @@ export class HeaderGeneratorUtil {
   /**
    * Generates throttle headers for HTTP responses
    * @param options - Header generation options
+   * @param options.limit - The throttle limit
+   * @param options.ttl - Time to live in seconds
+   * @param options.remaining - The remaining requests
+   * @param options.reset - The reset date
    * @returns Object containing throttle headers
    */
   static generateThrottleHeaders(options: {
@@ -50,6 +59,9 @@ export class HeaderGeneratorUtil {
   /**
    * Generates circuit breaker headers for HTTP responses
    * @param options - Header generation options
+   * @param options.state - The circuit breaker state
+   * @param options.nextAttempt - Optional next attempt date
+   * @param options.failureCount - Optional failure count
    * @returns Object containing circuit breaker headers
    */
   static generateCircuitBreakerHeaders(options: {

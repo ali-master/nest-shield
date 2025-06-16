@@ -117,7 +117,7 @@ export class ValidationUtil {
    */
   static validateEmail(value: unknown, fieldName: string): string {
     const str = this.validateNonEmptyString(value, fieldName);
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i;
     if (!emailRegex.test(str)) {
       throw new Error(`${fieldName} must be a valid email address`);
     }

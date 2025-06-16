@@ -61,13 +61,14 @@ export abstract class BaseStorageAdapter implements IStorageAdapter {
   abstract delete(key: string): Promise<void>;
   abstract increment(key: string, delta?: number): Promise<number>;
   abstract decrement(key: string, delta?: number): Promise<number>;
+  abstract exists(key: string): Promise<boolean>;
   abstract expire(key: string, ttlSeconds: number): Promise<void>;
   abstract ttl(key: string): Promise<number>;
   abstract clear(): Promise<void>;
   abstract isConnected(): Promise<boolean>;
 
   // Optional methods with default implementations
-  async scan(pattern: string): Promise<string[]> {
+  async scan(_pattern: string): Promise<string[]> {
     this.logger.warn(`scan operation not supported in ${this.adapterName}`);
     return [];
   }
@@ -80,7 +81,7 @@ export abstract class BaseStorageAdapter implements IStorageAdapter {
         if (value !== null) {
           results.set(key, value);
         }
-      } catch (error) {
+      } catch {
         // Continue with other keys
       }
     }

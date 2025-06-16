@@ -8,6 +8,7 @@ export class KeyGeneratorUtil {
    * Generates a unique key for rate limiting, throttling, and other protection mechanisms
    * @param context - The protection context containing request information
    * @param config - Configuration object with optional keyGenerator function
+   * @param config.keyGenerator - Optional custom key generator function
    * @param prefix - Optional prefix for the key
    * @returns Generated key string
    */
@@ -25,7 +26,7 @@ export class KeyGeneratorUtil {
     }
 
     // Default key generation logic
-    const key = context.identifier || context.ip || "global";
+    const key = context.userId || context.ip || "global";
     return prefix ? `${prefix}:${key}` : key;
   }
 
@@ -46,6 +47,6 @@ export class KeyGeneratorUtil {
    */
   static sanitizeKey(key: string): string {
     // Replace problematic characters for storage backends
-    return key.replace(/[^a-zA-Z0-9:_-]/g, "_");
+    return key.replace(/[^\w:\-]/g, "_");
   }
 }

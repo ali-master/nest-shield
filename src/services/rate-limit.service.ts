@@ -5,11 +5,10 @@ import type {
   IProtectionResult,
   IProtectionContext,
 } from "../interfaces/shield-config.interface";
-import { HEADER_NAMES } from "../core/constants";
 import { DI_TOKENS } from "../core/di-tokens";
 import { RateLimitException } from "../core/exceptions";
 import type { IMetricsCollector } from "../interfaces";
-import { KeyGeneratorUtil, HeaderGeneratorUtil, TIME_CONSTANTS } from "../common/utils";
+import { KeyGeneratorUtil, HeaderGeneratorUtil } from "../common/utils";
 
 @Injectable()
 export class RateLimitService {

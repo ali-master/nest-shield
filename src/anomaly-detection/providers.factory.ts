@@ -25,9 +25,9 @@ import {
   StatisticalAnomalyDetector,
   SeasonalAnomalyDetector,
   MachineLearningDetector,
+  KNNDetector,
   IsolationForestDetector,
   CompositeAnomalyDetector,
-  KNNDetector,
 } from "./detectors";
 
 /**
