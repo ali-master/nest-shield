@@ -267,4 +267,9 @@ export class MetricsService implements IMetricsCollector, OnModuleInit, OnModule
     }
     this.manager.getAnomalyDetectionService().updateConfig(config as any);
   }
+
+  // Alias for monitoring compatibility
+  async getMetrics(): Promise<Record<string, unknown>> {
+    return this.exportJson();
+  }
 }

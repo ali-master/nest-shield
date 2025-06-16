@@ -1,0 +1,242 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Information",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "refresh": "Refresh",
+    "settings": "Settings",
+    "help": "Help",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "reset": "Reset"
+  },
+  "dashboard": {
+    "title": "NestShield Dashboard",
+    "subtitle": "Comprehensive protection and monitoring for your NestJS applications",
+    "overview": "Overview",
+    "metrics": "Metrics",
+    "configuration": "Configuration",
+    "alerts": "Alerts",
+    "logs": "Logs",
+    "health": "Health",
+    "settings": "Settings"
+  },
+  "metrics": {
+    "title": "Real-time Metrics",
+    "requests": "Requests",
+    "responseTime": "Response Time",
+    "errorRate": "Error Rate",
+    "throughput": "Throughput",
+    "activeConnections": "Active Connections",
+    "cpuUsage": "CPU Usage",
+    "memoryUsage": "Memory Usage",
+    "lastMinute": "Last Minute",
+    "lastHour": "Last Hour",
+    "lastDay": "Last Day",
+    "lastWeek": "Last Week"
+  },
+  "protection": {
+    "rateLimit": "Rate Limiting",
+    "circuitBreaker": "Circuit Breaker",
+    "throttle": "Throttling",
+    "anomalyDetection": "Anomaly Detection",
+    "overloadProtection": "Overload Protection",
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "triggered": "Triggered",
+      "recovering": "Recovering"
+    }
+  },
+  "configuration": {
+    "title": "Shield Configuration",
+    "rateLimiting": {
+      "title": "Rate Limiting Rules",
+      "windowMs": "Time Window (ms)",
+      "maxRequests": "Max Requests",
+      "path": "Path Pattern",
+      "method": "HTTP Method"
+    },
+    "circuitBreaker": {
+      "title": "Circuit Breaker Rules",
+      "failureThreshold": "Failure Threshold",
+      "recoveryTimeout": "Recovery Timeout (ms)",
+      "service": "Service Name"
+    },
+    "throttle": {
+      "title": "Throttle Rules",
+      "ttl": "TTL (seconds)",
+      "limit": "Request Limit"
+    },
+    "anomalyDetection": {
+      "title": "Anomaly Detection Settings",
+      "detectorType": "Detector Type",
+      "threshold": "Detection Threshold",
+      "sensitivity": "Sensitivity"
+    }
+  },
+  "alerts": {
+    "title": "Alerts & Notifications",
+    "severity": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    },
+    "types": {
+      "anomaly": "Anomaly Detected",
+      "circuitBreaker": "Circuit Breaker Triggered",
+      "rateLimit": "Rate Limit Exceeded",
+      "systemHealth": "System Health Issue"
+    },
+    "resolved": "Resolved",
+    "unresolved": "Unresolved",
+    "acknowledge": "Acknowledge",
+    "resolve": "Resolve"
+  },
+  "health": {
+    "title": "System Health",
+    "status": {
+      "healthy": "Healthy",
+      "degraded": "Degraded",
+      "unhealthy": "Unhealthy"
+    },
+    "services": "Services",
+    "database": "Database",
+    "redis": "Redis",
+    "api": "API",
+    "responseTime": "Response Time",
+    "uptime": "Uptime",
+    "lastCheck": "Last Check"
+  },
+  "features": {
+    "securityScanner": {
+      "title": "Security Scanner",
+      "description": "Automated security vulnerability scanning"
+    },
+    "performanceOptimizer": {
+      "title": "Performance Optimizer",
+      "description": "AI-powered performance optimization suggestions"
+    },
+    "trafficAnalyzer": {
+      "title": "Traffic Analyzer",
+      "description": "Deep traffic pattern analysis and insights"
+    },
+    "predictiveScaling": {
+      "title": "Predictive Scaling",
+      "description": "ML-based auto-scaling recommendations"
+    },
+    "complianceMonitor": {
+      "title": "Compliance Monitor",
+      "description": "Regulatory compliance monitoring and reporting"
+    },
+    "costOptimizer": {
+      "title": "Cost Optimizer",
+      "description": "Resource usage optimization for cost reduction"
+    },
+    "apiGovernance": {
+      "title": "API Governance",
+      "description": "API lifecycle management and governance"
+    },
+    "incidentResponse": {
+      "title": "Incident Response",
+      "description": "Automated incident detection and response"
+    },
+    "dataPrivacy": {
+      "title": "Data Privacy Scanner",
+      "description": "PII and sensitive data detection"
+    },
+    "businessIntelligence": {
+      "title": "Business Intelligence",
+      "description": "Advanced analytics and business insights"
+    }
+  },
+  "theme": {
+    "light": "Light Mode",
+    "dark": "Dark Mode",
+    "system": "System"
+  },
+  "language": {
+    "english": "English",
+    "persian": "Persian/Farsi"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Welcome to NestShield",
+      "subtitle": "The comprehensive protection platform for your NestJS applications",
+      "description": "Get started with enterprise-grade security, monitoring, and performance optimization in just a few steps."
+    },
+    "steps": {
+      "configure": {
+        "title": "Configure Protection",
+        "description": "Set up rate limiting, circuit breakers, and security rules"
+      },
+      "monitor": {
+        "title": "Monitor Performance",
+        "description": "Real-time dashboards and alerting for your applications"
+      },
+      "optimize": {
+        "title": "Optimize Operations",
+        "description": "AI-powered insights and automated optimizations"
+      }
+    },
+    "features": {
+      "title": "Enterprise Features",
+      "security": "Advanced Security",
+      "monitoring": "Real-time Monitoring", 
+      "analytics": "AI Analytics",
+      "compliance": "Compliance Ready"
+    },
+    "getStarted": "Get Started",
+    "skipTour": "Skip Tour",
+    "next": "Next",
+    "previous": "Previous",
+    "finish": "Finish Setup"
+  },
+  "dataRetention": {
+    "title": "Data Retention Policy",
+    "description": "Configure automated cleanup of logs, metrics, and audit data",
+    "policies": {
+      "title": "Retention Policies",
+      "create": "Create Policy",
+      "edit": "Edit Policy",
+      "delete": "Delete Policy"
+    },
+    "types": {
+      "logs": "Application Logs",
+      "metrics": "Performance Metrics", 
+      "audits": "Audit Trails",
+      "alerts": "Alert History"
+    },
+    "schedule": {
+      "title": "Cleanup Schedule",
+      "frequency": "Frequency",
+      "daily": "Daily",
+      "weekly": "Weekly", 
+      "monthly": "Monthly"
+    },
+    "retention": {
+      "period": "Retention Period",
+      "days": "days",
+      "weeks": "weeks",
+      "months": "months"
+    }
+  }
+}

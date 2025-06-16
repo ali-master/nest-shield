@@ -2,6 +2,9 @@ import { Logger } from "@nestjs/common";
 import { IStorageAdapter } from "../interfaces/shield-config.interface";
 import { ErrorHandlerUtil } from "../common/utils";
 
+// Re-export the interface for convenience
+export { IStorageAdapter };
+
 /**
  * Base class for storage adapters with common error handling
  */

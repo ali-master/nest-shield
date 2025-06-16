@@ -1,0 +1,58 @@
+ARG NODE_VERSION=23.11.0-alpine
+ARG PNPM_VERSION=10.12.1
+
+# Base image for development
+FROM node:${NODE_VERSION} AS base
+
+# Install pnpm globally
+RUN npm install -g pnpm@${PNPM_VERSION}
+
+# Install development tools and hot-reload dependencies
+RUN apk add --no-cache \
+    git \
+    curl \
+    bash \
+    vim \
+    dumb-init
+
+# Set development environment
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV WATCHPACK_POLLING=true
+ENV CHOKIDAR_USEPOLLING=true
+
+WORKDIR /app
+
+# Create non-root user for development
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
+
+# Development stage
+FROM base AS development
+
+# Copy package files
+COPY package.json pnpm-lock.yaml* .npmrc* ./
+
+# Install all dependencies (including dev dependencies)
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    --mount=type=cache,target=/root/.cache/pnpm \
+    pnpm install --frozen-lockfile
+
+# Copy source code
+COPY . .
+
+# Change ownership to non-root user
+RUN chown -R nextjs:nodejs /app
+
+# Switch to non-root user
+USER nextjs
+
+# Expose development port
+EXPOSE 3000
+
+# Health check for development
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3000/api/health || exit 1
+
+# Start development server with hot reloading
+CMD ["dumb-init", "pnpm", "dev"]

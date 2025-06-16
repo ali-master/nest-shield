@@ -1,0 +1,212 @@
+/**
+ * RTL-specific styles and overrides
+ */
+
+/* Custom scrollbar RTL support */
+[dir="rtl"] .custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+[dir="rtl"] .custom-scrollbar::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+[dir="rtl"] .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground));
+  border-radius: 3px;
+}
+
+/* Fix for Radix components that don't support logical properties */
+[dir="rtl"] [data-radix-scroll-area-viewport] {
+  direction: rtl;
+}
+
+/* Command palette RTL fixes */
+[dir="rtl"] [cmdk-root] {
+  direction: rtl;
+}
+
+[dir="rtl"] [cmdk-input] {
+  text-align: right;
+}
+
+/* Toast notifications RTL positioning */
+[dir="rtl"] [data-sonner-toaster] {
+  left: auto !important;
+  right: 0 !important;
+}
+
+[dir="rtl"] [data-sonner-toaster][data-y-position="top"] {
+  top: 0;
+}
+
+[dir="rtl"] [data-sonner-toaster][data-y-position="bottom"] {
+  bottom: 0;
+}
+
+/* Dropdown menu RTL animations */
+[dir="rtl"] [data-side="left"] {
+  --radix-dropdown-menu-content-transform-origin: right center;
+  --radix-popper-anchor-width: initial;
+  --radix-popper-anchor-height: initial;
+  --radix-popper-available-width: initial;
+  --radix-popper-available-height: initial;
+}
+
+[dir="rtl"] [data-side="right"] {
+  --radix-dropdown-menu-content-transform-origin: left center;
+}
+
+/* Sheet animations for RTL */
+[dir="rtl"] [data-state="open"][data-side="left"] {
+  animation: slideInFromRight 0.5s ease-out;
+}
+
+[dir="rtl"] [data-state="closed"][data-side="left"] {
+  animation: slideOutToRight 0.3s ease-out;
+}
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutToRight {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Alert positioning RTL */
+[dir="rtl"] .alert-positioning {
+  right: auto;
+  left: 1rem;
+}
+
+/* Progress bar RTL direction */
+[dir="rtl"] [data-progress-root] {
+  direction: rtl;
+}
+
+/* Calendar RTL support */
+[dir="rtl"] .rdp {
+  direction: rtl;
+}
+
+[dir="rtl"] .rdp-nav {
+  flex-direction: row-reverse;
+}
+
+/* Form elements RTL alignment */
+[dir="rtl"] input[type="text"],
+[dir="rtl"] input[type="email"],
+[dir="rtl"] input[type="password"],
+[dir="rtl"] input[type="search"],
+[dir="rtl"] textarea {
+  text-align: right;
+}
+
+[dir="rtl"] input[type="text"]:focus,
+[dir="rtl"] input[type="email"]:focus,
+[dir="rtl"] input[type="password"]:focus,
+[dir="rtl"] input[type="search"]:focus,
+[dir="rtl"] textarea:focus {
+  text-align: right;
+}
+
+/* Checkbox and radio RTL spacing */
+[dir="rtl"] .checkbox-wrapper,
+[dir="rtl"] .radio-wrapper {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .checkbox-wrapper .checkbox-label,
+[dir="rtl"] .radio-wrapper .radio-label {
+  margin-right: 0.5rem;
+  margin-left: 0;
+}
+
+/* Badge RTL positioning in buttons */
+[dir="rtl"] .badge-in-button {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+/* Icon rotation for directional icons */
+[dir="rtl"] .icon-arrow-right {
+  transform: rotate(180deg);
+}
+
+[dir="rtl"] .icon-chevron-right {
+  transform: rotate(180deg);
+}
+
+/* Tooltip RTL positioning */
+[dir="rtl"] [data-radix-tooltip-content] {
+  direction: rtl;
+}
+
+[dir="rtl"] [data-radix-tooltip-arrow] {
+  transform: rotate(180deg);
+}
+
+/* Popover RTL content alignment */
+[dir="rtl"] [data-radix-popover-content] {
+  direction: rtl;
+}
+
+/* Select dropdown RTL alignment */
+[dir="rtl"] [data-radix-select-content] {
+  direction: rtl;
+}
+
+[dir="rtl"] [data-radix-select-item] {
+  text-align: right;
+}
+
+/* Dialog RTL content alignment */
+[dir="rtl"] [data-radix-dialog-content] {
+  direction: rtl;
+}
+
+/* Responsive RTL fixes */
+@media (max-width: 768px) {
+  [dir="rtl"] .mobile-nav-toggle {
+    left: auto;
+    right: 1rem;
+  }
+  
+  [dir="rtl"] .mobile-search {
+    text-align: right;
+  }
+}
+
+/* High contrast mode RTL support */
+@media (prefers-contrast: high) {
+  [dir="rtl"] .high-contrast-border {
+    border-left: 2px solid;
+    border-right: none;
+  }
+}
+
+/* Animation performance for RTL */
+[dir="rtl"] * {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+/* Fix for nested RTL elements */
+[dir="rtl"] [dir="ltr"] {
+  direction: ltr;
+}
+
+[dir="ltr"] [dir="rtl"] {
+  direction: rtl;
+}

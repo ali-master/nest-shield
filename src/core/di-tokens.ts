@@ -99,6 +99,9 @@ export const DI_TOKENS = {
 // Type-safe token access
 export type DIToken = (typeof DI_TOKENS)[keyof typeof DI_TOKENS];
 
+// Export individual tokens for convenience
+export const STORAGE_ADAPTER = DI_TOKENS.STORAGE_ADAPTER;
+
 // Legacy tokens for backward compatibility (deprecated)
 export const LEGACY_TOKENS = {
   SHIELD_MODULE_OPTIONS: "SHIELD_MODULE_OPTIONS",

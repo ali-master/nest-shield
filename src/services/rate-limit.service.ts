@@ -46,7 +46,7 @@ export class RateLimitService {
       // Get current value and check if key exists
       let currentPoints = (await this.storage.get(windowKey)) || 0;
       currentPoints = Number(currentPoints);
-      
+
       // Set TTL only if this is a new key
       if (currentPoints === 0) {
         await this.storage.expire(windowKey, mergedConfig.duration);
@@ -112,7 +112,7 @@ export class RateLimitService {
     const baseKey = this.generateKey(context, mergedConfig);
     const now = Date.now();
     const windowInfo = this.getOrCreateWindowInfo(baseKey, now, mergedConfig);
-    
+
     // Delete from storage and clear cache
     await this.storage.delete(windowInfo.key);
     this.keyCache.delete(baseKey);

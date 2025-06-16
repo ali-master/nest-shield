@@ -58,7 +58,10 @@
   },
   "optionalDependencies": {
     "@nestjs/event-emitter": "^3.0.1",
-    "@nestjs/schedule": "^6.0.0"
+    "@nestjs/schedule": "^6.0.0",
+    "@nestjs/swagger": "^7.0.0",
+    "@nestjs/websockets": "^11.0.0",
+    "socket.io": "^4.7.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "4.14.1",
@@ -148,6 +151,11 @@
       "require": "./dist/guards/shield.guard.js",
       "import": "./dist/guards/shield.guard.js",
       "types": "./dist/guards/shield.guard.d.ts"
+    },
+    "./monitoring": {
+      "require": "./dist/modules/monitoring.module.js",
+      "import": "./dist/modules/monitoring.module.js",
+      "types": "./dist/modules/monitoring.module.d.ts"
     }
   },
   "peerDependencies": {

@@ -1,0 +1,242 @@
+{
+  "common": {
+    "loading": "در حال بارگذاری...",
+    "error": "خطا",
+    "success": "موفقیت",
+    "warning": "هشدار",
+    "info": "اطلاعات",
+    "save": "ذخیره",
+    "cancel": "لغو",
+    "delete": "حذف",
+    "edit": "ویرایش",
+    "add": "افزودن",
+    "search": "جستجو",
+    "filter": "فیلتر",
+    "export": "خروجی",
+    "import": "وارد کردن",
+    "refresh": "بروزرسانی",
+    "settings": "تنظیمات",
+    "help": "راهنما",
+    "close": "بستن",
+    "yes": "بله",
+    "no": "خیر",
+    "confirm": "تأیید",
+    "back": "بازگشت",
+    "next": "بعدی",
+    "previous": "قبلی",
+    "submit": "ارسال",
+    "reset": "بازنشانی"
+  },
+  "dashboard": {
+    "title": "داشبورد NestShield",
+    "subtitle": "حفاظت و نظارت جامع برای اپلیکیشن‌های NestJS شما",
+    "overview": "نمای کلی",
+    "metrics": "معیارها",
+    "configuration": "پیکربندی",
+    "alerts": "هشدارها",
+    "logs": "گزارش‌ها",
+    "health": "سلامت سیستم",
+    "settings": "تنظیمات"
+  },
+  "metrics": {
+    "title": "معیارهای لحظه‌ای",
+    "requests": "درخواست‌ها",
+    "responseTime": "زمان پاسخ",
+    "errorRate": "نرخ خطا",
+    "throughput": "توان عملیاتی",
+    "activeConnections": "اتصالات فعال",
+    "cpuUsage": "استفاده از پردازنده",
+    "memoryUsage": "استفاده از حافظه",
+    "lastMinute": "دقیقه گذشته",
+    "lastHour": "ساعت گذشته",
+    "lastDay": "روز گذشته",
+    "lastWeek": "هفته گذشته"
+  },
+  "protection": {
+    "rateLimit": "محدودیت نرخ درخواست",
+    "circuitBreaker": "قطع کننده مدار",
+    "throttle": "کنترل ترافیک",
+    "anomalyDetection": "تشخیص ناهنجاری",
+    "overloadProtection": "حفاظت از اضافه بار",
+    "status": {
+      "active": "فعال",
+      "inactive": "غیرفعال",
+      "triggered": "فعال شده",
+      "recovering": "در حال بازیابی"
+    }
+  },
+  "configuration": {
+    "title": "پیکربندی Shield",
+    "rateLimiting": {
+      "title": "قوانین محدودیت نرخ",
+      "windowMs": "بازه زمانی (میلی‌ثانیه)",
+      "maxRequests": "حداکثر درخواست",
+      "path": "الگوی مسیر",
+      "method": "متد HTTP"
+    },
+    "circuitBreaker": {
+      "title": "قوانین قطع کننده مدار",
+      "failureThreshold": "آستانه خرابی",
+      "recoveryTimeout": "زمان انتظار بازیابی (میلی‌ثانیه)",
+      "service": "نام سرویس"
+    },
+    "throttle": {
+      "title": "قوانین کنترل ترافیک",
+      "ttl": "TTL (ثانیه)",
+      "limit": "محدودیت درخواست"
+    },
+    "anomalyDetection": {
+      "title": "تنظیمات تشخیص ناهنجاری",
+      "detectorType": "نوع تشخیص دهنده",
+      "threshold": "آستانه تشخیص",
+      "sensitivity": "حساسیت"
+    }
+  },
+  "alerts": {
+    "title": "هشدارها و اطلاع‌رسانی",
+    "severity": {
+      "low": "کم",
+      "medium": "متوسط",
+      "high": "زیاد",
+      "critical": "بحرانی"
+    },
+    "types": {
+      "anomaly": "ناهنجاری تشخیص داده شد",
+      "circuitBreaker": "قطع کننده مدار فعال شد",
+      "rateLimit": "محدودیت نرخ تجاوز شد",
+      "systemHealth": "مشکل سلامت سیستم"
+    },
+    "resolved": "حل شده",
+    "unresolved": "حل نشده",
+    "acknowledge": "تأیید",
+    "resolve": "حل کردن"
+  },
+  "health": {
+    "title": "سلامت سیستم",
+    "status": {
+      "healthy": "سالم",
+      "degraded": "آسیب دیده",
+      "unhealthy": "ناسالم"
+    },
+    "services": "سرویس‌ها",
+    "database": "پایگاه داده",
+    "redis": "Redis",
+    "api": "API",
+    "responseTime": "زمان پاسخ",
+    "uptime": "زمان فعالیت",
+    "lastCheck": "آخرین بررسی"
+  },
+  "features": {
+    "securityScanner": {
+      "title": "اسکنر امنیتی",
+      "description": "اسکن خودکار آسیب‌پذیری‌های امنیتی"
+    },
+    "performanceOptimizer": {
+      "title": "بهینه‌ساز عملکرد",
+      "description": "پیشنهادات بهینه‌سازی عملکرد مبتنی بر هوش مصنوعی"
+    },
+    "trafficAnalyzer": {
+      "title": "تحلیلگر ترافیک",
+      "description": "تحلیل عمیق الگوهای ترافیک و بینش‌ها"
+    },
+    "predictiveScaling": {
+      "title": "مقیاس‌بندی پیش‌بینانه",
+      "description": "توصیه‌های مقیاس‌بندی خودکار مبتنی بر یادگیری ماشین"
+    },
+    "complianceMonitor": {
+      "title": "نظارت بر انطباق",
+      "description": "نظارت و گزارش‌دهی انطباق نظارتی"
+    },
+    "costOptimizer": {
+      "title": "بهینه‌ساز هزینه",
+      "description": "بهینه‌سازی استفاده از منابع برای کاهش هزینه"
+    },
+    "apiGovernance": {
+      "title": "حاکمیت API",
+      "description": "مدیریت چرخه حیات و حاکمیت API"
+    },
+    "incidentResponse": {
+      "title": "پاسخ به حادثه",
+      "description": "تشخیص خودکار حادثه و پاسخ"
+    },
+    "dataPrivacy": {
+      "title": "اسکنر حریم خصوصی داده",
+      "description": "تشخیص PII و داده‌های حساس"
+    },
+    "businessIntelligence": {
+      "title": "هوش تجاری",
+      "description": "تحلیل‌های پیشرفته و بینش‌های تجاری"
+    }
+  },
+  "theme": {
+    "light": "حالت روشن",
+    "dark": "حالت تاریک",
+    "system": "سیستم"
+  },
+  "language": {
+    "english": "انگلیسی",
+    "persian": "فارسی"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "به NestShield خوش آمدید",
+      "subtitle": "پلتفرم حفاظت جامع برای اپلیکیشن‌های NestJS شما",
+      "description": "با امنیت سطح سازمانی، نظارت و بهینه‌سازی عملکرد در چند مرحله ساده شروع کنید."
+    },
+    "steps": {
+      "configure": {
+        "title": "پیکربندی حفاظت",
+        "description": "تنظیم محدودیت نرخ، قطع کننده مدار و قوانین امنیتی"
+      },
+      "monitor": {
+        "title": "نظارت بر عملکرد",
+        "description": "داشبوردهای لحظه‌ای و هشدارهای خودکار برای اپلیکیشن‌های شما"
+      },
+      "optimize": {
+        "title": "بهینه‌سازی عملیات",
+        "description": "بینش‌های مبتنی بر هوش مصنوعی و بهینه‌سازی‌های خودکار"
+      }
+    },
+    "features": {
+      "title": "ویژگی‌های سازمانی",
+      "security": "امنیت پیشرفته",
+      "monitoring": "نظارت لحظه‌ای",
+      "analytics": "تحلیل هوش مصنوعی",
+      "compliance": "آماده انطباق"
+    },
+    "getStarted": "شروع کنید",
+    "skipTour": "پرش از تور",
+    "next": "بعدی",
+    "previous": "قبلی",
+    "finish": "تکمیل راه‌اندازی"
+  },
+  "dataRetention": {
+    "title": "سیاست نگهداری داده",
+    "description": "پیکربندی پاکسازی خودکار گزارش‌ها، معیارها و داده‌های حسابرسی",
+    "policies": {
+      "title": "سیاست‌های نگهداری",
+      "create": "ایجاد سیاست",
+      "edit": "ویرایش سیاست",
+      "delete": "حذف سیاست"
+    },
+    "types": {
+      "logs": "گزارش‌های اپلیکیشن",
+      "metrics": "معیارهای عملکرد",
+      "audits": "مسیرهای حسابرسی",
+      "alerts": "تاریخچه هشدارها"
+    },
+    "schedule": {
+      "title": "برنامه پاکسازی",
+      "frequency": "فرکانس",
+      "daily": "روزانه",
+      "weekly": "هفتگی",
+      "monthly": "ماهانه"
+    },
+    "retention": {
+      "period": "دوره نگهداری",
+      "days": "روز",
+      "weeks": "هفته",
+      "months": "ماه"
+    }
+  }
+}

@@ -20,7 +20,8 @@ export default antfu({
   gitignore: true,
   jsonc: false,
   unicorn: false,
-  ignores: ["README.md", "*/examples/**/*", "playground/**/*"],
+  react: true,
+  ignores: ["README.md", "*/examples/**/*", "playground/**/*", "dashboard/**/*"],
 }).append({
   files: ["./**/*.ts"],
   rules: {
@@ -41,5 +42,8 @@ export default antfu({
     "node/prefer-global/process": "off",
     "no-throw-literal": "off",
     "perfectionist/sort-named-imports": ["error", { order: "desc" }],
+    "react-hooks-extra/no-direct-set-state-in-use-effect": "off",
+    "react/no-array-index-key": "off",
+    "react-refresh/only-export-components": "off",
   },
 });

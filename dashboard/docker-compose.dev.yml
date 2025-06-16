@@ -1,0 +1,178 @@
+version: '3.8'
+
+name: 'nest-shield-dashboard-dev'
+
+services:
+  # Dashboard development server
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      target: development
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+      - WATCHPACK_POLLING=true
+      - DATABASE_URL=mysql://root:password@mysql:3306/nest_shield_dev
+      - REDIS_URL=redis://redis:6379
+      - NEXTAUTH_SECRET=dev-secret-key-change-in-production
+      - NEXTAUTH_URL=http://localhost:3001
+    volumes:
+      # Mount source code for hot reloading
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+      # Cache volumes for better performance
+      - node_modules_cache:/app/node_modules
+      - next_cache:/app/.next
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - nest-shield-dev
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # MySQL database for development
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: nest_shield_dev
+      MYSQL_USER: nest_shield
+      MYSQL_PASSWORD: password
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - nest-shield-dev
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --innodb-buffer-pool-size=256M
+      --max-connections=100
+
+  # Redis for caching and sessions
+  redis:
+    image: redis:8-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./config/redis.dev.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - nest-shield-dev
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+  # Adminer for database management
+  adminer:
+    image: adminer:4.8.1
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql
+      ADMINER_DESIGN: nette
+    depends_on:
+      - mysql
+    networks:
+      - nest-shield-dev
+    restart: unless-stopped
+
+  # Redis Commander for Redis management
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    ports:
+      - "8081:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379
+      HTTP_USER: admin
+      HTTP_PASSWORD: admin
+    depends_on:
+      - redis
+    networks:
+      - nest-shield-dev
+    restart: unless-stopped
+
+  # Mailhog for email testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - nest-shield-dev
+    restart: unless-stopped
+
+  # Optional: NestShield playground for testing
+  playground:
+    build:
+      context: ../playground
+      dockerfile: Dockerfile.dev
+      target: development
+    ports:
+      - "3000:3000"
+      - "3002:3002"  # WebSocket monitoring port
+    environment:
+      - NODE_ENV=development
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=mysql://root:password@mysql:3306/nest_shield_dev
+      - DASHBOARD_URL=http://dashboard:3000
+    volumes:
+      - ../playground:/app
+      - /app/node_modules
+      - playground_node_modules:/app/node_modules
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - nest-shield-dev
+    restart: unless-stopped
+    profiles:
+      - playground
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+  node_modules_cache:
+    driver: local
+  next_cache:
+    driver: local
+  playground_node_modules:
+    driver: local
+
+networks:
+  nest-shield-dev:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

@@ -512,6 +512,25 @@ export class ShieldLoggerService {
   }
 
   /**
+   * General-purpose logging methods for compatibility
+   */
+  info(message: string, context?: LogContext): void {
+    this.log("log", message, "General", context);
+  }
+
+  warn(message: string, context?: LogContext): void {
+    this.log("warn", message, "General", context);
+  }
+
+  error(message: string, error?: Error, context?: LogContext): void {
+    this.log("error", message, "General", context, error);
+  }
+
+  debug(message: string, context?: LogContext): void {
+    this.log("debug", message, "General", context);
+  }
+
+  /**
    * Get logger statistics
    */
   getStats(): {
