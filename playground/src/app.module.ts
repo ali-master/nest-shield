@@ -15,6 +15,7 @@ import { AdvancedController } from "./controllers/advanced.controller";
 import { DIShowcaseController } from "./controllers/di-showcase.controller";
 import { AnomalyShowcaseController } from "./controllers/anomaly-showcase.controller";
 import { MetricsShowcaseController } from "./controllers/metrics-showcase.controller";
+import { KNNShowcaseController } from "./controllers/knn-showcase.controller";
 
 // Services
 import { TestService } from "./services/test.service";
@@ -130,6 +131,7 @@ import { CustomMetricsService } from "./services/custom-metrics.service";
     DIShowcaseController,
     AnomalyShowcaseController,
     MetricsShowcaseController,
+    KNNShowcaseController,
   ],
   providers: [
     TestService,

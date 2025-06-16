@@ -179,7 +179,11 @@ async process() {
 - **Extensive Docs**: Comprehensive guides and examples
 
 ### 🤖 **AI-Powered** (New!)
-- **Anomaly Detection**: Machine learning-based threat identification
+- **Anomaly Detection**: Machine learning-based threat identification with multiple algorithms:
+  - **K-Nearest Neighbors (KNN)**: High-performance anomaly detection with optimized quickselect algorithm
+  - **Isolation Forest**: Efficient outlier detection for high-dimensional data
+  - **Statistical Methods**: Z-Score, IQR, and seasonal pattern detection
+  - **Composite Detection**: Combine multiple detectors for robust protection
 - **Adaptive Thresholds**: Dynamic limits based on traffic patterns
 - **Predictive Scaling**: Proactive capacity management
 - **Smart Alerting**: Intelligent notification with context
@@ -382,6 +386,46 @@ export class RecommendationService {
   })
   async getPersonalizedRecommendations(userId: string) {
     return this.primaryMlService.recommend(userId);
+  }
+}
+```
+
+### AI-Powered Anomaly Detection with KNN
+
+```typescript
+@Controller('api')
+export class MonitoringController {
+  constructor(
+    @Inject(DI_TOKENS.ANOMALY_DETECTION_SERVICE)
+    private anomalyService: AnomalyDetectionService
+  ) {}
+
+  @Post('metrics')
+  @Shield({
+    anomalyDetection: {
+      enabled: true,
+      detectors: ['knn'], // Use K-Nearest Neighbors detector
+      config: {
+        k: 5,                    // Number of neighbors
+        anomalyThreshold: 2.0,   // Distance threshold
+        normalizeData: true,     // Normalize for better accuracy
+        dynamicK: true,          // Auto-adjust K based on data size
+        weightedVoting: true     // Distance-weighted voting
+      }
+    }
+  })
+  async submitMetrics(@Body() metrics: MetricsDto) {
+    // KNN detector automatically analyzes patterns
+    const anomalies = await this.anomalyService.detectAnomalies([
+      { value: metrics.responseTime, source: 'api', timestamp: Date.now() }
+    ]);
+    
+    if (anomalies.length > 0) {
+      // Alert on detected anomalies
+      await this.alertingService.notify(anomalies);
+    }
+    
+    return { processed: true, anomaliesDetected: anomalies.length };
   }
 }
 ```

@@ -1,6 +1,7 @@
 export * from "./base.detector";
 export * from "./composite.detector";
 export * from "./isolation-forest.detector";
+export * from "./knn.detector";
 export * from "./machine-learning.detector";
 export * from "./seasonal.detector";
 export * from "./statistical.detector";

@@ -9,6 +9,7 @@ import { HEADER_NAMES } from "../core/constants";
 import { DI_TOKENS } from "../core/di-tokens";
 import { ThrottleException } from "../core/exceptions";
 import type { IMetricsCollector } from "../interfaces";
+import { KeyGeneratorUtil, HeaderGeneratorUtil, TIME_CONSTANTS } from "../common/utils";
 
 interface ThrottleRecord {
   count: number;
@@ -27,7 +28,7 @@ export class ThrottleService {
   private readonly cache = new Map<string, CachedThrottleRecord>();
   private readonly batchUpdateQueue = new Map<string, ThrottleRecord>();
   private batchUpdateTimer: NodeJS.Timeout | null = null;
-  private readonly CACHE_TTL = 30000; // 30 seconds cache TTL
+  private readonly CACHE_TTL = TIME_CONSTANTS.THIRTY_SECONDS;
   private readonly BATCH_UPDATE_INTERVAL = 100; // 100ms batch interval
 
   constructor(
@@ -191,10 +192,8 @@ export class ThrottleService {
   }
 
   private generateKey(context: IProtectionContext, config: IThrottleConfig): string {
-    if (config.keyGenerator) {
-      return `throttle:${config.keyGenerator(context)}`;
-    }
-    return `throttle:${context.ip}`;
+    const baseKey = KeyGeneratorUtil.generateKey(context, config, "throttle");
+    return typeof baseKey === "string" ? baseKey : `throttle:${context.ip}`;
   }
 
   /**
@@ -304,14 +303,15 @@ export class ThrottleService {
     remaining: number,
     resetTime: number,
   ): Record<string, string> {
-    const headers: Record<string, string> = {
-      [HEADER_NAMES.RATE_LIMIT_LIMIT]: String(config.limit),
-      [HEADER_NAMES.RATE_LIMIT_REMAINING]: String(Math.max(0, remaining)),
-      [HEADER_NAMES.RATE_LIMIT_RESET]: String(Math.floor(resetTime / 1000)),
-    };
+    const headers = HeaderGeneratorUtil.generateThrottleHeaders({
+      limit: config.limit,
+      ttl: config.ttl,
+      remaining,
+      reset: new Date(resetTime),
+    });
 
     if (remaining === 0) {
-      headers[HEADER_NAMES.RETRY_AFTER] = String(Math.ceil((resetTime - Date.now()) / 1000));
+      headers["Retry-After"] = String(Math.ceil((resetTime - Date.now()) / 1000));
     }
 
     if (config.customHeaders) {

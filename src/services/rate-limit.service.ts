@@ -9,6 +9,7 @@ import { HEADER_NAMES } from "../core/constants";
 import { DI_TOKENS } from "../core/di-tokens";
 import { RateLimitException } from "../core/exceptions";
 import type { IMetricsCollector } from "../interfaces";
+import { KeyGeneratorUtil, HeaderGeneratorUtil, TIME_CONSTANTS } from "../common/utils";
 
 @Injectable()
 export class RateLimitService {
@@ -153,10 +154,10 @@ export class RateLimitService {
   }
 
   private generateKey(context: IProtectionContext, config: IRateLimitConfig): string {
-    if (config.keyGenerator) {
-      return `rate_limit:${config.keyGenerator(context)}`;
-    }
-    return `rate_limit:${context.ip}:${context.path}:${context.method}`;
+    const baseKey = KeyGeneratorUtil.generateKey(context, config, "rate_limit");
+    return typeof baseKey === "string"
+      ? baseKey
+      : `rate_limit:${context.ip}:${context.path}:${context.method}`;
   }
 
   /**
@@ -199,11 +200,12 @@ export class RateLimitService {
     remaining: number,
     resetTime: number,
   ): Record<string, string> {
-    const headers: Record<string, string> = {
-      [HEADER_NAMES.RATE_LIMIT_LIMIT]: String(config.points),
-      [HEADER_NAMES.RATE_LIMIT_REMAINING]: String(Math.max(0, remaining)),
-      [HEADER_NAMES.RATE_LIMIT_RESET]: String(Math.floor(resetTime / 1000)),
-    };
+    const headers = HeaderGeneratorUtil.generateRateLimitHeaders({
+      limit: config.points,
+      remaining,
+      reset: new Date(resetTime),
+      prefix: "X-RateLimit",
+    });
 
     if (config.customHeaders) {
       Object.assign(headers, config.customHeaders);

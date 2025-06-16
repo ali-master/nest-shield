@@ -27,6 +27,7 @@ import {
   MachineLearningDetector,
   IsolationForestDetector,
   CompositeAnomalyDetector,
+  KNNDetector,
 } from "./detectors";
 
 /**
@@ -105,6 +106,10 @@ export class AnomalyDetectionProviderFactory implements IAnomalyDetectionProvide
         provide: DI_TOKENS.COMPOSITE_DETECTOR,
         useClass: CompositeAnomalyDetector,
       },
+      {
+        provide: DI_TOKENS.KNN_DETECTOR,
+        useClass: KNNDetector,
+      },
     ];
   }
 
@@ -122,6 +127,7 @@ export class AnomalyDetectionProviderFactory implements IAnomalyDetectionProvide
         mlDetector: MachineLearningDetector,
         isolationForestDetector: IsolationForestDetector,
         compositeDetector: CompositeAnomalyDetector,
+        knnDetector: KNNDetector,
       ) => {
         return new Map<string, IAnomalyDetector>([
           ["zscore", zscoreDetector],
@@ -131,6 +137,7 @@ export class AnomalyDetectionProviderFactory implements IAnomalyDetectionProvide
           ["machine-learning", mlDetector],
           ["isolation-forest", isolationForestDetector],
           ["composite", compositeDetector],
+          ["knn", knnDetector],
         ]);
       },
       inject: [
@@ -141,6 +148,7 @@ export class AnomalyDetectionProviderFactory implements IAnomalyDetectionProvide
         DI_TOKENS.MACHINE_LEARNING_DETECTOR,
         DI_TOKENS.ISOLATION_FOREST_DETECTOR,
         DI_TOKENS.COMPOSITE_DETECTOR,
+        DI_TOKENS.KNN_DETECTOR,
       ],
     };
   }
@@ -229,6 +237,7 @@ export const ANOMALY_DETECTION_EXPORTS = [
   DI_TOKENS.MACHINE_LEARNING_DETECTOR,
   DI_TOKENS.ISOLATION_FOREST_DETECTOR,
   DI_TOKENS.COMPOSITE_DETECTOR,
+  DI_TOKENS.KNN_DETECTOR,
 
   // Utility tokens
   DI_TOKENS.DETECTOR_REGISTRY,

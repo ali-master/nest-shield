@@ -1,50 +1,118 @@
-import { Injectable } from "@nestjs/common";
-import type { IStorageAdapter } from "../interfaces/shield-config.interface";
-import { StorageException } from "../core/exceptions";
+import { Logger } from "@nestjs/common";
+import { IStorageAdapter } from "../interfaces/shield-config.interface";
+import { ErrorHandlerUtil } from "../common/utils";
 
-@Injectable()
+/**
+ * Base class for storage adapters with common error handling
+ */
 export abstract class BaseStorageAdapter implements IStorageAdapter {
-  protected readonly prefix: string;
+  protected readonly logger: Logger;
+  protected readonly keyPrefix: string;
 
-  constructor(protected readonly options?: any) {
-    this.prefix = options?.prefix || "shield:";
+  constructor(
+    protected readonly adapterName: string,
+    keyPrefix = "",
+  ) {
+    this.logger = new Logger(adapterName);
+    this.keyPrefix = keyPrefix;
   }
 
+  /**
+   * Get a key with optional prefix
+   */
   protected getKey(key: string): string {
-    return `${this.prefix}${key}`;
+    return this.keyPrefix ? `${this.keyPrefix}:${key}` : key;
   }
 
-  protected handleError(error: Error, operation: string): never {
-    throw new StorageException(`Storage ${operation} failed: ${error.message}`, error);
+  /**
+   * Handle storage operation errors consistently
+   */
+  protected handleError(error: unknown, operation: string): void {
+    ErrorHandlerUtil.handle(error, `${this.adapterName}.${operation}`, this.logger, true);
   }
 
+  /**
+   * Wrap async operations with error handling
+   */
+  protected async wrapOperation<T>(
+    operation: string,
+    fn: () => Promise<T>,
+    fallbackValue?: T,
+  ): Promise<T> {
+    try {
+      return await fn();
+    } catch (error) {
+      if (fallbackValue !== undefined) {
+        return ErrorHandlerUtil.handleWithFallback(
+          error,
+          `${this.adapterName}.${operation}`,
+          fallbackValue,
+          this.logger,
+        );
+      }
+      this.handleError(error, operation);
+      throw error; // This line won't be reached due to handleError throwing
+    }
+  }
+
+  // Abstract methods that must be implemented by subclasses
   abstract get(key: string): Promise<any>;
-  abstract set(key: string, value: any, ttl?: number): Promise<void>;
+  abstract set(key: string, value: any, ttlSeconds?: number): Promise<void>;
   abstract delete(key: string): Promise<void>;
-  abstract increment(key: string, value?: number): Promise<number>;
-  abstract decrement(key: string, value?: number): Promise<number>;
-  abstract exists(key: string): Promise<boolean>;
-  abstract expire(key: string, ttl: number): Promise<void>;
+  abstract increment(key: string, delta?: number): Promise<number>;
+  abstract decrement(key: string, delta?: number): Promise<number>;
+  abstract expire(key: string, ttlSeconds: number): Promise<void>;
   abstract ttl(key: string): Promise<number>;
-  abstract clear?(): Promise<void>;
-  abstract mget?(keys: string[]): Promise<any[]>;
-  abstract mset?(entries: Array<[string, any]>, ttl?: number): Promise<void>;
+  abstract clear(): Promise<void>;
+  abstract isConnected(): Promise<boolean>;
 
-  async getMultiple(keys: string[]): Promise<any[]> {
-    if (this.mget) {
-      return this.mget(keys);
-    }
-    return Promise.all(keys.map((key) => this.get(key)));
+  // Optional methods with default implementations
+  async scan(pattern: string): Promise<string[]> {
+    this.logger.warn(`scan operation not supported in ${this.adapterName}`);
+    return [];
   }
 
-  async setMultiple(entries: Array<[string, any]>, ttl?: number): Promise<void> {
-    if (this.mset) {
-      return this.mset(entries, ttl);
+  async bulkGet(keys: string[]): Promise<Map<string, any>> {
+    const results = new Map<string, any>();
+    for (const key of keys) {
+      try {
+        const value = await this.get(key);
+        if (value !== null) {
+          results.set(key, value);
+        }
+      } catch (error) {
+        // Continue with other keys
+      }
     }
-    await Promise.all(entries.map(([key, value]) => this.set(key, value, ttl)));
+    return results;
   }
 
-  async deleteMultiple(keys: string[]): Promise<void> {
-    await Promise.all(keys.map((key) => this.delete(key)));
+  async bulkSet(entries: Map<string, any>, ttlSeconds?: number): Promise<void> {
+    const promises = Array.from(entries.entries()).map(([key, value]) =>
+      this.set(key, value, ttlSeconds).catch(() => {
+        // Continue with other entries
+      }),
+    );
+    await Promise.all(promises);
+  }
+
+  async bulkDelete(keys: string[]): Promise<void> {
+    const promises = keys.map((key) =>
+      this.delete(key).catch(() => {
+        // Continue with other deletions
+      }),
+    );
+    await Promise.all(promises);
+  }
+
+  /**
+   * Get storage statistics (for monitoring)
+   */
+  async getStats(): Promise<Record<string, any>> {
+    return {
+      adapter: this.adapterName,
+      connected: await this.isConnected(),
+      keyPrefix: this.keyPrefix,
+    };
   }
 }
