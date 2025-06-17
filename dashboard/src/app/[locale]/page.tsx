@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { LazyComponent } from "@/components/lazy-load";
 import { LoadingSkeleton } from "@/components/ui/loading";
+import { RealtimeDashboard } from "@/components/realtime/real-time-dashboard";
 
 // PPR will be enabled when Next.js canary is used
 // export const experimental_ppr = true;
@@ -17,20 +17,12 @@ export const metadata = {
   },
 };
 
-// Lazy load the dashboard component for better performance
-const LazyRealtimeDashboard = () =>
-  import("@/components/realtime/real-time-dashboard").then((mod) => ({
-    default: mod.RealtimeDashboard,
-  }));
-
 export default function DashboardPage() {
   return (
     <DashboardLayout>
       <Suspense fallback={<LoadingSkeleton variant="dashboard" />}>
-        <LazyComponent
-          loader={LazyRealtimeDashboard}
+        <RealtimeDashboard
           websocketUrl={process.env.NEXT_PUBLIC_WEBSOCKET_URL || "http://localhost:3000"}
-          fallback={<LoadingSkeleton variant="dashboard" />}
         />
       </Suspense>
     </DashboardLayout>

@@ -17,7 +17,8 @@ const policyUpdateSchema = z.object({
 // GET /api/data-retention/policies/[id] - Get specific policy
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const policyId = Number.parseInt(params.id);
+    const { id } = await params;
+    const policyId = Number.parseInt(id);
 
     if (isNaN(policyId)) {
       return NextResponse.json(
@@ -64,7 +65,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 // PUT /api/data-retention/policies/[id] - Update policy
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const policyId = Number.parseInt(params.id);
+    const { id } = await params;
+    const policyId = Number.parseInt(id);
 
     if (isNaN(policyId)) {
       return NextResponse.json(
@@ -141,7 +143,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 // DELETE /api/data-retention/policies/[id] - Delete policy
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const policyId = Number.parseInt(params.id);
+    const { id } = await params;
+    const policyId = Number.parseInt(id);
 
     if (isNaN(policyId)) {
       return NextResponse.json(

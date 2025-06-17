@@ -2,7 +2,7 @@ import { and, desc, eq, gte, isNotNull, lte, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { activityLogs } from "@/lib/db/schema";
 import { generateId } from "@/lib/utils";
-import UAParser from "ua-parser-js";
+import { UAParser } from "ua-parser-js";
 
 export type ActivityLogData = {
   userId?: string;

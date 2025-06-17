@@ -54,6 +54,7 @@ export async function generateWebAuthnRegistrationOptions(options: WebAuthnRegis
   const registrationOptions = await generateRegistrationOptions({
     rpName: RP_NAME,
     rpID: RP_ID,
+
     userID: userId,
     userName: userEmail,
     userDisplayName: userName,

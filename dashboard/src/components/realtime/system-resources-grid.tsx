@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Activity, Cpu, Database, Gauge, HardDrive, Memory, Network, Zap } from "lucide-react";
+import { Activity, Cpu, Database, Gauge, HardDrive, MemoryStick, Network, Zap } from "lucide-react";
 
 type SystemResourcesGridProps = {
   systemData: {
@@ -105,7 +105,7 @@ export function SystemResourcesGrid({ systemData }: SystemResourcesGridProps) {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Memory className="h-5 w-5 text-green-600" />
+              <MemoryStick className="h-5 w-5 text-green-600" />
               <CardTitle>Memory Usage</CardTitle>
             </div>
             <Badge variant="outline" className={getStatusColor(systemData.memory?.usage || 0)}>
