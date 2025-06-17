@@ -6,8 +6,9 @@ import { ScheduleModule } from "@nestjs/schedule";
 import { AnomalyManagementController } from "./controllers/anomaly-management.controller";
 import { DetectorManagementController } from "./controllers/detector-management.controller";
 
-// Import provider factory
-import { anomalyDetectionProviderFactory, ANOMALY_DETECTION_EXPORTS } from "./providers.factory";
+// Import provider factory and DI tokens
+import { anomalyDetectionProviderFactory } from "./providers.factory";
+import { DI_TOKENS } from "../core/di-tokens";
 
 /**
  * Anomaly Detection Module with enterprise-grade DI patterns
@@ -37,8 +38,11 @@ import { anomalyDetectionProviderFactory, ANOMALY_DETECTION_EXPORTS } from "./pr
     ...anomalyDetectionProviderFactory.createAllProviders(),
   ],
   exports: [
-    // Export both Symbol tokens and legacy string tokens
-    ...ANOMALY_DETECTION_EXPORTS,
+    // Core services needed for external usage
+    DI_TOKENS.ANOMALY_DETECTION_SERVICE,
+    DI_TOKENS.ALERTING_SERVICE,
+    DI_TOKENS.DETECTOR_FACTORY,
+    DI_TOKENS.DETECTOR_REGISTRY,
   ],
 })
 export class AnomalyDetectionModule {}

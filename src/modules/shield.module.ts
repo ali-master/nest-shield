@@ -7,6 +7,7 @@ import { DI_TOKENS } from "../core/di-tokens";
 import { providerFactory, createConfigProvider } from "../core/providers.factory";
 import { MetricsModule } from "../metrics";
 import { ShieldGuard } from "../guards/shield.guard";
+// AnomalyDetectionModule is imported separately in playground
 
 export interface ShieldModuleOptions extends IShieldConfig {}
 
@@ -34,10 +35,7 @@ export class ShieldModule {
     return {
       global: true,
       module: ShieldModule,
-      imports: [
-        // AnomalyDetectionModule, // Temporarily disabled for testing
-        MetricsModule.forRoot(mergedOptions.metrics || DEFAULT_CONFIG.metrics),
-      ],
+      imports: [MetricsModule.forRoot(mergedOptions.metrics || DEFAULT_CONFIG.metrics)],
       providers: [
         createConfigProvider(DI_TOKENS.SHIELD_MODULE_OPTIONS, mergedOptions),
         (() => {
@@ -72,7 +70,6 @@ export class ShieldModule {
       global: true,
       module: ShieldModule,
       imports: [
-        // AnomalyDetectionModule, // Temporarily disabled for testing
         MetricsModule.forRootAsync({
           useFactory: async (...args: unknown[]) => {
             const config = options.useFactory ? await options.useFactory(...args) : {};

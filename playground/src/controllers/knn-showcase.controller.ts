@@ -1,9 +1,8 @@
-import { Controller, Post, Body, Get, Inject, Logger } from "@nestjs/common";
+import { Controller, Post, Body, Get, Logger, Inject } from "@nestjs/common";
 import { ApiOperation, ApiTags, ApiResponse, ApiBody } from "@nestjs/swagger";
-import { DI_TOKENS } from "../../../src/core/di-tokens";
-import { Shield } from "../../../src/decorators";
-import type { IAnomalyData } from "../../../src/anomaly-detection/interfaces/anomaly.interface";
-import type { IAnomalyDetector } from "../../../src/anomaly-detection/interfaces/detector.interface";
+import { Shield } from "@usex/nest-shield";
+import type { IAnomalyData } from "@usex/nest-shield/anomaly-detection/interfaces/anomaly.interface";
+import type { IAnomalyDetector } from "@usex/nest-shield/anomaly-detection/interfaces/detector.interface";
 
 @ApiTags("KNN Anomaly Detection")
 @Controller("knn")
@@ -11,7 +10,7 @@ export class KNNShowcaseController {
   private readonly logger = new Logger(KNNShowcaseController.name);
 
   constructor(
-    @Inject(DI_TOKENS.DETECTOR_FACTORY)
+    @Inject("DETECTOR_FACTORY")
     private readonly detectorFactory: any,
   ) {}
 

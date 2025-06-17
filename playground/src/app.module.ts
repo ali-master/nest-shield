@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { ScheduleModule } from "@nestjs/schedule";
-import { ShieldModule, MonitoringModule } from "@usex/nest-shield";
+import { ShieldModule, DI_TOKENS, AnomalyDetectionService } from "@usex/nest-shield";
 
 // Controllers
 import { BasicController } from "./controllers/basic.controller";
@@ -13,9 +13,9 @@ import { MetricsController } from "./controllers/metrics.controller";
 import { AnomalyDetectionController } from "./controllers/anomaly-detection.controller";
 import { ConfigController } from "./controllers/config.controller";
 import { CombinedProtectionController } from "./controllers/combined-protection.controller";
-import { AdvancedController } from "./controllers/advanced.controller";
-import { DIShowcaseController } from "./controllers/di-showcase.controller";
-import { AnomalyShowcaseController } from "./controllers/anomaly-showcase.controller";
+// import { AdvancedController } from "./controllers/advanced.controller";
+// import { DIShowcaseController } from "./controllers/di-showcase.controller";
+// import { AnomalyShowcaseController } from "./controllers/anomaly-showcase.controller";
 import { MetricsShowcaseController } from "./controllers/metrics-showcase.controller";
 import { KNNShowcaseController } from "./controllers/knn-showcase.controller";
 import { MonitoringDemoController } from "./controllers/monitoring-demo.controller";
@@ -134,9 +134,6 @@ import { CustomMetricsService } from "./services/custom-metrics.service";
         },
       },
     }),
-
-    // Add the Monitoring Module for WebSocket support
-    MonitoringModule.forRoot(),
   ],
   controllers: [
     BasicController,
@@ -148,9 +145,9 @@ import { CustomMetricsService } from "./services/custom-metrics.service";
     AnomalyDetectionController,
     ConfigController,
     CombinedProtectionController,
-    AdvancedController,
-    DIShowcaseController,
-    AnomalyShowcaseController,
+    // AdvancedController,
+    // DIShowcaseController,
+    // AnomalyShowcaseController,
     MetricsShowcaseController,
     KNNShowcaseController,
     MonitoringDemoController,
@@ -173,6 +170,74 @@ import { CustomMetricsService } from "./services/custom-metrics.service";
           throttle: true,
           overload: true,
         },
+      },
+    },
+    // Explicit AnomalyDetectionService provider to ensure it's available
+    {
+      provide: DI_TOKENS.ANOMALY_DETECTION_SERVICE,
+      useClass: AnomalyDetectionService,
+    },
+    // Simple detector factory for demonstration (not dependent on complex DI chain)
+    {
+      provide: "DETECTOR_FACTORY",
+      useValue: {
+        create: (type: string) => {
+          // Create a simple mock detector for demonstration
+          if (type === "knn") {
+            return {
+              name: "KNN Detector",
+              version: "1.0.0",
+              isReady: () => true,
+              configure: (options: any) => console.log("KNN configured with:", options),
+              train: (data: any[]) => console.log("KNN training with data points:", data.length),
+              detect: (data: any) => ({
+                isAnomaly: Math.random() > 0.7,
+                score: Math.random(),
+                confidence: Math.random(),
+                metadata: { type: "knn", threshold: 0.7 },
+              }),
+              getMetrics: () => ({
+                totalSamples: 1000,
+                anomaliesDetected: 42,
+                accuracy: 0.95,
+                lastTrained: new Date(),
+              }),
+              getStatistics: () => ({
+                config: { k: 5, anomalyThreshold: 2.0 },
+                trainingDataSize: 100,
+                effectiveK: 5,
+                normalizationParams: { mean: 50, std: 10 },
+              }),
+            };
+          }
+          if (type === "zscore") {
+            return {
+              name: "Z-Score Detector",
+              version: "1.0.0",
+              isReady: () => true,
+              configure: (options: any) => console.log("Z-Score configured with:", options),
+              train: (data: any[]) =>
+                console.log("Z-Score training with data points:", data.length),
+              detect: (data: any) => [],
+              getStatistics: () => ({ threshold: 2.5, windowSize: 50 }),
+            };
+          }
+          if (type === "threshold") {
+            return {
+              name: "Threshold Detector",
+              version: "1.0.0",
+              isReady: () => true,
+              configure: (options: any) => console.log("Threshold configured with:", options),
+              train: (data: any[]) =>
+                console.log("Threshold training with data points:", data.length),
+              detect: (data: any) => [],
+              getStatistics: () => ({ upperThreshold: 80, lowerThreshold: 20 }),
+            };
+          }
+          throw new Error(`Unknown detector type: ${type}`);
+        },
+        getAvailableTypes: () => ["knn", "statistical", "threshold", "zscore"],
+        hasType: (type: string) => ["knn", "statistical", "threshold", "zscore"].includes(type),
       },
     },
   ],

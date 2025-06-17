@@ -110,11 +110,15 @@ export class OptionalMonitoringModule {
     if (options.enableScheduler) {
       try {
         // Use dynamic imports instead of require
-        Promise.resolve().then(() => import("@nestjs/event-emitter")).then(({ EventEmitterModule }) => {
-          Promise.resolve().then(() => import("@nestjs/schedule")).then(({ ScheduleModule }) => {
-            imports.push(EventEmitterModule.forRoot(), ScheduleModule.forRoot());
+        Promise.resolve()
+          .then(() => import("@nestjs/event-emitter"))
+          .then(({ EventEmitterModule }) => {
+            Promise.resolve()
+              .then(() => import("@nestjs/schedule"))
+              .then(({ ScheduleModule }) => {
+                imports.push(EventEmitterModule.forRoot(), ScheduleModule.forRoot());
+              });
           });
-        });
       } catch {
         this.logger.warn("Scheduler dependencies not available, disabling scheduling features");
       }
@@ -128,11 +132,15 @@ export class OptionalMonitoringModule {
 
     try {
       // Use dynamic imports
-      Promise.resolve().then(() => import("../controllers/monitoring.controller")).then(({ MonitoringController }) => {
-        Promise.resolve().then(() => import("../controllers/configuration.controller")).then(({ ConfigurationController }) => {
-          controllers.push(MonitoringController, ConfigurationController);
+      Promise.resolve()
+        .then(() => import("../controllers/monitoring.controller"))
+        .then(({ MonitoringController }) => {
+          Promise.resolve()
+            .then(() => import("../controllers/configuration.controller"))
+            .then(({ ConfigurationController }) => {
+              controllers.push(MonitoringController, ConfigurationController);
+            });
         });
-      });
     } catch {
       this.logger.warn("Controller dependencies not available, controllers will not be registered");
     }
@@ -149,15 +157,28 @@ export class OptionalMonitoringModule {
     // Always try to include core monitoring services
     try {
       // Use dynamic imports
-      Promise.resolve().then(() => import("../services/monitoring.service")).then(({ MonitoringService }) => {
-        Promise.resolve().then(() => import("../services/configuration.service")).then(({ ConfigurationService }) => {
-          Promise.resolve().then(() => import("../services/metrics.service")).then(({ MetricsService }) => {
-            Promise.resolve().then(() => import("../services/shield-logger.service")).then(({ ShieldLoggerService }) => {
-              providers.push(MonitoringService, ConfigurationService, MetricsService, ShieldLoggerService);
+      Promise.resolve()
+        .then(() => import("../services/monitoring.service"))
+        .then(({ MonitoringService }) => {
+          Promise.resolve()
+            .then(() => import("../services/configuration.service"))
+            .then(({ ConfigurationService }) => {
+              Promise.resolve()
+                .then(() => import("../services/metrics.service"))
+                .then(({ MetricsService }) => {
+                  Promise.resolve()
+                    .then(() => import("../services/shield-logger.service"))
+                    .then(({ ShieldLoggerService }) => {
+                      providers.push(
+                        MonitoringService,
+                        ConfigurationService,
+                        MetricsService,
+                        ShieldLoggerService,
+                      );
+                    });
+                });
             });
-          });
         });
-      });
     } catch {
       this.logger.warn("Core monitoring service dependencies not available");
     }
@@ -165,9 +186,11 @@ export class OptionalMonitoringModule {
     // Add WebSocket gateway if enabled and available
     if (options.enableWebSocket) {
       try {
-        Promise.resolve().then(() => import("../gateways/monitoring.gateway")).then(({ MonitoringGateway }) => {
-          providers.push(MonitoringGateway);
-        });
+        Promise.resolve()
+          .then(() => import("../gateways/monitoring.gateway"))
+          .then(({ MonitoringGateway }) => {
+            providers.push(MonitoringGateway);
+          });
       } catch {
         this.logger.warn("WebSocket dependencies not available, real-time features disabled");
       }
@@ -180,19 +203,25 @@ export class OptionalMonitoringModule {
     const exports: any[] = [];
 
     try {
-      Promise.resolve().then(() => import("../services/monitoring.service")).then(({ MonitoringService }) => {
-        Promise.resolve().then(() => import("../services/configuration.service")).then(({ ConfigurationService }) => {
-          exports.push(MonitoringService, ConfigurationService);
+      Promise.resolve()
+        .then(() => import("../services/monitoring.service"))
+        .then(({ MonitoringService }) => {
+          Promise.resolve()
+            .then(() => import("../services/configuration.service"))
+            .then(({ ConfigurationService }) => {
+              exports.push(MonitoringService, ConfigurationService);
+            });
         });
-      });
     } catch {
       this.logger.warn("Core monitoring services not available for export");
     }
 
     try {
-      Promise.resolve().then(() => import("../gateways/monitoring.gateway")).then(({ MonitoringGateway }) => {
-        exports.push(MonitoringGateway);
-      });
+      Promise.resolve()
+        .then(() => import("../gateways/monitoring.gateway"))
+        .then(({ MonitoringGateway }) => {
+          exports.push(MonitoringGateway);
+        });
     } catch {
       // WebSocket gateway is optional
     }

@@ -8,6 +8,8 @@ import { MonitoringController } from "../controllers/monitoring.controller";
 import { ConfigurationController } from "../controllers/configuration.controller";
 import { MetricsService } from "../services/metrics.service";
 import { ShieldLoggerService } from "../services/shield-logger.service";
+import { StorageFactory } from "../storage/storage.factory";
+import { STORAGE_ADAPTER } from "../core/di-tokens";
 
 @Module({})
 export class MonitoringModule {
@@ -22,6 +24,15 @@ export class MonitoringModule {
         MonitoringGateway,
         MetricsService,
         ShieldLoggerService,
+        {
+          provide: STORAGE_ADAPTER,
+          useFactory: () => {
+            return StorageFactory.create({
+              type: "memory",
+              options: { maxSize: 10000, ttl: 3600000 },
+            });
+          },
+        },
       ],
       exports: [MonitoringService, ConfigurationService, MonitoringGateway],
     };
@@ -42,6 +53,15 @@ export class MonitoringModule {
         MonitoringGateway,
         MetricsService,
         ShieldLoggerService,
+        {
+          provide: STORAGE_ADAPTER,
+          useFactory: () => {
+            return StorageFactory.create({
+              type: "memory",
+              options: { maxSize: 10000, ttl: 3600000 },
+            });
+          },
+        },
         ...(options.useFactory
           ? [
               {

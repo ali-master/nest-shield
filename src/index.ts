@@ -7,8 +7,10 @@
 
 export * from "./adapters";
 export type { IAnomaly, IAnomalyData } from "./anomaly-detection/interfaces/anomaly.interface";
+export { AnomalyDetectionModule } from "./anomaly-detection/anomaly-detection.module";
 export * from "./controllers";
 export * from "./core/constants";
+export { DI_TOKENS } from "./core/di-tokens";
 export * from "./core/exceptions";
 export * from "./decorators";
 export * from "./gateways";

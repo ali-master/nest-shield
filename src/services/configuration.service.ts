@@ -158,7 +158,7 @@ export class ConfigurationService {
 
     this.shieldLogger.info("Rate limit configuration updated", {
       configId: id,
-      metadata: { updates }
+      metadata: { updates },
     });
 
     return updated;
@@ -526,7 +526,7 @@ export class ConfigurationService {
 
   private async getAllConfigs<T>(type: string): Promise<T[]> {
     const pattern = `${this.cachePrefix}:${type}:*`;
-    const keys = await this.storage.scan?.(pattern) || [];
+    const keys = (await this.storage.scan?.(pattern)) || [];
     const configs: T[] = [];
 
     for (const key of keys) {
