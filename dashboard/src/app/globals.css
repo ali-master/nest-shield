@@ -2,9 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Import RTL-specific styles */
-@import '../styles/rtl.css';
-
 @layer base {
   :root {
     --background: 0 0% 100%;

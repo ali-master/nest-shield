@@ -5,8 +5,6 @@ import { ThemeProvider } from "next-themes";
 import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { QueryProvider } from "@/providers/query-provider";
-import { ViewTransitions } from "@/components/view-transitions";
-import { PerformanceMonitor } from "@/components/performance-monitor";
 import { cn } from "@/lib/utils";
 import "../globals.css";
 
@@ -29,22 +27,20 @@ export default async function LocaleLayout({
   const { locale } = await params;
   if (!locales.includes(locale as any)) notFound();
 
-  const messages = await getMessages();
+  let messages;
+  try {
+    messages = await getMessages();
+  } catch {
+    // Fallback to English messages if locale messages fail to load
+    const enMessages = await import("@/locales/en.json");
+    messages = enMessages.default;
+  }
 
   return (
     <html lang={locale} dir={locale === "fa" ? "rtl" : "ltr"} suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="color-scheme" content="light dark" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          rel="preload"
-          href="/fonts/inter-var.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
       </head>
       <body className={cn("min-h-screen bg-background font-sans antialiased", inter.variable)}>
         <ThemeProvider
@@ -53,15 +49,12 @@ export default async function LocaleLayout({
           enableSystem
           disableTransitionOnChange={false}
         >
-          <ViewTransitions>
-            <NextIntlClientProvider messages={messages}>
-              <QueryProvider>
-                {children}
-                <Toaster />
-                <PerformanceMonitor />
-              </QueryProvider>
-            </NextIntlClientProvider>
-          </ViewTransitions>
+          <NextIntlClientProvider locale={locale} messages={messages}>
+            <QueryProvider>
+              {children}
+              <Toaster />
+            </QueryProvider>
+          </NextIntlClientProvider>
         </ThemeProvider>
       </body>
     </html>
