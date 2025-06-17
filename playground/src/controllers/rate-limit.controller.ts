@@ -11,16 +11,16 @@ export class RateLimitController {
   @ApiOperation({
     summary: "Strict rate limiting (3 requests/minute)",
     description: `
-      Demonstrates strict rate limiting with extended block duration.
-      
-      **Configuration:**
-      - Points: 3 requests
-      - Duration: 60 seconds (1 minute window)
-      - Block Duration: 120 seconds (2 minutes penalty)
-      
-      **Testing:**
-      Send 4+ requests rapidly to trigger rate limiting and observe the 2-minute block period.
-    `,
+Demonstrates strict rate limiting with extended block duration.
+
+**Configuration:**
+- Points: 3 requests
+- Duration: 60 seconds (1 minute window)
+- Block Duration: 120 seconds (2 minutes penalty)
+
+**Testing:**
+Send 4+ requests rapidly to trigger rate limiting and observe the 2-minute block period.
+`,
   })
   @ApiResponse({
     status: 200,
@@ -79,18 +79,18 @@ export class RateLimitController {
   @ApiOperation({
     summary: "Custom key rate limiting",
     description: `
-      Demonstrates custom key generation for rate limiting based on user ID.
-      
-      **Configuration:**
-      - Points: 5 requests per user
-      - Duration: 60 seconds
-      - Key: Based on X-User-ID header
-      
-      **Testing:**
-      1. Send requests with different X-User-ID headers
-      2. Each user ID gets its own rate limit bucket
-      3. Test without header (uses "anonymous" key)
-    `,
+Demonstrates custom key generation for rate limiting based on user ID.
+
+**Configuration:**
+- Points: 5 requests per user
+- Duration: 60 seconds
+- Key: Based on X-User-ID header
+
+**Testing:**
+1. Send requests with different X-User-ID headers
+2. Each user ID gets its own rate limit bucket
+3. Test without header (uses "anonymous" key)
+`,
   })
   @ApiHeader({
     name: "X-User-ID",

@@ -13,17 +13,17 @@ export class BasicController {
   @ApiOperation({
     summary: "Basic protected endpoint",
     description: `
-      Demonstrates basic NestShield protection with both rate limiting and throttling.
-      
-      **Protection Configuration:**
-      - Rate Limit: 10 requests per minute (fixed window)
-      - Throttle: 5 requests per 30 seconds (token bucket)
-      
-      **Test this endpoint by:**
-      1. Send multiple rapid requests to see throttling in action
-      2. Wait and send more requests to test rate limiting
-      3. Observe different HTTP status codes (200, 429) based on protection triggers
-    `,
+Demonstrates basic NestShield protection with both rate limiting and throttling.
+
+**Protection Configuration:**
+- Rate Limit: 10 requests per minute (fixed window)
+- Throttle: 5 requests per 30 seconds (token bucket)
+
+**Test this endpoint by:**
+1. Send multiple rapid requests to see throttling in action
+2. Wait and send more requests to test rate limiting
+3. Observe different HTTP status codes (200, 429) based on protection triggers
+`,
   })
   @ApiResponse({
     status: 200,
@@ -68,14 +68,14 @@ export class BasicController {
   @ApiOperation({
     summary: "Quick rate limit protection",
     description: `
-      Demonstrates NestShield's @QuickRateLimit decorator for simple rate limiting.
-      
-      **Protection Configuration:**
-      - Quick Rate Limit: 5 requests per minute
-      - Simpler configuration than full @Shield decorator
-      
-      **Use case:** Perfect for simple endpoints that need basic rate limiting without complex configuration.
-    `,
+Demonstrates NestShield's @QuickRateLimit decorator for simple rate limiting.
+
+**Protection Configuration:**
+- Quick Rate Limit: 5 requests per minute
+- Simpler configuration than full @Shield decorator
+
+**Use case:** Perfect for simple endpoints that need basic rate limiting without complex configuration.
+`,
   })
   @ApiResponse({
     status: 200,
@@ -106,15 +106,15 @@ export class BasicController {
   @ApiOperation({
     summary: "Bypassed endpoint (no protection)",
     description: `
-      Demonstrates the @BypassShield decorator that completely disables NestShield protection.
-      
-      **Use case:** 
-      - Health check endpoints
-      - Public endpoints that don't need protection
-      - Debugging and development endpoints
-      
-      **Note:** This endpoint will never trigger rate limits or other protections.
-    `,
+Demonstrates the @BypassShield decorator that completely disables NestShield protection.
+
+**Use case:**
+- Health check endpoints
+- Public endpoints that don't need protection
+- Debugging and development endpoints
+
+**Note:** This endpoint will never trigger rate limits or other protections.
+`,
   })
   @ApiResponse({
     status: 200,
@@ -140,11 +140,11 @@ export class BasicController {
   @ApiOperation({
     summary: "Health check endpoint",
     description: `
-      Simple health check endpoint that shows server status and uptime.
-      
-      **Note:** This endpoint has no explicit protection configuration, 
-      so it uses the global protection settings (if any).
-    `,
+Simple health check endpoint that shows server status and uptime.
+
+**Note:** This endpoint has no explicit protection configuration,
+so it uses the global protection settings (if any).
+`,
   })
   @ApiResponse({
     status: 200,

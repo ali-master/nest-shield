@@ -18,15 +18,15 @@ export class MetricsController {
   @ApiOperation({
     summary: "Get current metrics snapshot",
     description: `
-      Retrieves the current metrics collected by NestShield including protection metrics and system metrics.
-      
-      **Includes:**
-      - Shield protection metrics (rate limits, circuit breakers, etc.)
-      - System metrics (uptime, memory, CPU usage)
-      - Timestamp of the snapshot
-      
-      **Use case:** Monitoring dashboard data, health checks, debugging protection behavior.
-    `,
+Retrieves the current metrics collected by NestShield including protection metrics and system metrics.
+
+**Includes:**
+- Shield protection metrics (rate limits, circuit breakers, etc.)
+- System metrics (uptime, memory, CPU usage)
+- Timestamp of the snapshot
+
+**Use case:** Monitoring dashboard data, health checks, debugging protection behavior.
+`,
   })
   @ApiResponse({
     status: 200,
@@ -65,14 +65,14 @@ export class MetricsController {
   @ApiOperation({
     summary: "Get Prometheus-formatted metrics",
     description: `
-      Retrieves metrics in Prometheus exposition format for integration with monitoring systems.
-      
-      **Format:** Prometheus text-based exposition format
-      **Use case:** Integration with Prometheus, Grafana, or other monitoring tools
-      
-      **Note:** In a production setup, this would typically be exposed on a separate port
-      for security reasons (e.g., /metrics endpoint on port 9090).
-    `,
+Retrieves metrics in Prometheus exposition format for integration with monitoring systems.
+
+**Format:** Prometheus text-based exposition format
+**Use case:** Integration with Prometheus, Grafana, or other monitoring tools
+
+**Note:** In a production setup, this would typically be exposed on a separate port
+for security reasons (e.g., /metrics endpoint on port 9090).
+`,
   })
   @ApiResponse({
     status: 200,
