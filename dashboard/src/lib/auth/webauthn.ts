@@ -1,14 +1,12 @@
 import {
+  type AuthenticationResponseJSON,
+  type AuthenticatorTransport,
   generateAuthenticationOptions,
   generateRegistrationOptions,
+  type RegistrationResponseJSON,
   verifyAuthenticationResponse,
   verifyRegistrationResponse,
 } from "@simplewebauthn/server";
-import type {
-  AuthenticationResponseJSON,
-  AuthenticatorTransport,
-  RegistrationResponseJSON,
-} from "@simplewebauthn/types";
 import { Buffer } from "node:buffer";
 import { db } from "@/lib/db";
 import { authenticators, users } from "@/lib/db/schema";
@@ -37,7 +35,7 @@ export async function generateWebAuthnRegistrationOptions(options: WebAuthnRegis
   const { userId, userEmail, userName, excludeCredentials = true } = options;
 
   // Get existing authenticators for this user
-  let excludeCredentialsList: { id: Uint8Array; type: "public-key" }[] = [];
+  let excludeCredentialsList: { id: string; transports?: AuthenticatorTransport[] }[] = [];
 
   if (excludeCredentials) {
     const existingAuthenticators = await db
@@ -46,20 +44,19 @@ export async function generateWebAuthnRegistrationOptions(options: WebAuthnRegis
       .where(eq(authenticators.userId, userId));
 
     excludeCredentialsList = existingAuthenticators.map((auth) => ({
-      id: Buffer.from(auth.credentialId, "base64"),
-      type: "public-key" as const,
+      id: auth.credentialId,
+      transports: (auth.transports as AuthenticatorTransport[]) || [],
     }));
   }
 
   const registrationOptions = await generateRegistrationOptions({
     rpName: RP_NAME,
     rpID: RP_ID,
-
-    userID: userId,
+    userID: new TextEncoder().encode(userId),
     userName: userEmail,
     userDisplayName: userName,
     timeout: 60000,
-    attestationType: "indirect",
+    attestationType: "none",
     excludeCredentials: excludeCredentialsList,
     authenticatorSelection: {
       authenticatorAttachment: "platform",
@@ -113,15 +110,15 @@ export async function verifyWebAuthnRegistration(
     }
 
     const { registrationInfo } = verification;
-    const { credentialPublicKey, credentialID, counter, credentialDeviceType, credentialBackedUp } =
-      registrationInfo;
+    const { credential, credentialDeviceType, credentialBackedUp } = registrationInfo;
+    const { id: credentialID, publicKey: credentialPublicKey, counter } = credential;
 
     // Save authenticator to database
     const authenticatorId = generateId();
     await db.insert(authenticators).values({
       id: authenticatorId,
       userId,
-      credentialId: Buffer.from(credentialID).toString("base64"),
+      credentialId: credentialID,
       credentialPublicKey: Buffer.from(credentialPublicKey).toString("base64"),
       counter,
       credentialDeviceType,
@@ -174,7 +171,7 @@ export async function generateWebAuthnAuthenticationOptions(
 ) {
   const { userEmail, allowCredentials = [] } = options;
 
-  let allowCredentialsList: { id: Uint8Array; type: "public-key"; transports?: string[] }[] = [];
+  let allowCredentialsList: { id: string; transports?: AuthenticatorTransport[] }[] = [];
 
   if (userEmail) {
     // Get user's authenticators
@@ -191,16 +188,15 @@ export async function generateWebAuthnAuthenticationOptions(
         .where(eq(authenticators.userId, user.id));
 
       allowCredentialsList = userAuthenticators.map((auth) => ({
-        id: Buffer.from(auth.credentialId, "base64"),
-        type: "public-key" as const,
-        transports: auth.transports as string[] | undefined,
+        id: auth.credentialId,
+        transports: (auth.transports as AuthenticatorTransport[]) || [],
       }));
     }
   } else if (allowCredentials.length > 0) {
     // Use provided credential IDs
     allowCredentialsList = allowCredentials.map((id) => ({
-      id: Buffer.from(id, "base64"),
-      type: "public-key" as const,
+      id,
+      transports: [],
     }));
   }
 
@@ -224,7 +220,7 @@ export async function verifyWebAuthnAuthentication(
 ): Promise<{ verified: boolean; userId?: string; authenticatorId?: string; error?: string }> {
   try {
     // Find the authenticator by credential ID
-    const credentialId = Buffer.from(authenticationResponse.id, "base64").toString("base64");
+    const credentialId = authenticationResponse.id;
 
     const [authenticator] = await db
       .select()
@@ -272,9 +268,9 @@ export async function verifyWebAuthnAuthentication(
       expectedChallenge,
       expectedOrigin: ORIGIN,
       expectedRPID: RP_ID,
-      authenticator: {
-        credentialID: authenticator.credentialId,
-        credentialPublicKey: Buffer.from(authenticator.credentialPublicKey, "base64"),
+      credential: {
+        id: authenticator.credentialId,
+        publicKey: Buffer.from(authenticator.credentialPublicKey, "base64"),
         counter: authenticator.counter,
         transports: authenticator.transports as AuthenticatorTransport[],
       },

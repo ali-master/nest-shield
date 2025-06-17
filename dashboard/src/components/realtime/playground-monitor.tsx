@@ -31,7 +31,7 @@ type PlaygroundMetrics = {
 type PlaygroundAlert = {
   id: string;
   type: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  severity: "low" | "medium" | "high" | "critical";
   title: string;
   message: string;
   timestamp: Date;
@@ -40,7 +40,7 @@ type PlaygroundAlert = {
 
 type ServiceHealth = {
   service: string;
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: "healthy" | "degraded" | "unhealthy";
   responseTime: number;
   lastCheck: Date;
 };
@@ -52,7 +52,7 @@ export default function PlaygroundMonitor() {
   const [lastMetrics, setLastMetrics] = useState<PlaygroundMetrics | null>(null);
   const [recentAlerts, setRecentAlerts] = useState<PlaygroundAlert[]>([]);
   const [servicesHealth, setServicesHealth] = useState<ServiceHealth[]>([]);
-  
+
   // Use WebSocket hooks to connect to playground monitoring
   const websocketUrl = "http://localhost:3002"; // Playground WebSocket port
   const {
@@ -71,7 +71,7 @@ export default function PlaygroundMonitor() {
 
   useEffect(() => {
     setIsConnected(wsConnected && alertsConnected);
-    
+
     if (!wsConnected || !alertsConnected) {
       setConnectionError("Failed to connect to playground WebSocket");
     } else {
@@ -117,56 +117,65 @@ export default function PlaygroundMonitor() {
     }
   };
 
-  const triggerTestAlert = async (severity: 'low' | 'medium' | 'high' | 'critical') => {
+  const triggerTestAlert = async (severity: "low" | "medium" | "high" | "critical") => {
     try {
       const response = await fetch(`${playgroundUrl}/monitoring-demo/trigger-alert/${severity}`, {
-        method: 'POST',
+        method: "POST",
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to trigger alert: ${response.statusText}`);
       }
-      
+
       const result = await response.json();
-      console.log('Alert triggered:', result);
+      console.log("Alert triggered:", result);
     } catch (error) {
-      console.error('Error triggering alert:', error);
+      console.error("Error triggering alert:", error);
       setConnectionError(error instanceof Error ? error.message : "Failed to trigger alert");
     }
   };
 
-  const simulateLoad = async (type: 'cpu' | 'memory' | 'io') => {
+  const simulateLoad = async (type: "cpu" | "memory" | "io") => {
     try {
       const response = await fetch(`${playgroundUrl}/monitoring-demo/system-load?type=${type}`);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to simulate load: ${response.statusText}`);
       }
-      
+
       const result = await response.json();
-      console.log('Load simulation result:', result);
+      console.log("Load simulation result:", result);
     } catch (error) {
-      console.error('Error simulating load:', error);
+      console.error("Error simulating load:", error);
       setConnectionError(error instanceof Error ? error.message : "Failed to simulate load");
     }
   };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'critical': return 'bg-red-500';
-      case 'high': return 'bg-orange-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'low': return 'bg-blue-500';
-      default: return 'bg-gray-500';
+      case "critical":
+        return "bg-red-500";
+      case "high":
+        return "bg-orange-500";
+      case "medium":
+        return "bg-yellow-500";
+      case "low":
+        return "bg-blue-500";
+      default:
+        return "bg-gray-500";
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'healthy': return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'degraded': return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
-      case 'unhealthy': return <AlertTriangle className="w-4 h-4 text-red-500" />;
-      default: return <Server className="w-4 h-4 text-gray-500" />;
+      case "healthy":
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case "degraded":
+        return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
+      case "unhealthy":
+        return <AlertTriangle className="w-4 h-4 text-red-500" />;
+      default:
+        return <Server className="w-4 h-4 text-gray-500" />;
     }
   };
 
@@ -180,7 +189,7 @@ export default function PlaygroundMonitor() {
             Real-time monitoring of NestShield playground application
           </p>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {isConnected ? (
             <Badge variant="default" className="flex items-center gap-1">
@@ -200,9 +209,7 @@ export default function PlaygroundMonitor() {
       {connectionError && (
         <Alert>
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            Connection Error: {connectionError}
-          </AlertDescription>
+          <AlertDescription>Connection Error: {connectionError}</AlertDescription>
         </Alert>
       )}
 
@@ -213,19 +220,17 @@ export default function PlaygroundMonitor() {
             <Network className="w-5 h-5" />
             Connection Test
           </CardTitle>
-          <CardDescription>
-            Test connectivity to the playground application
-          </CardDescription>
+          <CardDescription>Test connectivity to the playground application</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
             <Button onClick={testPlaygroundConnection} variant="outline">
               Test HTTP Connection
             </Button>
-            <Button onClick={() => triggerTestAlert('medium')} variant="outline">
+            <Button onClick={() => triggerTestAlert("medium")} variant="outline">
               Trigger Test Alert
             </Button>
-            <Button onClick={() => simulateLoad('cpu')} variant="outline">
+            <Button onClick={() => simulateLoad("cpu")} variant="outline">
               Simulate CPU Load
             </Button>
           </div>
@@ -241,11 +246,9 @@ export default function PlaygroundMonitor() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {lastMetrics ? `${lastMetrics.cpu.usage.toFixed(1)}%` : '--'}
+              {lastMetrics ? `${lastMetrics.cpu.usage.toFixed(1)}%` : "--"}
             </div>
-            {lastMetrics && (
-              <Progress value={lastMetrics.cpu.usage} className="mt-2" />
-            )}
+            {lastMetrics && <Progress value={lastMetrics.cpu.usage} className="mt-2" />}
           </CardContent>
         </Card>
 
@@ -256,11 +259,9 @@ export default function PlaygroundMonitor() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {lastMetrics ? `${lastMetrics.memory.usage.toFixed(1)}%` : '--'}
+              {lastMetrics ? `${lastMetrics.memory.usage.toFixed(1)}%` : "--"}
             </div>
-            {lastMetrics && (
-              <Progress value={lastMetrics.memory.usage} className="mt-2" />
-            )}
+            {lastMetrics && <Progress value={lastMetrics.memory.usage} className="mt-2" />}
           </CardContent>
         </Card>
 
@@ -271,9 +272,7 @@ export default function PlaygroundMonitor() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{activeAlertsCount}</div>
-            <p className="text-xs text-muted-foreground">
-              {recentAlerts.length} total alerts
-            </p>
+            <p className="text-xs text-muted-foreground">{recentAlerts.length} total alerts</p>
           </CardContent>
         </Card>
 
@@ -283,12 +282,8 @@ export default function PlaygroundMonitor() {
             <Globe className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {isConnected ? "Online" : "Offline"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Real-time monitoring
-            </p>
+            <div className="text-2xl font-bold">{isConnected ? "Online" : "Offline"}</div>
+            <p className="text-xs text-muted-foreground">Real-time monitoring</p>
           </CardContent>
         </Card>
       </div>
@@ -305,7 +300,10 @@ export default function PlaygroundMonitor() {
           <div className="space-y-3">
             {servicesHealth.length > 0 ? (
               servicesHealth.map((service) => (
-                <div key={service.service} className="flex items-center justify-between p-3 border rounded-lg">
+                <div
+                  key={service.service}
+                  className="flex items-center justify-between p-3 border rounded-lg"
+                >
                   <div className="flex items-center gap-3">
                     {getStatusIcon(service.status)}
                     <div>
@@ -315,7 +313,7 @@ export default function PlaygroundMonitor() {
                       </div>
                     </div>
                   </div>
-                  <Badge variant={service.status === 'healthy' ? 'default' : 'destructive'}>
+                  <Badge variant={service.status === "healthy" ? "default" : "destructive"}>
                     {service.status}
                   </Badge>
                 </div>
@@ -341,7 +339,10 @@ export default function PlaygroundMonitor() {
           <div className="space-y-3">
             {recentAlerts.length > 0 ? (
               recentAlerts.map((alert) => (
-                <div key={alert.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div
+                  key={alert.id}
+                  className="flex items-center justify-between p-3 border rounded-lg"
+                >
                   <div className="flex items-center gap-3">
                     <div className={`w-3 h-3 rounded-full ${getSeverityColor(alert.severity)}`} />
                     <div>
@@ -353,15 +354,11 @@ export default function PlaygroundMonitor() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={alert.severity === 'critical' ? 'destructive' : 'secondary'}>
+                    <Badge variant={alert.severity === "critical" ? "destructive" : "secondary"}>
                       {alert.severity}
                     </Badge>
                     {!alert.resolved && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => resolveAlert(alert.id)}
-                      >
+                      <Button size="sm" variant="outline" onClick={() => resolveAlert(alert.id)}>
                         Resolve
                       </Button>
                     )}
@@ -369,9 +366,7 @@ export default function PlaygroundMonitor() {
                 </div>
               ))
             ) : (
-              <div className="text-center text-muted-foreground py-4">
-                No recent alerts
-              </div>
+              <div className="text-center text-muted-foreground py-4">No recent alerts</div>
             )}
           </div>
         </CardContent>
@@ -384,31 +379,29 @@ export default function PlaygroundMonitor() {
             <Zap className="w-5 h-5" />
             Test Actions
           </CardTitle>
-          <CardDescription>
-            Trigger various events to test the monitoring system
-          </CardDescription>
+          <CardDescription>Trigger various events to test the monitoring system</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Button onClick={() => triggerTestAlert('low')} variant="outline" size="sm">
+            <Button onClick={() => triggerTestAlert("low")} variant="outline" size="sm">
               Low Alert
             </Button>
-            <Button onClick={() => triggerTestAlert('medium')} variant="outline" size="sm">
+            <Button onClick={() => triggerTestAlert("medium")} variant="outline" size="sm">
               Medium Alert
             </Button>
-            <Button onClick={() => triggerTestAlert('high')} variant="outline" size="sm">
+            <Button onClick={() => triggerTestAlert("high")} variant="outline" size="sm">
               High Alert
             </Button>
-            <Button onClick={() => triggerTestAlert('critical')} variant="outline" size="sm">
+            <Button onClick={() => triggerTestAlert("critical")} variant="outline" size="sm">
               Critical Alert
             </Button>
-            <Button onClick={() => simulateLoad('cpu')} variant="outline" size="sm">
+            <Button onClick={() => simulateLoad("cpu")} variant="outline" size="sm">
               CPU Load
             </Button>
-            <Button onClick={() => simulateLoad('memory')} variant="outline" size="sm">
+            <Button onClick={() => simulateLoad("memory")} variant="outline" size="sm">
               Memory Load
             </Button>
-            <Button onClick={() => simulateLoad('io')} variant="outline" size="sm">
+            <Button onClick={() => simulateLoad("io")} variant="outline" size="sm">
               I/O Load
             </Button>
             <Button onClick={testPlaygroundConnection} variant="outline" size="sm">
