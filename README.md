@@ -455,6 +455,28 @@ ShieldModule.forRoot({
 })
 ```
 
+## 🤖 Agent Skills (Claude Code & compatible agents)
+
+NestShield ships **Agent Skills** that teach AI coding agents how to integrate the library correctly — module setup, the global guard model, per-route decorators, storage/scaling trade-offs, and the anomaly-detection subsystem. Install them into any project so your agent stops guessing and follows the real API.
+
+```bash
+# pick your package manager
+bunx skills add ali-master/nest-shield
+# or
+npx skills add ali-master/nest-shield
+# or
+pnpm dlx skills add ali-master/nest-shield
+```
+
+This installs two skills (from the [`skills/`](./skills) directory):
+
+| Skill | Triggers when you ask to… |
+|-------|---------------------------|
+| **`nest-shield-protection`** | rate-limit, throttle, add circuit breakers, shed load/overload, or protect NestJS endpoints against spikes, bursts, DDoS, and cascade failures |
+| **`nest-shield-anomaly-detection`** | detect anomalies, outliers, or unusual traffic/metric patterns with the built-in ML detectors (KNN, Isolation Forest, Z-Score, seasonal, composite) |
+
+Once installed, the agent invokes the right skill automatically when you describe the task — e.g. *"add per-tier rate limiting to my checkout endpoint"* or *"flag latency spikes in our metrics stream."*
+
 ## 📚 Documentation
 
 ### 📖 **Comprehensive Guides**
