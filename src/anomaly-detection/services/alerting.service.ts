@@ -526,7 +526,7 @@ Description: ${anomaly.description}`;
       }
 
       // This is a simplified evaluation - use a proper expression library in production
-      // eslint-disable-next-line no-new-func
+      // oxlint-disable-next-line no-new-func
       return Function(`"use strict"; return (${evaluableCondition})`)();
     } catch (error) {
       this.logger.error(`Error evaluating condition: ${condition}`, error);

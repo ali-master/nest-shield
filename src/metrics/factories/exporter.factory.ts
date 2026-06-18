@@ -50,7 +50,7 @@ export class ExporterFactoryService implements IExporterFactory, OnModuleInit {
       return null;
     }
     try {
-      // eslint-disable-next-line new-cap
+      // oxlint-disable-next-line new-cap
       return new this.prometheusExporterClass(collector, config);
     } catch {
       return null;
@@ -65,7 +65,7 @@ export class ExporterFactoryService implements IExporterFactory, OnModuleInit {
       return null;
     }
     try {
-      // eslint-disable-next-line new-cap
+      // oxlint-disable-next-line new-cap
       return new this.jsonExporterClass(collector, config);
     } catch {
       return null;
@@ -80,7 +80,7 @@ export class ExporterFactoryService implements IExporterFactory, OnModuleInit {
       return null;
     }
     try {
-      // eslint-disable-next-line new-cap
+      // oxlint-disable-next-line new-cap
       return new this.openMetricsExporterClass(collector, config);
     } catch {
       return null;

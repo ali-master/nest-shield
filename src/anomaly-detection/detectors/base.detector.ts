@@ -226,7 +226,7 @@ export abstract class BaseAnomalyDetector implements IAnomalyDetector {
       });
 
       // Evaluate the condition (use a safe evaluator in production)
-      // eslint-disable-next-line no-new-func
+      // oxlint-disable-next-line no-new-func
       return new Function(`return ${evaluableCondition}`)();
     } catch (error) {
       this.logger.warn(`Failed to evaluate business rule: ${condition}`, error);

@@ -648,7 +648,7 @@ export class DataCollectorService {
         evaluableExpression = evaluableExpression.replace(regex, JSON.stringify(value));
       }
 
-      // eslint-disable-next-line no-new-func
+      // oxlint-disable-next-line no-new-func
       return Function(`"use strict"; return (${evaluableExpression})`)();
     } catch (error) {
       this.logger.error(`Error evaluating expression: ${expression}`, error);
