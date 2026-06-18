@@ -204,8 +204,18 @@ export class ThrottleService {
   }
 
   private generateKey(context: IProtectionContext, config: IThrottleConfig): string {
-    const baseKey = KeyGeneratorUtil.generateKey(context, config, "throttle");
-    return typeof baseKey === "string" ? baseKey : `throttle:${context.ip}`;
+    // A custom key generator takes full control of isolation.
+    if (config.keyGenerator) {
+      const baseKey = KeyGeneratorUtil.generateKey(context, config, "throttle");
+      if (typeof baseKey === "string") {
+        return baseKey;
+      }
+    }
+
+    // Default: isolate per route so each endpoint's configured limit applies
+    // independently instead of sharing one per-identity counter.
+    const identity = context.userId || context.ip || "global";
+    return `throttle:${context.method}:${context.path}:${identity}`;
   }
 
   /**

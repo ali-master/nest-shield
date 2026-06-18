@@ -8,6 +8,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "typecheck": "tsc --noEmit",
+    "sync:lib": "cd .. && bun run build && cd playground && rm -rf node_modules/@usex/nest-shield && mkdir -p node_modules/@usex/nest-shield && cp -R ../dist ../package.json node_modules/@usex/nest-shield/",
     "test:knip": "knip",
     "test:knip:fix": "knip --fix",
     "format:check": "prettier --check \"**/*.{ts,tsx,mdx}\"",

@@ -1,5 +1,5 @@
 import { OnModuleDestroy, Injectable } from "@nestjs/common";
-import * as CircuitBreaker from "opossum";
+import CircuitBreaker = require("opossum");
 import type {
   IProtectionContext,
   ICircuitBreakerConfig,
@@ -38,7 +38,7 @@ export class CircuitBreakerService implements OnModuleDestroy {
 
   createBreaker(
     key: string,
-    handler: Function,
+    handler: (...args: any[]) => Promise<any>,
     config?: Partial<ICircuitBreakerConfig>,
   ): CircuitBreaker {
     const mergedConfig = { ...this.globalConfig, ...config };
@@ -178,7 +178,7 @@ export class CircuitBreakerService implements OnModuleDestroy {
     }
   }
 
-  private createPassthroughBreaker(handler: Function): any {
+  private createPassthroughBreaker(handler: (...args: any[]) => Promise<any>): any {
     return {
       fire: (...args: any[]) => handler(...args),
       opened: false,

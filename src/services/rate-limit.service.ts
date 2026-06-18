@@ -148,11 +148,18 @@ export class RateLimitService {
   }
 
   private generateKey(context: IProtectionContext, config: IRateLimitConfig): string {
-    // Generate base key without prefix (will be added in window info)
-    const baseKey = KeyGeneratorUtil.generateKey(context, config, "");
-    return typeof baseKey === "string"
-      ? baseKey
-      : `${context.ip}:${context.path}:${context.method}`;
+    // A custom key generator takes full control of isolation.
+    if (config.keyGenerator) {
+      const baseKey = KeyGeneratorUtil.generateKey(context, config, "");
+      if (typeof baseKey === "string") {
+        return baseKey;
+      }
+    }
+
+    // Default: isolate the limit per route so each endpoint's configured
+    // `points` apply independently instead of sharing one per-identity counter.
+    const identity = context.userId || context.ip || "global";
+    return `${context.method}:${context.path}:${identity}`;
   }
 
   /**

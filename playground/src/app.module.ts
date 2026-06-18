@@ -190,12 +190,16 @@ import { CustomMetricsService } from "./services/custom-metrics.service";
               isReady: () => true,
               configure: (options: any) => console.log("KNN configured with:", options),
               train: (data: any[]) => console.log("KNN training with data points:", data.length),
-              detect: (data: any) => ({
-                isAnomaly: Math.random() > 0.7,
-                score: Math.random(),
-                confidence: Math.random(),
-                metadata: { type: "knn", threshold: 0.7 },
-              }),
+              // detect() returns an array of results (one per data point),
+              // matching the real IAnomalyDetector contract the controllers consume.
+              detect: (data: any) =>
+                (Array.isArray(data) ? data : [data]).map((point: any) => ({
+                  isAnomaly: Math.random() > 0.7,
+                  score: Math.random(),
+                  confidence: Math.random(),
+                  data: point,
+                  metadata: { type: "knn", threshold: 0.7 },
+                })),
               getMetrics: () => ({
                 totalSamples: 1000,
                 anomaliesDetected: 42,

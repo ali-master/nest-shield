@@ -521,48 +521,76 @@ export class ShieldGuard implements CanActivate, BeforeApplicationShutdown {
     metadata: IProtectionMetadata,
     request: Request,
   ): Promise<IProtectionResult> {
-    // 1. Priority-based overload protection (first line of defense)
-    if (this.isOverloadProtectionEnabled(metadata)) {
-      const overloadResult = await this.checkOverloadProtection(context, metadata);
-      if (!overloadResult.allowed) {
-        return overloadResult;
+    // Tracks whether an overload slot was acquired so it can be released if a
+    // later protection rejects the request. Without this, a request that passes
+    // overload but is then blocked by rate limiting/throttling/etc. would leak
+    // its slot — the release interceptor only runs when the guard allows the
+    // request, never when it rejects or throws.
+    let overloadAcquired = false;
+
+    try {
+      // 1. Priority-based overload protection (first line of defense)
+      if (this.isOverloadProtectionEnabled(metadata)) {
+        const overloadResult = await this.checkOverloadProtection(context, metadata);
+        if (!overloadResult.allowed) {
+          return overloadResult;
+        }
+        overloadAcquired = true;
       }
-    }
 
-    // 2. Rate limiting (per-client limits)
-    if (this.isRateLimitEnabled(metadata)) {
-      const rateLimitResult = await this.checkRateLimit(context, metadata);
-      if (!rateLimitResult.allowed) {
-        return rateLimitResult;
+      // 2. Rate limiting (per-client limits)
+      if (this.isRateLimitEnabled(metadata)) {
+        const rateLimitResult = await this.checkRateLimit(context, metadata);
+        if (!rateLimitResult.allowed) {
+          this.releaseOverloadIfAcquired(overloadAcquired);
+          return rateLimitResult;
+        }
       }
-    }
 
-    // 3. Throttling (token bucket)
-    if (this.isThrottleEnabled(metadata)) {
-      const throttleResult = await this.checkThrottle(context, metadata);
-      if (!throttleResult.allowed) {
-        return throttleResult;
+      // 3. Throttling (token bucket)
+      if (this.isThrottleEnabled(metadata)) {
+        const throttleResult = await this.checkThrottle(context, metadata);
+        if (!throttleResult.allowed) {
+          this.releaseOverloadIfAcquired(overloadAcquired);
+          return throttleResult;
+        }
       }
-    }
 
-    // 4. Circuit breaker check (service health)
-    if (this.isCircuitBreakerEnabled(metadata)) {
-      const circuitResult = await this.checkCircuitBreaker(context, metadata);
-      if (!circuitResult.allowed) {
-        return circuitResult;
+      // 4. Circuit breaker check (service health)
+      if (this.isCircuitBreakerEnabled(metadata)) {
+        const circuitResult = await this.checkCircuitBreaker(context, metadata);
+        if (!circuitResult.allowed) {
+          this.releaseOverloadIfAcquired(overloadAcquired);
+          return circuitResult;
+        }
       }
+
+      // 5. Additional security validations
+      const securityResult = await this.performSecurityValidations(context, request);
+      if (!securityResult.allowed) {
+        this.releaseOverloadIfAcquired(overloadAcquired);
+        return securityResult;
+      }
+
+      // 6. Transfer protection info to request for parameter decorators.
+      // On this success path the release interceptor will free the overload slot.
+      this.transferProtectionInfoToRequest(context, request);
+
+      return { allowed: true };
+    } catch (error) {
+      this.releaseOverloadIfAcquired(overloadAcquired);
+      throw error;
     }
+  }
 
-    // 5. Additional security validations
-    const securityResult = await this.performSecurityValidations(context, request);
-    if (!securityResult.allowed) {
-      return securityResult;
+  /**
+   * Releases a previously acquired overload slot. Used to avoid leaking slots
+   * when a request is rejected by a protection that runs after overload.
+   */
+  private releaseOverloadIfAcquired(acquired: boolean): void {
+    if (acquired) {
+      this.overloadService.release();
     }
-
-    // 6. Transfer protection info to request for parameter decorators
-    this.transferProtectionInfoToRequest(context, request);
-
-    return { allowed: true };
   }
 
   /**
