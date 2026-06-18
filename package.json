@@ -1,6 +1,6 @@
 {
   "name": "@usex/nest-shield",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Enterprise-grade overload protection and traffic management for NestJS applications with distributed rate limiting, circuit breakers, and comprehensive monitoring",
   "license": "MIT",
   "url": "https://github.com/ali-master/nest-shield#readme",
