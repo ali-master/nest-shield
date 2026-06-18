@@ -161,9 +161,14 @@
     "reflect-metadata": "^0.1.13 || ^0.2.0",
     "rxjs": "^7.2.0"
   },
+  "simple-git-hooks": {
+    "pre-commit": "bunx lint-staged",
+    "commit-msg": "bunx commitlint --edit $1"
+  },
   "lint-staged": {
-    "*.{js,ts,mjs,cjs,json,.*rc}": [
-      "bun eslint --fix"
+    "*.ts": [
+      "vp lint --fix",
+      "vp fmt"
     ]
   },
   "repository": {
@@ -188,6 +193,6 @@
   },
   "overrides": {
     "vite": "npm:@voidzero-dev/vite-plus-core@latest",
-    "vitest": "npm:@voidzero-dev/vite-plus-test@latest"
+    "vitest": "4.1.9"
   }
 }

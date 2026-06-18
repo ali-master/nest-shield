@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "dotenv": {
+      "source": "dotenv",
+      "sourceType": "node_modules",
+      "computedHash": "7580a9737aebb75d98d174bed9b3545586db2d3a112f0fe69c8b79eecfd5ce99"
+    },
+    "dotenvx": {
+      "source": "dotenv",
+      "sourceType": "node_modules",
+      "computedHash": "851072ff03649019eeadb9780b87eacdc3e0b39b8407105354144f692ebc699b"
+    }
+  }
+}
