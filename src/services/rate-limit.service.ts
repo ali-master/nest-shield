@@ -1,4 +1,6 @@
 import { Injectable, Inject } from "@nestjs/common";
+import { RateLimiterMemory, RateLimiterRedis, RateLimiterRes } from "rate-limiter-flexible";
+import type { RateLimiterAbstract } from "rate-limiter-flexible";
 import type {
   IStorageAdapter,
   IRateLimitConfig,
@@ -10,14 +12,32 @@ import { RateLimitException } from "../core/exceptions";
 import type { IMetricsCollector } from "../interfaces";
 import { KeyGeneratorUtil, HeaderGeneratorUtil } from "../common/utils";
 
+/**
+ * Rate limiting backed by the `rate-limiter-flexible` package.
+ *
+ * The service keeps the existing NestShield contract (`consume`, route-isolated
+ * keys, custom key generators, headers and `RateLimitException`) but delegates
+ * the actual counting/window/block bookkeeping to `rate-limiter-flexible`.
+ *
+ * Backend selection mirrors the configured storage:
+ * - `redis`  -> `RateLimiterRedis` sharing the storage adapter's ioredis client
+ *               (distributed counters across instances)
+ * - anything else (`memory`, `memcached`, `custom`) -> `RateLimiterMemory`
+ *   (`rate-limiter-flexible`'s memcached backend requires the `memcached`
+ *   package, which is incompatible with the `memjs` client used here).
+ */
 @Injectable()
 export class RateLimitService {
   private readonly globalConfig: IRateLimitConfig;
-  private readonly keyCache = new Map<
-    string,
-    { key: string; windowStart: number; resetTime: number }
-  >();
-  private readonly CACHE_SIZE_LIMIT = 10000;
+
+  /** One limiter instance per unique `points:duration:blockDuration` config. */
+  private readonly limiters = new Map<string, RateLimiterAbstract>();
+
+  /** Dedicated limiter used by the manual block/isBlocked helpers. */
+  private blockLimiter?: RateLimiterAbstract;
+
+  /** ioredis client shared with the limiters when redis storage is configured. */
+  private readonly redisClient?: unknown;
 
   constructor(
     @Inject(DI_TOKENS.SHIELD_MODULE_OPTIONS) private readonly options: any,
@@ -25,6 +45,11 @@ export class RateLimitService {
     @Inject(DI_TOKENS.METRICS_SERVICE) private readonly metricsService: IMetricsCollector,
   ) {
     this.globalConfig = this.options.rateLimit || {};
+
+    // Reuse the storage adapter's connection for distributed rate limiting.
+    if (this.options.storage?.type === "redis" && typeof this.storage.getClient === "function") {
+      this.redisClient = this.storage.getClient();
+    }
   }
 
   async consume(
@@ -37,25 +62,35 @@ export class RateLimitService {
       return { allowed: true };
     }
 
-    const baseKey = this.generateKey(context, mergedConfig);
-    const now = Date.now();
-    const windowInfo = this.getOrCreateWindowInfo(baseKey, now, mergedConfig);
-    const windowKey = windowInfo.key;
+    const key = this.generateKey(context, mergedConfig);
+    const limiter = this.getLimiter(mergedConfig);
 
     try {
-      // Get current value and check if key exists
-      let currentPoints = (await this.storage.get(windowKey)) || 0;
-      currentPoints = Number(currentPoints);
+      const res = await limiter.consume(key, 1);
+      const remaining = Math.max(0, res.remainingPoints);
+      const reset = Date.now() + res.msBeforeNext;
 
-      // Set TTL only if this is a new key
-      if (currentPoints === 0) {
-        await this.storage.expire(windowKey, mergedConfig.duration);
-      }
+      this.metricsService.increment("rate_limit_consumed", 1, {
+        path: context.path,
+        method: context.method,
+      });
 
-      if (currentPoints >= mergedConfig.points) {
-        const retryAfter = Math.ceil((windowInfo.resetTime - now) / 1000);
+      return {
+        allowed: true,
+        metadata: {
+          limit: mergedConfig.points,
+          remaining,
+          reset,
+          headers: this.generateHeaders(mergedConfig, remaining, reset),
+        },
+      };
+    } catch (error) {
+      // `rate-limiter-flexible` rejects with a RateLimiterRes when the limit is
+      // exhausted (or the key is blocked); any other rejection is a backend error.
+      if (error instanceof RateLimiterRes) {
+        const reset = Date.now() + error.msBeforeNext;
+        const retryAfter = Math.ceil(error.msBeforeNext / 1000);
 
-        // Record metrics
         this.metricsService.increment("rate_limit_exceeded", 1, {
           path: context.path,
           method: context.method,
@@ -69,35 +104,11 @@ export class RateLimitService {
         throw new RateLimitException(message, retryAfter, {
           limit: mergedConfig.points,
           remaining: 0,
-          reset: windowInfo.resetTime,
+          reset,
         });
       }
 
-      // Atomic increment
-      const newPoints = await this.storage.increment(windowKey, 1);
-      const remaining = mergedConfig.points - newPoints;
-
-      // Record metrics
-      this.metricsService.increment("rate_limit_consumed", 1, {
-        path: context.path,
-        method: context.method,
-      });
-
-      return {
-        allowed: true,
-        metadata: {
-          limit: mergedConfig.points,
-          remaining,
-          reset: windowInfo.resetTime,
-          headers: this.generateHeaders(mergedConfig, remaining, windowInfo.resetTime),
-        },
-      };
-    } catch (error) {
-      if (error instanceof RateLimitException) {
-        throw error;
-      }
-
-      // Record metrics
+      // Backend failure: fail open so a store outage doesn't reject traffic.
       this.metricsService.increment("rate_limit_error", 1, {
         path: context.path,
         method: context.method,
@@ -109,13 +120,8 @@ export class RateLimitService {
 
   async reset(context: IProtectionContext, config?: Partial<IRateLimitConfig>): Promise<void> {
     const mergedConfig = { ...this.globalConfig, ...config };
-    const baseKey = this.generateKey(context, mergedConfig);
-    const now = Date.now();
-    const windowInfo = this.getOrCreateWindowInfo(baseKey, now, mergedConfig);
-
-    // Delete from storage and clear cache
-    await this.storage.delete(windowInfo.key);
-    this.keyCache.delete(baseKey);
+    const key = this.generateKey(context, mergedConfig);
+    await this.getLimiter(mergedConfig).delete(key);
   }
 
   async getRemaining(
@@ -128,23 +134,63 @@ export class RateLimitService {
       return mergedConfig.points;
     }
 
-    const baseKey = this.generateKey(context, mergedConfig);
-    const now = Date.now();
-    const windowInfo = this.getOrCreateWindowInfo(baseKey, now, mergedConfig);
-
-    const currentPoints = (await this.storage.get(windowInfo.key)) || 0;
-    return Math.max(0, mergedConfig.points - Number(currentPoints));
+    const key = this.generateKey(context, mergedConfig);
+    const res = await this.getLimiter(mergedConfig).get(key);
+    return res ? Math.max(0, res.remainingPoints) : mergedConfig.points;
   }
 
-  async block(context: IProtectionContext, duration: number, reason?: string): Promise<void> {
-    const key = `block:${context.ip}`;
-    await this.storage.set(key, { reason, timestamp: Date.now() }, duration);
+  async block(context: IProtectionContext, duration: number, _reason?: string): Promise<void> {
+    await this.getBlockLimiter().block(context.ip, duration);
   }
 
   async isBlocked(context: IProtectionContext): Promise<boolean> {
-    const key = `block:${context.ip}`;
-    const blockInfo = await this.storage.get(key);
-    return !!blockInfo;
+    const res = await this.getBlockLimiter().get(context.ip);
+    return !!res && res.msBeforeNext > 0;
+  }
+
+  /**
+   * Returns (creating if needed) a limiter for the given config. Limiters are
+   * cached per `points:duration:blockDuration` signature and isolate keys via a
+   * distinct keyPrefix so different limits never share counters.
+   */
+  private getLimiter(config: IRateLimitConfig): RateLimiterAbstract {
+    const blockDuration = config.blockDuration ?? 0;
+    const signature = `${config.points}:${config.duration}:${blockDuration}`;
+
+    let limiter = this.limiters.get(signature);
+    if (!limiter) {
+      limiter = this.createLimiter({
+        points: config.points,
+        duration: config.duration,
+        blockDuration,
+        keyPrefix: `nest-shield:rl:${signature}`,
+      });
+      this.limiters.set(signature, limiter);
+    }
+    return limiter;
+  }
+
+  private getBlockLimiter(): RateLimiterAbstract {
+    if (!this.blockLimiter) {
+      this.blockLimiter = this.createLimiter({
+        points: 1,
+        duration: 1,
+        keyPrefix: "nest-shield:block",
+      });
+    }
+    return this.blockLimiter;
+  }
+
+  private createLimiter(opts: {
+    points: number;
+    duration: number;
+    keyPrefix: string;
+    blockDuration?: number;
+  }): RateLimiterAbstract {
+    if (this.redisClient) {
+      return new RateLimiterRedis({ ...opts, storeClient: this.redisClient });
+    }
+    return new RateLimiterMemory(opts);
   }
 
   private generateKey(context: IProtectionContext, config: IRateLimitConfig): string {
@@ -160,41 +206,6 @@ export class RateLimitService {
     // `points` apply independently instead of sharing one per-identity counter.
     const identity = context.userId || context.ip || "global";
     return `${context.method}:${context.path}:${identity}`;
-  }
-
-  /**
-   * Get or create window info with caching for better performance
-   */
-  private getOrCreateWindowInfo(
-    cacheKey: string,
-    now: number,
-    config: IRateLimitConfig,
-  ): { key: string; windowStart: number; resetTime: number } {
-    const cached = this.keyCache.get(cacheKey);
-    const windowStart = Math.floor(now / 1000 / config.duration) * config.duration * 1000;
-    const resetTime = windowStart + config.duration * 1000;
-
-    // Return cached if same window
-    if (cached && cached.windowStart === windowStart) {
-      return cached;
-    }
-
-    // Create new window info
-    const windowKey = `rate_limit:${cacheKey}:${windowStart}`;
-    const windowInfo = { key: windowKey, windowStart, resetTime };
-
-    // Cache with size limit
-    if (this.keyCache.size >= this.CACHE_SIZE_LIMIT) {
-      // Remove oldest 10% of entries
-      const keysToRemove = Array.from(this.keyCache.keys()).slice(
-        0,
-        Math.floor(this.CACHE_SIZE_LIMIT * 0.1),
-      );
-      keysToRemove.forEach((k) => this.keyCache.delete(k));
-    }
-
-    this.keyCache.set(cacheKey, windowInfo);
-    return windowInfo;
   }
 
   private generateHeaders(
@@ -216,24 +227,10 @@ export class RateLimitService {
     return headers;
   }
 
-  async cleanup(): Promise<void> {
-    // Clean up expired cache entries
-    const now = Date.now();
-    for (const [key, value] of this.keyCache.entries()) {
-      if (now > value.resetTime) {
-        this.keyCache.delete(key);
-      }
-    }
-
-    // Clean up expired storage keys (if supported)
-    if (this.storage.scan) {
-      const keys = await this.storage.scan("rate_limit:*");
-      for (const key of keys) {
-        const ttl = await this.storage.ttl(key);
-        if (ttl === -2) {
-          await this.storage.delete(key);
-        }
-      }
-    }
-  }
+  /**
+   * No-op retained for API compatibility. `rate-limiter-flexible` manages key
+   * expiry internally (TTLs for redis, timers for memory), so there is nothing
+   * to sweep here.
+   */
+  async cleanup(): Promise<void> {}
 }

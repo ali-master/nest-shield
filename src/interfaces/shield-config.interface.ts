@@ -44,6 +44,13 @@ export interface IStorageAdapter {
   mget?: (keys: string[]) => Promise<any[]>;
   mset?: (entries: Array<[string, any]>, ttl?: number) => Promise<void>;
   scan?: (pattern: string, count?: number) => Promise<string[]>;
+  /**
+   * Returns the underlying backend client (e.g. an ioredis instance) when the
+   * adapter is backed by an external store. Used by the rate limiter to share a
+   * single connection for distributed counters. Returns undefined for in-memory
+   * adapters.
+   */
+  getClient?: () => unknown;
 }
 
 export interface ICircuitBreakerConfig {
